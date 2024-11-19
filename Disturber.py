@@ -1,6 +1,8 @@
 import numpy as np
 from ase.units import fs
 from ase.md.langevin import Langevin
+from sklearn.decomposition import PCA
+from ase import Atoms
 
 
 class Disturber:
@@ -16,7 +18,8 @@ class Disturber:
     def angular_movement(self, cluster):
         pass
 
-    def md(self, cluster, temperature, number_of_steps):
+    @staticmethod
+    def md(cluster, temperature, number_of_steps):
         """
         Perform a Molecular Dynamics run using Langevin Dynamics
         :param cluster: Cluster of atoms
@@ -25,7 +28,7 @@ class Disturber:
         """
         dyn = Langevin(
             cluster,
-            timestep=5.0 * fs, # Feel free to mess with this parameter
+            timestep=5.0 * fs,  # Feel free to mess with this parameter
             temperature_K=temperature,
             friction=0.5 / fs,  # Feel free to mess with this parameter
         )
@@ -39,7 +42,7 @@ class Disturber:
         pass
 
     @staticmethod
-    def split_cluster(cluster, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
+    def split_cluster(cluster: Atoms, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
         v1 = p2 - p1
         v2 = p3 - p1
         normal = np.cross(v1, v2)
@@ -53,3 +56,15 @@ class Disturber:
             else:
                 group2.append(atom)
         return group1, group2
+
+    @staticmethod
+    def align_cluster(cluster: Atoms):
+        cl = np.array(cluster.positions)
+        center_of_mass = np.mean(cl, axis=0)
+        cluster_centered = cl - center_of_mass
+        pca = PCA(n_components=3)
+        pca.fit(cluster_centered)
+        principal_axes = pca.components_
+        rotated_cluster = np.dot(cluster_centered, principal_axes.T)
+        cluster.positions = rotated_cluster
+        return cluster
