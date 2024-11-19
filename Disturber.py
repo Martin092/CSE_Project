@@ -1,7 +1,7 @@
 import numpy as np
 from ase.units import fs
 from ase.md.langevin import Langevin
-
+from rotation_matrices import rotation_matrix
 
 class Disturber:
 
@@ -33,7 +33,21 @@ class Disturber:
         dyn.run(number_of_steps)
 
     def twist(self, cluster):
-        pass
+        group1, group2, normal = self.split_cluster(cluster)
+        choice = np.random.choice([0, 1])
+        chosen_group = group1 if choice == 0 else group2
+
+        angle = np.random.uniform(0, 2 * np.pi)
+        rotation_matrix = self.rotation_matrix(normal, angle)
+
+        for atom in chosen_group:
+            atom.position = np.dot(rotation_matrix, atom.position)
+
+        if choice == 0:
+            group = group1.extend(chosen_group)
+        else:
+            group = group2.extend(chosen_group)
+        return group
 
     def etching(self, cluster):
         pass
@@ -52,4 +66,4 @@ class Disturber:
                 group1.append(atom)
             else:
                 group2.append(atom)
-        return group1, group2
+        return group1, group2, normal
