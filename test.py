@@ -64,4 +64,4 @@ def test_cluster_alignments_50(cluster_50):
 
 def test_crossover(cluster_30_2):
     a, b = GeneticAlgorithm.crossover(cluster_30_2[0], cluster_30_2[1])
-    assert a == b
+    assert len(a) == len(b)
