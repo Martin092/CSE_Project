@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from ASE import Atoms
+from ase import Atoms
 import numpy as np
 
 class GlobalOptimizer(ABC):
@@ -27,7 +27,7 @@ class GlobalOptimizer(ABC):
     def setup(self):
         for cluster in self.clusters:
             config = ( np.random.rand(self.atoms, 3) - 0.5 ) *  self.boxLength * 1.5 #1.5 is a magic number
-            #In the future, instead of number of atoms, we ask the user to choose how many atoms they want for each atom type.
+            # In the future, instead of number of atoms, we ask the user to choose how many atoms they want for each atom type.
             clus = Atoms('LJ' + str(self.atoms), positions=config)
             self.clusterList.append(clus)   
         pass
