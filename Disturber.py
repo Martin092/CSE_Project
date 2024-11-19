@@ -1,8 +1,8 @@
 import numpy as np
 from ase.units import fs
 from ase.md.langevin import Langevin
-from rotation_matrices import rotation_matrix
 from sklearn.decomposition import PCA
+from reference_code.rotation_matrices import rotation_matrix
 from ase import Atoms
 
 
@@ -16,8 +16,9 @@ class Disturber:
     def random_setup(self, cluster):
         pass
 
-    def angular_movement(self, cluster):
-        vector =  np.random.rand(3)
+    @staticmethod
+    def angular_movement(cluster):
+        vector = np.random.rand(3)
         atom = cluster[np.random.randint(0, len(cluster))]
         angle = np.random.uniform(0, 2 * np.pi)
         atom.position = np.dot(rotation_matrix(vector, angle), atom.position)
@@ -46,10 +47,10 @@ class Disturber:
         chosen_group = group1 if choice == 0 else group2
 
         angle = np.random.uniform(0, 2 * np.pi)
-        rotation_matrix = self.rotation_matrix(normal, angle)
+        matrix = rotation_matrix(normal, angle)
 
         for atom in chosen_group:
-            atom.position = np.dot(rotation_matrix, atom.position)
+            atom.position = np.dot(matrix, atom.position)
 
         if choice == 0:
             group = group1.extend(chosen_group)
