@@ -14,7 +14,36 @@ class Disturber:
         self.local_optimizer = local_optimizer
 
     def random_setup(self, cluster):
+        atom = cluster[np.random.randint(0, len(cluster))]
+        position = atom.position
+        new_position = np.random(-1/2* self.covalentRadius,self.covalentRadius*1/2) + position
+
+        #Check if position is valid: check_position(self, cluster, atom)
         pass
+
+    def check_position(self, cluster, atom):
+        if np.linalg.norm(atom.position) > self.boxLength:
+            return False
+        
+        for other_atom in cluster:
+            if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.covalentRadius:
+                return False
+        
+        return True
+    
+    def check_position(self, group_static, group_moved):
+        for atom in group_moved:
+            if np.linalg.norm(atom.position) > self.boxLength:
+                return False
+    
+            for other_atom in group_static:
+                if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.covalentRadius:
+                    return False
+        
+        return True
+            
+        
+    
 
     @staticmethod
     def angular_movement(cluster):
@@ -22,6 +51,7 @@ class Disturber:
         atom = cluster[np.random.randint(0, len(cluster))]
         angle = np.random.uniform(0, 2 * np.pi)
         atom.position = np.dot(rotation_matrix(vector, angle), atom.position)
+        #Check if position is valid: check_position(self, cluster, atom)
         return cluster
 
     @staticmethod
@@ -42,6 +72,7 @@ class Disturber:
         dyn.run(number_of_steps)
 
     def twist(self, cluster):
+        #Twist doesnt have a check since it is a rotation and it wouldnt collide with already existing atoms.
         group1, group2, normal = self.split_cluster(cluster)
         choice = np.random.choice([0, 1])
         chosen_group = group1 if choice == 0 else group2
@@ -56,6 +87,7 @@ class Disturber:
             group = group1.extend(chosen_group)
         else:
             group = group2.extend(chosen_group)
+        
         return group
 
     def etching(self, cluster):
