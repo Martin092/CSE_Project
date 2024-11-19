@@ -14,7 +14,11 @@ class Disturber:
         pass
 
     def angular_movement(self, cluster):
-        pass
+        vector =  np.random.rand(3)
+        atom = cluster[np.random.randint(0, len(cluster))]
+        angle = np.random.uniform(0, 2 * np.pi)
+        atom.position = np.dot(rotation_matrix(vector, angle), atom.position)
+        return cluster
 
     def md(self, cluster, temperature, number_of_steps):
         """
