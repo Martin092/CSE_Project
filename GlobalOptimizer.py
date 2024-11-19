@@ -11,7 +11,7 @@ class GlobalOptimizer(ABC):
         self.currentIteration = 0
         self.atoms = atoms
         self.covalentRadius = 1.0
-        self.boxLength = 2*self.covalentRadius * (1/2 + ((3*self.atoms)/(4*np.pi*np.sqrt(2)))**(1/3))
+        self.boxLength = 2 * self.covalentRadius * (1/2 + ((3.0 * self.atoms) / ( 4 * np.pi * np.sqrt(2)))**(1/3))
         self.atom_type = atom_type
         self.calculator = calculator
 
