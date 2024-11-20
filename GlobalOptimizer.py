@@ -1,12 +1,15 @@
 from abc import ABC, abstractmethod
 from ase import Atoms
 import numpy as np
+from Disturber import Disturber
+from ase.io import write
 
 class GlobalOptimizer(ABC):
 
     def __init__(self, num_clusters: int, localOptimizer, atoms: int, atom_type: str, calculator):
-        self.history = np.array([])
+        self.history = []
         self.clusterList = []
+        self.optimizers = []
         self.localOptimizer = localOptimizer
         self.currentIteration = 0
         self.atoms = atoms
@@ -21,7 +24,9 @@ class GlobalOptimizer(ABC):
             clus = Atoms(self.atom_type + str(self.atoms), positions=positions)
             clus.calc = calculator()
             self.clusterList.append(clus)
-        # Disturber
+            self.history.append([clus.copy()])
+            opt = localOptimizer(clus, logfile='log.txt')
+            self.optimizers.append(opt)
 
     @abstractmethod
     def iteration(self):
@@ -38,5 +43,26 @@ class GlobalOptimizer(ABC):
     def run(self, maxIterations):
         self.setup()
 
-        while self.currentIteration < maxIterations or not self.isConverged():
+        while self.currentIteration < maxIterations and not self.isConverged():
+            print(self.currentIteration)
             self.iteration()
+            self.currentIteration += 1
+
+    def write_to_file(self, filename: str, cluster_index=0):
+        """
+        Writes the cluster to a .xyz file.
+        :param filename: the name of the file, does not matter if it has the .xyz extension
+        :param cluster_index: which cluster will be written
+        """
+        filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
+        write(f'clusters/{filename}', self.clusterList[cluster_index])
+
+    def append_history(self):
+        """
+        Appends copies of all the clusters in the clusterList to the history.
+        Copies are used since clusters are passed by reference
+        :return:
+        """
+        for i, cluster in enumerate(self.clusterList):
+            self.history[i].append(cluster.copy())
+

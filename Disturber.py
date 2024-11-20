@@ -13,13 +13,26 @@ class Disturber:
     def __init__(self, local_optimizer):
         self.local_optimizer = local_optimizer
 
-    def random_setup(self, cluster):
-        atom = cluster[np.random.randint(0, len(cluster))]
-        position = atom.position
-        new_position = np.random(-1/2* self.covalentRadius,self.covalentRadius*1/2) + position
+    @staticmethod
+    def random_step(cluster, box_size):
+        """
+        Moves the highest energy atom in a random direction
+        :param cluster: the cluster we want to disturb
+        :param box_size the size of the container containing the atoms
+        :return: result is written directly to cluster, nothing is returned
+        """
+        energies = cluster.get_potential_energies()
+        highest_index = np.argmax(energies)
 
-        #Check if position is valid: check_position(self, cluster, atom)
-        pass
+        # random step from -1 to 1
+        stepSize = (np.random.rand(3) - 0.5) * 2
+        for i in range(15):
+            step = (np.random.rand(3) - 0.5) * 2 * stepSize
+            cluster.positions[highest_index] += step
+
+            # might be good to take this out of here as it does another pass over all atoms
+            cluster.positions = np.clip(cluster.positions, -box_size, box_size)
+
 
     def check_position(self, cluster, atom):
         if np.linalg.norm(atom.position) > self.boxLength:
