@@ -4,6 +4,8 @@ from ase.md.langevin import Langevin
 from sklearn.decomposition import PCA
 from reference_code.rotation_matrices import rotation_matrix
 from ase import Atoms
+from ase.optimize.minimahopping import PassedMinimum
+import time
 
 
 class Disturber:
@@ -55,21 +57,36 @@ class Disturber:
         return cluster
 
     @staticmethod
-    def md(cluster, temperature, number_of_steps):
+    def md(cluster, temperature, mdmin, seed=int(time.time())):
         """
         Perform a Molecular Dynamics run using Langevin Dynamics
         :param cluster: Cluster of atoms
         :param temperature: Temperature in Kelvin
-        :param number_of_steps: Number of steps to use in Molecular Dynamics
+        :param mdmin: Number of minima to be found before MD run halts. Alternatively it will halt once we reach 10000 iterations
         """
         dyn = Langevin(
             cluster,
             timestep=5.0 * fs,  # Feel free to mess with this parameter
             temperature_K=temperature,
             friction=0.5 / fs,  # Feel free to mess with this parameter
+            rng = np.random.default_rng(seed)
         )
 
-        dyn.run(number_of_steps)
+        passed_minimum = PassedMinimum()
+        mincount = 0
+        energies, oldpositions = [], []
+        i = 0
+        while mincount < mdmin and i < 10000:
+            dyn.run(1) #Run MD for 1 step
+            energies.append(cluster.get_potential_energy())
+            passedmin = passed_minimum(energies)
+            if passedmin: #Check if we have passed a minimum
+                mincount += 1 #Add this minimum to our mincount
+            oldpositions.append(cluster.positions.copy())
+            i += 1
+        cluster.positions = oldpositions[passedmin[0]]
+
+
 
     def twist(self, cluster):
         #Twist doesnt have a check since it is a rotation and it wouldnt collide with already existing atoms.

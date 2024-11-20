@@ -65,3 +65,7 @@ def test_cluster_alignments_50(cluster_50):
 def test_crossover(cluster_30_2):
     a, b = GeneticAlgorithm.crossover(cluster_30_2[0], cluster_30_2[1])
     assert len(a) == len(b)
+
+def test_md(cluster_30):
+    Disturber.md(cluster_30, 100, 2, seed=100)
+    print(cluster_30.positions)

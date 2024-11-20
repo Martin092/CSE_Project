@@ -24,7 +24,7 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
     def iteration(self):
         for cluster in self.clusters:
             # TODO: Initialize velocities of atoms based on Maxwell Boltzmann
-            disturber.md(cluster, self.temperature) #TODO: Change MD run to run until we find some number of minima, this number will be a hyperparameter
+            self.disturber.md(cluster, self.temperature) #TODO: Change MD run to run until we find some number of minima, this number will be a hyperparameter
             #TODO: Locally Optimize #self.localOptimizer
             #TODO: Check results, edit temperature and E_diff accordingly, see reference code and flowchart
 
