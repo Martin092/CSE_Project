@@ -1,4 +1,5 @@
 from GlobalOptimizer import GlobalOptimizer
+from Disturber import Disturber
 
 
 class MinimaHoppingOptimizer(GlobalOptimizer):
@@ -16,13 +17,14 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         self.beta_N = beta_N
         self.temperature = temperature
         self.E_diff = E_diff
+        self.disturber = Disturber()
         self.m_cur = None
 
 
     def iteration(self):
         for cluster in self.clusters:
             # TODO: Initialize velocities of atoms based on Maxwell Boltzmann
-            self.disturber.md(cluster, self.temperature) #TODO: Change MD run to run until we find some number of minima, this number will be a hyperparameter
+            disturber.md(cluster, self.temperature) #TODO: Change MD run to run until we find some number of minima, this number will be a hyperparameter
             #TODO: Locally Optimize #self.localOptimizer
             #TODO: Check results, edit temperature and E_diff accordingly, see reference code and flowchart
 
