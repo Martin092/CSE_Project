@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from ase import Atoms
 import numpy as np
+from Disturber import Disturber
 
 class GlobalOptimizer(ABC):
 
@@ -13,7 +14,7 @@ class GlobalOptimizer(ABC):
         self.atoms = atoms
         self.covalentRadius = 1.0
         self.boxLength = 2*self.covalentRadius * (1/2 + ((3*self.atoms)/(4*np.pi*np.sqrt(2)))**(1/3))
-        # Disturber
+        self.disturber = Disturber()
 
     @abstractmethod
     def iteration(self):
