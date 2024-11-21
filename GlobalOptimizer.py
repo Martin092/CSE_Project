@@ -7,11 +7,11 @@ from ase.io import write
 
 class GlobalOptimizer(ABC):
 
-    def __init__(self, num_clusters: int, localOptimizer, atoms: int, atom_type: str, calculator):
+    def __init__(self, num_clusters: int, local_optimizer, atoms: int, atom_type: str, calculator):
         self.history = []
         self.clusterList = []
         self.optimizers = []
-        self.localOptimizer = localOptimizer
+        self.local_optimizer = local_optimizer
         self.currentIteration = 0
         self.num_clusters = num_clusters
         self.atoms = atoms
@@ -26,7 +26,7 @@ class GlobalOptimizer(ABC):
         pass
 
     @abstractmethod
-    def isConverged(self):
+    def is_converged(self):
         pass
 
     def setup(self):
@@ -36,18 +36,19 @@ class GlobalOptimizer(ABC):
         self.optimizers = []
         for i in range(self.num_clusters):
             positions = (np.random.rand(self.atoms, 3) - 0.5) * self.boxLength * 1.5  # 1.5 is a magic number
-            self.history.append([])
-            # In the future, instead of number of atoms, we ask the user to choose how many atoms they want for each atom type.
+            # In the future, instead of number of atoms,
+            # we ask the user to choose how many atoms they want for each atom type.
             clus = Atoms(self.atom_type + str(self.atoms), positions=positions)
             clus.calc = self.calculator()
             self.clusterList.append(clus)
-            opt = self.localOptimizer(clus, logfile='log.txt')
+            opt = self.local_optimizer(clus, logfile='log.txt')
             self.optimizers.append(opt)
 
-    def run(self, maxIterations):
+    def run(self, max_iterations):
         self.setup()
 
-        while self.currentIteration < maxIterations and not self.isConverged():
+        while self.currentIteration < max_iterations and not self.is_converged():
+            self.history.append([])
             print(self.currentIteration)
             self.iteration()
             self.currentIteration += 1
