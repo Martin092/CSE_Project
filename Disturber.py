@@ -27,12 +27,23 @@ class Disturber:
 
         # random step from -1 to 1
         stepSize = (np.random.rand(3) - 0.5) * 2
-        for i in range(15):
-            step = (np.random.rand(3) - 0.5) * 2 * stepSize
-            cluster.positions[highest_index] += step
 
-            # might be good to take this out of here as it does another pass over all atoms
+        while True:
+            step = (np.random.rand(3) - 0.5) * 2 * stepSize
+            energy_before = self.global_optimizer.clusterList[0].get_potential_energy()
+
+            cluster.positions[highest_index] += step
             cluster.positions = np.clip(cluster.positions, -box_size, box_size)
+
+            energy_after = self.global_optimizer.clusterList[0].get_potential_energy()
+
+            # If the energy from a random step changes too much then the move is bad, try another one
+            # Might want to make that number depend on the temperature
+            if abs(energy_after - energy_before) > 2:
+                cluster.positions[highest_index] -= step
+                continue
+            break
+
 
 
     def check_position(self, cluster, atom):
