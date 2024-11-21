@@ -4,6 +4,7 @@ from ase import Atoms
 from ase.calculators.lj import LennardJones
 from Disturber import Disturber
 from GeneticAlgorithm import GeneticAlgorithm
+from GlobalOptimizer import GlobalOptimizer
 
 np.random.seed(0)
 
@@ -85,3 +86,7 @@ def test_md(cluster_2):
     Disturber.md(cluster_2, 100, 2, seed=0)
     resulting_positions = np.array([[5665.16673931,420178.45149765,-62162.09537009],[-5664.07304262,-420177.31265348,62163.34402758]])
     assert np.isclose(cluster_2.positions, resulting_positions).all()
+
+def test_compare_clusters(cluster_30, cluster_50):
+    assert GlobalOptimizer.compare_clusters(cluster_30, cluster_30)
+    assert not GlobalOptimizer.compare_clusters(cluster_30, cluster_50)

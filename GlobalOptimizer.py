@@ -67,3 +67,15 @@ class GlobalOptimizer(ABC):
         for i, cluster in enumerate(self.clusterList):
             self.history[i].append(cluster.copy())
 
+    @staticmethod
+    def compare_clusters(cluster1, cluster2):
+        """
+        Checks whether two clusters are equal based on their potential energy.
+        This method may be changed in the future to use more sophisticated methods,
+        such as overlap matrix fingerprint thresholding.
+        :param cluster1: First cluster
+        :param cluster2: Second cluster
+        :return: boolean
+        """
+        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())
+
