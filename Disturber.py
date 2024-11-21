@@ -84,13 +84,8 @@ class Disturber:
 
         for atom in chosen_group:
             atom.position = np.dot(matrix, atom.position)
-
-        if choice == 0:
-            group = group1.extend(chosen_group)
-        else:
-            group = group2.extend(chosen_group)
         
-        return group
+        return cluster
 
     def etching(self, cluster):
         pass

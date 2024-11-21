@@ -4,6 +4,7 @@ import numpy as np
 from Disturber import Disturber
 from ase.io import write
 
+
 class GlobalOptimizer(ABC):
 
     def __init__(self, num_clusters: int, localOptimizer, atoms: int, atom_type: str, calculator):
@@ -35,6 +36,7 @@ class GlobalOptimizer(ABC):
         self.optimizers = []
         for i in range(self.num_clusters):
             positions = (np.random.rand(self.atoms, 3) - 0.5) * self.boxLength * 1.5  # 1.5 is a magic number
+            self.history.append([])
             # In the future, instead of number of atoms, we ask the user to choose how many atoms they want for each atom type.
             clus = Atoms(self.atom_type + str(self.atoms), positions=positions)
             clus.calc = self.calculator()
@@ -67,4 +69,3 @@ class GlobalOptimizer(ABC):
         """
         for i, cluster in enumerate(self.clusterList):
             self.history[i].append(cluster.copy())
-

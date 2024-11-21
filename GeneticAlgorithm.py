@@ -21,14 +21,14 @@ class GeneticAlgorithm(GlobalOptimizer):
             self.optimizers[index].run(fmax=0.1)  # Local optimization
             self.history[self.currentIteration].append(cluster)  # Save local minima
             self.potentials.append(cluster.get_potential_energy())  # Compute potential energy
-        pairs = list(zip(self.potentials, self.clusterList, self.optimizers))  # Pair clusters, potentials and optimizers
+        pairs = list(zip(self.potentials, self.clusterList, self.optimizers))  # Zip clusters, potentials and optimizers
         pairs.sort(key=lambda x: x[0])  # Sort clusters on potentials
         midpoint = (len(pairs) + 1) // 2  # Determine the number of clusters to be selected
         self.clusterList = [pair[1] for pair in pairs[:midpoint]]  # Update current clusters to contain only selected
         self.optimizers = [pair[2] for pair in pairs[:midpoint]]  # Update current optimizers to contain only selected
         crossover = []  # List of children atomic positions
         for i in range(len(self.clusterList), 2):
-            if i + 1 == len(self.clusterList):  # if odd number of clusters, don't take last one for crossover
+            if i + 1 >= len(self.clusterList):  # if odd number of clusters, don't take last one for crossover
                 break
             child1, child2 = self.crossover(self.clusterList[i], self.clusterList[i+1])  # generate children
             crossover.append(child1)
@@ -39,7 +39,12 @@ class GeneticAlgorithm(GlobalOptimizer):
             self.clusterList.append(clus)
             opt = self.localOptimizer(clus, logfile='log.txt')
             self.optimizers.append(opt)
-        # TODO: Mutations
+        for cluster in self.clusterList:
+            if np.random.rand() <= self.mutation_probability:
+                self.disturber.twist(cluster)
+            for i in range(self.atoms):
+                if np.random.rand() <= 1:
+                    cluster.positions[i] += (np.random.rand(3) - 0.5)
 
     def isConverged(self):
         return False
