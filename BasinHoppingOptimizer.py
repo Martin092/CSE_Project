@@ -11,7 +11,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
     def iteration(self):
         for index, cluster in enumerate(self.clusterList):
-            Disturber.random_step(cluster, self.boxLength)
+            self.disturber.random_step(cluster, self.boxLength)
             self.optimizers[index].run(fmax=0.2)
             self.history[index].append(cluster)
 
