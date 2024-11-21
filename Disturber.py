@@ -14,7 +14,6 @@ class Disturber:
         self.local_optimizer = local_optimizer
         self.global_optimizer = global_optimizer
 
-
     def random_step(self, cluster, box_size):
         """
         Moves the highest energy atom in a random direction
@@ -26,43 +25,37 @@ class Disturber:
         highest_index = np.argmax(energies)
 
         # random step from -1 to 1
-        stepSize = (np.random.rand(3) - 0.5) * 2
+        step_size = (np.random.rand(3) - 0.5) * 2
         for i in range(15):
-            step = (np.random.rand(3) - 0.5) * 2 * stepSize
+            step = (np.random.rand(3) - 0.5) * 2 * step_size
             cluster.positions[highest_index] += step
 
             # might be good to take this out of here as it does another pass over all atoms
             cluster.positions = np.clip(cluster.positions, -box_size, box_size)
 
-
-    def check_position(self, cluster, atom):
-        if np.linalg.norm(atom.position) > self.boxLength:
+    def check_atom_position(self, cluster, atom):
+        if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
             return False
-        
         for other_atom in cluster:
-            if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.covalentRadius:
+            if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.global_optimizer.covalentRadius:
                 return False
-        
         return True
     
-    def check_position(self, group_static, group_moved):
+    def check_group_position(self, group_static, group_moved):
         for atom in group_moved:
-            if np.linalg.norm(atom.position) > self.boxLength:
+            if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
                 return False
-    
             for other_atom in group_static:
-                if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.covalentRadius:
+                if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.global_optimizer.covalentRadius:
                     return False
-        
         return True
-            
 
     def angular_movement(self, cluster):
         vector = np.random.rand(3)
         atom = cluster[np.random.randint(0, len(cluster))]
         angle = np.random.uniform(0, 2 * np.pi)
         atom.position = np.dot(rotation_matrix(vector, angle), atom.position)
-        #Check if position is valid: check_position(self, cluster, atom)
+        # Check if position is valid: check_position(self, cluster, atom)
         return cluster
 
     def md(self, cluster, temperature, number_of_steps):
@@ -82,7 +75,7 @@ class Disturber:
         dyn.run(number_of_steps)
 
     def twist(self, cluster):
-        #Twist doesnt have a check since it is a rotation and it wouldnt collide with already existing atoms.
+        # Twist doesn't have a check since it is a rotation, and it wouldn't collide with already existing atoms.
         group1, group2, normal = self.split_cluster(cluster)
         choice = np.random.choice([0, 1])
         chosen_group = group1 if choice == 0 else group2
@@ -103,7 +96,6 @@ class Disturber:
     def etching(self, cluster):
         pass
 
-
     def split_cluster(self, cluster: Atoms, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
         v1 = p2 - p1
         v2 = p3 - p1
@@ -118,7 +110,6 @@ class Disturber:
             else:
                 group2.append(atom)
         return group1, group2, normal
-
 
     def align_cluster(self, cluster: Atoms):
         cl = np.array(cluster.positions)

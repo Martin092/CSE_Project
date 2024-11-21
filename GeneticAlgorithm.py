@@ -2,7 +2,6 @@ import numpy as np
 from GlobalOptimizer import GlobalOptimizer
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
-from Disturber import Disturber
 
 
 class GeneticAlgorithm(GlobalOptimizer):
@@ -19,21 +18,17 @@ class GeneticAlgorithm(GlobalOptimizer):
     def isConverged(self):
         pass
 
-    def setup(self):
-        pass
-
-    @staticmethod
-    def crossover(cluster1, cluster2):
-        Disturber.align_cluster(cluster1)
-        Disturber.align_cluster(cluster2)
+    def crossover(self, cluster1, cluster2):
+        self.disturber.align_cluster(cluster1)
+        self.disturber.align_cluster(cluster2)
         group11 = []
         group12 = []
         group21 = []
         group22 = []
-        while(len(group11)+len(group22)!=len(cluster1.positions)):
+        while len(group11)+len(group22) != len(cluster1.positions):
             p1 = np.random.rand(3)
             p2 = np.random.rand(3)
             p3 = np.random.rand(3)
-            group11, group12, _ = Disturber.split_cluster(cluster1, p1, p2, p3)
-            group21, group22, _ = Disturber.split_cluster(cluster2, p1, p2, p3)
+            group11, group12, _ = self.disturber.split_cluster(cluster1, p1, p2, p3)
+            group21, group22, _ = self.disturber.split_cluster(cluster2, p1, p2, p3)
         return group11 + group22, group12 + group21
