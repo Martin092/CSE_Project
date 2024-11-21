@@ -24,11 +24,19 @@ class Disturber:
         """
         energies = cluster.get_potential_energies()
         highest_index = np.argmax(energies)
+        # highest_index = int(np.random.rand() * len(cluster))
 
         # random step from -1 to 1
         stepSize = (np.random.rand(3) - 0.5) * 2
 
+        attempts = 0
         while True:
+            # every 100 atempts to find a new step, increase the step size by 2.
+            # NOTE: probably not the best way to go about the algorithm not finding an appropriate step but works for now
+            attempts += 1
+            if attempts % 100 == 0:
+                stepSize *= 2
+
             step = (np.random.rand(3) - 0.5) * 2 * stepSize
             energy_before = self.global_optimizer.clusterList[0].get_potential_energy()
 
@@ -39,7 +47,8 @@ class Disturber:
 
             # If the energy from a random step changes too much then the move is bad, try another one
             # Might want to make that number depend on the temperature
-            if abs(energy_after - energy_before) > 2:
+            # TODO Sometimes this straight up doesnt find an appropriate step, has to be fixed. Works like sometimes
+            if abs(energy_after - energy_before) > 7:
                 cluster.positions[highest_index] -= step
                 continue
             break
