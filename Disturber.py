@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 from reference_code.rotation_matrices import rotation_matrix
 from ase import Atoms
 from ase.optimize.minimahopping import PassedMinimum
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 import time
 
 
@@ -83,6 +84,7 @@ class Disturber:
             rng = np.random.default_rng(seed)
         )
 
+        MaxwellBoltzmannDistribution(cluster, temperature_K=temperature)
         passed_minimum = PassedMinimum()
         mincount = 0
         energies, oldpositions = [], []
