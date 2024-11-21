@@ -18,7 +18,7 @@ class GlobalOptimizer(ABC):
         self.boxLength = 2 * self.covalentRadius * (1/2 + ((3.0 * self.atoms) / (4 * np.pi * np.sqrt(2)))**(1/3))
         self.atom_type = atom_type
         self.calculator = calculator
-        self.disturber = Disturber(self.localOptimizer, self)
+        self.disturber = Disturber(self)
 
     @abstractmethod
     def iteration(self):
@@ -39,7 +39,6 @@ class GlobalOptimizer(ABC):
             clus = Atoms(self.atom_type + str(self.atoms), positions=positions)
             clus.calc = self.calculator()
             self.clusterList.append(clus)
-            self.history.append([clus.copy()])
             opt = self.localOptimizer(clus, logfile='log.txt')
             self.optimizers.append(opt)
 

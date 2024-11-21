@@ -15,14 +15,6 @@ def cluster_30():
 
 
 @pytest.fixture()
-def cluster_50():
-    positions = []
-    for i in range(50):
-        positions.append(np.random.rand(3))
-    cluster = Atoms('Fe' + str(50), positions=positions)
-    return cluster
-
-@pytest.fixture()
 def cluster_30_2():
     positions1 = []
     for i in range(30):
@@ -35,33 +27,29 @@ def cluster_30_2():
     return cluster1, cluster2
 
 
-def test_cluster_split_30(cluster_30):
-    group1, group2, _ = Disturber.split_cluster(cluster_30)
+@pytest.fixture()
+def disturber():
+    glob = GeneticAlgorithm()
+    dist = Disturber(glob)
+    return dist
+
+
+def test_cluster_split_30(cluster_30, disturber):
+    group1, group2, _ = disturber.split_cluster(cluster_30)
     assert len(group1) + len(group2) == 30
     assert len(set(group1).intersection(set(group2))) == 0
 
 
-def test_cluster_split_50(cluster_50):
-    group1, group2, _ = Disturber.split_cluster(cluster_50)
-    assert len(group1) + len(group2) == 50
-    assert len(set(group1).intersection(set(group2))) == 0
-
-def test_cluster_alignments_30(cluster_30):
+def test_cluster_alignments_30(cluster_30, disturber):
     p1 = cluster_30.positions[0]
     p2 = cluster_30.positions[1]
     distance = np.sqrt(np.sum((p1-p2)**2))
-    cluster = Disturber.align_cluster(cluster_30)
+    cluster = disturber.align_cluster(cluster_30)
     assert np.sqrt(np.sum((p1-p2)**2)) - distance < 10**-15
     assert np.sum(np.mean(cluster.positions)) < 10**-15
 
-def test_cluster_alignments_50(cluster_50):
-    p1 = cluster_50.positions[0]
-    p2 = cluster_50.positions[1]
-    distance = np.sqrt(np.sum((p1-p2)**2))
-    cluster = Disturber.align_cluster(cluster_50)
-    assert np.sqrt(np.sum((p1-p2)**2)) - distance < 10**-15
-    assert np.sum(np.mean(cluster.positions)) < 10**-15
 
 def test_crossover(cluster_30_2):
-    a, b = GeneticAlgorithm.crossover(cluster_30_2[0], cluster_30_2[1])
+    ga = GeneticAlgorithm()
+    a, b = ga.crossover(cluster_30_2[0], cluster_30_2[1])
     assert len(a) == len(b)

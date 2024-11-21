@@ -10,8 +10,7 @@ class Disturber:
 
     # Class with all the methods to disturb a cluster
 
-    def __init__(self, local_optimizer, global_optimizer):
-        self.local_optimizer = local_optimizer
+    def __init__(self, global_optimizer):
         self.global_optimizer = global_optimizer
 
     def random_step(self, cluster, box_size):
