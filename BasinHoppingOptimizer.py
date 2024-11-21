@@ -13,7 +13,17 @@ class BasinHoppingOptimizer(GlobalOptimizer):
     def iteration(self):
         for index, cluster in enumerate(self.clusterList):
             self.last_energy = self.clusterList[index].get_potential_energy()
-            self.disturber.random_step(cluster, self.boxLength)
+
+            print(f"energy be like: {self.last_energy}")
+            energies = self.clusterList[index].get_potential_energies()
+            min_energy = min(energies)
+            max_energy = max(energies)
+
+            if abs(min_energy - max_energy) < 2:
+                self.disturber.random_step(cluster)
+            else:
+                print("get rotated")
+                self.disturber.angular_movement(cluster)
 
             self.optimizers[index].run(fmax=0.2)
             self.history[index].append(cluster)

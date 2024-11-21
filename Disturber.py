@@ -15,7 +15,7 @@ class Disturber:
         self.global_optimizer = global_optimizer
 
 
-    def random_step(self, cluster, box_size):
+    def random_step(self, cluster):
         """
         Moves the highest energy atom in a random direction
         :param cluster: the cluster we want to disturb
@@ -41,7 +41,7 @@ class Disturber:
             energy_before = self.global_optimizer.clusterList[0].get_potential_energy()
 
             cluster.positions[highest_index] += step
-            cluster.positions = np.clip(cluster.positions, -box_size, box_size)
+            cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength, self.global_optimizer.boxLength)
 
             energy_after = self.global_optimizer.clusterList[0].get_potential_energy()
 
@@ -79,11 +79,11 @@ class Disturber:
 
     def angular_movement(self, cluster):
         vector = np.random.rand(3)
-        atom = cluster[np.random.randint(0, len(cluster))]
+        index = np.random.randint(0, len(cluster))
         angle = np.random.uniform(0, 2 * np.pi)
-        atom.position = np.dot(rotation_matrix(vector, angle), atom.position)
-        #Check if position is valid: check_position(self, cluster, atom)
-        return cluster
+        cluster.positions[index] = np.dot(rotation_matrix(vector, angle), cluster.positions[index])
+        cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength, self.global_optimizer.boxLength)
+
 
     def md(self, cluster, temperature, number_of_steps):
         """
