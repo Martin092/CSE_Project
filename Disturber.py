@@ -24,22 +24,22 @@ class Disturber:
         pass
 
     def check_position(self, cluster, atom):
-        if np.linalg.norm(atom.position) > self.boxLength:
+        if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
             return False
         
         for other_atom in cluster:
-            if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.covalentRadius:
+            if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.global_optimizer.covalentRadius:
                 return False
         
         return True
     
     def check_position(self, group_static, group_moved):
         for atom in group_moved:
-            if np.linalg.norm(atom.position) > self.boxLength:
+            if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
                 return False
     
             for other_atom in group_static:
-                if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.covalentRadius:
+                if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.global_optimizer.covalentRadius:
                     return False
         
         return True

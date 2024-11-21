@@ -12,6 +12,13 @@ class GeneticAlgorithm(GlobalOptimizer):
                          atoms=atoms,
                          atom_type=atom_type,
                          calculator=calculator)
+        self.population  = []	
+        self.localOptimizer = localOptimizer
+        self.atoms = atoms
+        self.atom_type = atom_type
+        self.calculator = calculator
+        self.num_clusters = num_clusters
+
 
     def iteration(self):
         pass
@@ -19,7 +26,7 @@ class GeneticAlgorithm(GlobalOptimizer):
     def isConverged(self):
         pass
 
-    def setup(self):
+    def setup(self): 
         pass
 
     @staticmethod
