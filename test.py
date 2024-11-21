@@ -53,3 +53,12 @@ def test_crossover(cluster_30_2):
     ga = GeneticAlgorithm()
     a, b = ga.crossover(cluster_30_2[0], cluster_30_2[1])
     assert len(a) == len(b)
+
+
+def test_twist(cluster_30, disturber):
+    prev = np.unique(cluster_30.positions)
+    disturber.twist(cluster_30)
+    cur = np.unique(cluster_30.positions)
+    inter = len(np.intersect1d(prev, cur))
+    assert inter > 0
+    assert inter < 90

@@ -17,29 +17,44 @@ class GeneticAlgorithm(GlobalOptimizer):
         self.potentials = []
 
     def iteration(self):
+        self.history.append([])
         for index, cluster in enumerate(self.clusterList):
             self.optimizers[index].run(fmax=0.1)  # Local optimization
             self.history[self.currentIteration].append(cluster)  # Save local minima
             self.potentials.append(cluster.get_potential_energy())  # Compute potential energy
-        pairs = list(zip(self.potentials, self.clusterList, self.optimizers))  # Pair clusters, potentials and optimizers
+        pairs = list(zip(self.potentials, self.clusterList, self.optimizers))  # Zip clusters, potentials and optimizers
         pairs.sort(key=lambda x: x[0])  # Sort clusters on potentials
         midpoint = (len(pairs) + 1) // 2  # Determine the number of clusters to be selected
         self.clusterList = [pair[1] for pair in pairs[:midpoint]]  # Update current clusters to contain only selected
         self.optimizers = [pair[2] for pair in pairs[:midpoint]]  # Update current optimizers to contain only selected
         crossover = []  # List of children atomic positions
-        for i in range(len(self.clusterList), 2):
-            if i + 1 == len(self.clusterList):  # if odd number of clusters, don't take last one for crossover
-                break
-            child1, child2 = self.crossover(self.clusterList[i], self.clusterList[i+1])  # generate children
+        while len(crossover) + len(self.clusterList) < self.num_clusters:
+            i = np.random.randint(0, len(self.clusterList))
+            parent1 = self.clusterList[i]
+            i = np.random.randint(0, len(self.clusterList))
+            parent2 = self.clusterList[i]
+            group1, group2 = self.crossover(parent1, parent2)  # generate children
+            child1 = []
+            for atom in group1:
+                child1.append(atom.position)
             crossover.append(child1)
-            crossover.append(child2)
+            if len(self.clusterList) + len(crossover) != self.num_clusters:
+                child2 = []
+                for atom in group2:
+                    child2.append(atom.position)
+                crossover.append(child2)
         for child in crossover:  # Add children to cluster list
             clus = Atoms(self.atom_type + str(self.atoms), positions=child)
             clus.calc = self.calculator()
             self.clusterList.append(clus)
             opt = self.localOptimizer(clus, logfile='log.txt')
             self.optimizers.append(opt)
-        # TODO: Mutations
+        for cluster in self.clusterList:
+            if np.random.rand() <= self.mutation_probability:
+                self.disturber.twist(cluster)
+            for i in range(self.atoms):
+                if np.random.rand() <= self.mutation_probability/self.atoms:
+                    cluster.positions[i] += (np.random.rand(3) - 0.5)
 
     def isConverged(self):
         return False

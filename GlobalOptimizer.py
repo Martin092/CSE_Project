@@ -4,6 +4,7 @@ import numpy as np
 from Disturber import Disturber
 from ase.io import write
 
+
 class GlobalOptimizer(ABC):
 
     def __init__(self, num_clusters: int, localOptimizer, atoms: int, atom_type: str, calculator):
@@ -67,4 +68,3 @@ class GlobalOptimizer(ABC):
         """
         for i, cluster in enumerate(self.clusterList):
             self.history[i].append(cluster.copy())
-
