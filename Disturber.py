@@ -12,16 +12,30 @@ class Disturber:
 
     # Class with all the methods to disturb a cluster
 
-    def __init__(self, local_optimizer):
+    def __init__(self, local_optimizer, global_optimizer):
         self.local_optimizer = local_optimizer
+        self.global_optimizer = global_optimizer
 
-    def random_setup(self, cluster):
-        atom = cluster[np.random.randint(0, len(cluster))]
-        position = atom.position
-        new_position = np.random(-1/2* self.covalentRadius,self.covalentRadius*1/2) + position
 
-        #Check if position is valid: check_position(self, cluster, atom)
-        pass
+    def random_step(self, cluster, box_size):
+        """
+        Moves the highest energy atom in a random direction
+        :param cluster: the cluster we want to disturb
+        :param box_size the size of the container containing the atoms
+        :return: result is written directly to cluster, nothing is returned
+        """
+        energies = cluster.get_potential_energies()
+        highest_index = np.argmax(energies)
+
+        # random step from -1 to 1
+        stepSize = (np.random.rand(3) - 0.5) * 2
+        for i in range(15):
+            step = (np.random.rand(3) - 0.5) * 2 * stepSize
+            cluster.positions[highest_index] += step
+
+            # might be good to take this out of here as it does another pass over all atoms
+            cluster.positions = np.clip(cluster.positions, -box_size, box_size)
+
 
     def check_position(self, cluster, atom):
         if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
@@ -44,11 +58,8 @@ class Disturber:
         
         return True
             
-        
-    
 
-    @staticmethod
-    def angular_movement(cluster):
+    def angular_movement(self, cluster):
         vector = np.random.rand(3)
         atom = cluster[np.random.randint(0, len(cluster))]
         angle = np.random.uniform(0, 2 * np.pi)
@@ -110,8 +121,8 @@ class Disturber:
     def etching(self, cluster):
         pass
 
-    @staticmethod
-    def split_cluster(cluster: Atoms, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
+
+    def split_cluster(self, cluster: Atoms, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
         v1 = p2 - p1
         v2 = p3 - p1
         normal = np.cross(v1, v2)
@@ -126,8 +137,8 @@ class Disturber:
                 group2.append(atom)
         return group1, group2, normal
 
-    @staticmethod
-    def align_cluster(cluster: Atoms):
+
+    def align_cluster(self, cluster: Atoms):
         cl = np.array(cluster.positions)
         center_of_mass = np.mean(cl, axis=0)
         cluster_centered = cl - center_of_mass
