@@ -10,11 +10,12 @@ class Disturber:
 
     # Class with all the methods to disturb a cluster
 
-    def __init__(self, local_optimizer):
+    def __init__(self, local_optimizer, global_optimizer):
         self.local_optimizer = local_optimizer
+        self.global_optimizer = global_optimizer
 
-    @staticmethod
-    def random_step(cluster, box_size):
+
+    def random_step(self, cluster, box_size):
         """
         Moves the highest energy atom in a random direction
         :param cluster: the cluster we want to disturb
@@ -55,11 +56,8 @@ class Disturber:
         
         return True
             
-        
-    
 
-    @staticmethod
-    def angular_movement(cluster):
+    def angular_movement(self, cluster):
         vector = np.random.rand(3)
         atom = cluster[np.random.randint(0, len(cluster))]
         angle = np.random.uniform(0, 2 * np.pi)
@@ -67,8 +65,7 @@ class Disturber:
         #Check if position is valid: check_position(self, cluster, atom)
         return cluster
 
-    @staticmethod
-    def md(cluster, temperature, number_of_steps):
+    def md(self, cluster, temperature, number_of_steps):
         """
         Perform a Molecular Dynamics run using Langevin Dynamics
         :param cluster: Cluster of atoms
@@ -106,8 +103,8 @@ class Disturber:
     def etching(self, cluster):
         pass
 
-    @staticmethod
-    def split_cluster(cluster: Atoms, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
+
+    def split_cluster(self, cluster: Atoms, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
         v1 = p2 - p1
         v2 = p3 - p1
         normal = np.cross(v1, v2)
@@ -122,8 +119,8 @@ class Disturber:
                 group2.append(atom)
         return group1, group2, normal
 
-    @staticmethod
-    def align_cluster(cluster: Atoms):
+
+    def align_cluster(self, cluster: Atoms):
         cl = np.array(cluster.positions)
         center_of_mass = np.mean(cl, axis=0)
         cluster_centered = cl - center_of_mass

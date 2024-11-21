@@ -16,13 +16,13 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.history[index].append(cluster)
 
     def isConverged(self):
-        pass
+        return False
 
     def setup(self):
         pass
 
 
-bh = BasinHoppingOptimizer(localOptimizer=BFGS, atoms=13, atom_type='Fe')
+bh = BasinHoppingOptimizer(localOptimizer=BFGS, atoms=19, atom_type='Fe')
 print(bh.boxLength)
 write('clusters/basin_before.xyz', bh.clusterList[0])
 bh.run(40)
