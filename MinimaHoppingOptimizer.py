@@ -26,7 +26,7 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
             # TODO: Initialize velocities of atoms based on Maxwell Boltzmann
             self.disturber.md(cluster, self.temperature) #TODO: Change MD run to run until we find some number of minima, this number will be a hyperparameter
             #TODO: Locally Optimize #self.localOptimizer
-            self.localOptimizer
+            self.localOptimizer  # Check if any other parameters need to be inputted when calling the local optimizer
             #TODO: Check results, edit temperature and E_diff accordingly, see reference code and flowchart
 
 
