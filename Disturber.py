@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 from reference_code.rotation_matrices import rotation_matrix
 from ase import Atoms
 from reference_code.rotation_matrices import rotation_y, rotation_x, rotation_z
+import sys
 
 
 class Disturber:
@@ -32,7 +33,7 @@ class Disturber:
 
         attempts = 0
         while True:
-            # every 100 atempts to find a new step, increase the step size by 1.
+            # every 100 attempts to find a new step, increase the step size by 1.
             # NOTE: probably not the best way to go about the algorithm not finding an appropriate step but works for now
             attempts += 1
             if attempts % 100 == 0:
@@ -46,9 +47,7 @@ class Disturber:
 
             energy_after = self.global_optimizer.clusterList[0].get_potential_energy()
 
-            # If the energy from a random step changes too much then the move is bad, try another one
-            # Might want to make that number depend on the temperature
-            # TODO Sometimes this straight up doesnt find an appropriate step, has to be fixed. Works like sometimes
+            # Metropolis criterion gives an acceptance probability based on temperature for each move
             if not self.metropolis_criterion(energy_before, energy_after, 1):
                 cluster.positions[index] -= step
                 continue
@@ -57,9 +56,9 @@ class Disturber:
 
     def metropolis_criterion(self, initial_energy, new_energy, temp=0.8):
         """
-        Metropolis acceptance criterion for accepting a new move based on temoperature
-        :param energy_before: The energy of the cluster before the move
-        :param energy_after: The energy of the cluster after the move
+        Metropolis acceptance criterion for accepting a new move based on temperature
+        :param initial_energy: The energy of the cluster before the move
+        :param new_energy: The energy of the cluster after the move
         :param temp: temperature at which we want the move to occur
         :return: whether the move is accepted
         """
@@ -131,7 +130,7 @@ class Disturber:
             else:
                 cluster.positions = initial_positions
         else:
-            print("WARNING: Unable to find a valid rotational move.")
+            print("WARNING: Unable to find a valid rotational move.", file=sys.stderr)
 
     def md(self, cluster, temperature, number_of_steps):
         """
