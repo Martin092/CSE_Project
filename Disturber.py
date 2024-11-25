@@ -4,6 +4,7 @@ from ase.md.langevin import Langevin
 from sklearn.decomposition import PCA
 from reference_code.rotation_matrices import rotation_matrix
 from ase import Atoms
+from reference_code.rotation_matrices import rotation_y, rotation_x, rotation_z
 
 
 class Disturber:
@@ -23,24 +24,24 @@ class Disturber:
         :return: result is written directly to cluster, nothing is returned
         """
         energies = cluster.get_potential_energies()
-        highest_index = np.argmax(energies)
-        # highest_index = int(np.random.rand() * len(cluster))
+        index = np.argmax(energies)
+        energy_before = cluster.get_potential_energy()
 
         # random step from -1 to 1
         stepSize = (np.random.rand(3) - 0.5) * 2
 
         attempts = 0
         while True:
-            # every 100 atempts to find a new step, increase the step size by 2.
+            # every 100 atempts to find a new step, increase the step size by 1.
             # NOTE: probably not the best way to go about the algorithm not finding an appropriate step but works for now
             attempts += 1
             if attempts % 100 == 0:
-                stepSize *= 2
+                stepSize += 1
 
             step = (np.random.rand(3) - 0.5) * 2 * stepSize
             energy_before = self.global_optimizer.clusterList[0].get_potential_energy()
 
-            cluster.positions[highest_index] += step
+            cluster.positions[index] += step
             cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength, self.global_optimizer.boxLength)
 
             energy_after = self.global_optimizer.clusterList[0].get_potential_energy()
@@ -48,11 +49,27 @@ class Disturber:
             # If the energy from a random step changes too much then the move is bad, try another one
             # Might want to make that number depend on the temperature
             # TODO Sometimes this straight up doesnt find an appropriate step, has to be fixed. Works like sometimes
-            if abs(energy_after - energy_before) > 7:
-                cluster.positions[highest_index] -= step
+            if not self.metropolis_criterion(energy_before, energy_after, 1):
+                cluster.positions[index] -= step
                 continue
             break
 
+
+    def metropolis_criterion(self, initial_energy, new_energy, temp=0.8):
+        """
+        Metropolis acceptance criterion for accepting a new move based on temoperature
+        :param energy_before: The energy of the cluster before the move
+        :param energy_after: The energy of the cluster after the move
+        :param temp: temperature at which we want the move to occur
+        :return: whether the move is accepted
+        """
+        if np.isnan(new_energy) or new_energy - initial_energy > 50:  # Energy is way too high, bad move
+            return False
+        elif new_energy > initial_energy:
+            accept_prob = np.exp(-(new_energy - initial_energy) / temp)
+            return np.random.rand() < accept_prob # We accept each move with a probability given by the Metropolis criterion
+        else:  # We went downhill, cool
+            return True
 
 
     def check_position(self, cluster, atom):
@@ -75,15 +92,46 @@ class Disturber:
                     return False
         
         return True
-            
 
     def angular_movement(self, cluster):
-        vector = np.random.rand(3)
-        index = np.random.randint(0, len(cluster))
-        angle = np.random.uniform(0, 2 * np.pi)
-        cluster.positions[index] = np.dot(rotation_matrix(vector, angle), cluster.positions[index])
-        cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength, self.global_optimizer.boxLength)
+        """
+        Perform a rotational movement for the atom with the highest energy.
+        :param cluster: The atomic cluster to modify
+        """
 
+        energies = cluster.get_potential_energies()
+        index = np.argmax(energies)
+
+        initial_positions = cluster.positions.copy()
+        initial_energy = cluster.get_potential_energy()
+        max_attempts = 500
+        temperature = 1.0
+
+        cluster.set_center_of_mass([0, 0, 0])
+
+        for attempt in range(max_attempts):
+            vector = np.random.rand(3) - 0.5
+            angle = np.random.uniform(0, 2 * np.pi)
+
+            rotation = rotation_matrix(vector, angle)
+
+            rotated_position = np.dot(rotation, cluster.positions[index])
+            cluster.positions[index] = rotated_position
+
+            cluster.positions = np.clip(
+                cluster.positions,
+                -self.global_optimizer.boxLength,
+                self.global_optimizer.boxLength
+            )
+
+            new_energy = cluster.get_potential_energy()
+
+            if self.metropolis_criterion(initial_energy, new_energy, temperature):
+                break
+            else:
+                cluster.positions = initial_positions
+        else:
+            print("WARNING: Unable to find a valid rotational move.")
 
     def md(self, cluster, temperature, number_of_steps):
         """
