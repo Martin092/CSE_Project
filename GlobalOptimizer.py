@@ -3,6 +3,7 @@ from ase import Atoms
 import numpy as np
 from Disturber import Disturber
 from ase.io import write
+from AtomParameters import lj_parameters
 
 
 class GlobalOptimizer(ABC):
@@ -16,9 +17,9 @@ class GlobalOptimizer(ABC):
         self.num_clusters = num_clusters
         self.atoms = atoms
         self.covalentRadius = 1.0
-        self.boxLength = 2 * self.covalentRadius * (1/2 + ((3.0 * self.atoms) / (4 * np.pi * np.sqrt(2)))**(1/3))
-        #self.sigma = 1 
-        #self.boxLength2 = self.sigma * np.sqrt(self.atoms)
+        self.boxLength = 2 * self.covalentRadius * (1/2 + ((3.0 * self.atoms) / (4 * np.pi * np.sqrt(2)))**(1/3)) #More restrictive
+        self.sigma,self.epsilon = self.setup()
+        #self.boxLength = self.sigma * np.sqrt(self.atoms) #More permissive
         self.atom_type = atom_type
         self.calculator = calculator
         self.disturber = Disturber(self)
@@ -45,11 +46,9 @@ class GlobalOptimizer(ABC):
             self.clusterList.append(clus)
             opt = self.local_optimizer(clus, logfile='log.txt')
             self.optimizers.append(opt)
-
-        for cluster in range(self.clusterList):
-            length = cluster.calc.parameters['sigma']
-        boxLength = max(length) * np.sqrt(self.atoms) #We assume the worst case scenario is a plane of atoms
-        return boxLength
+        sigma = lj_parameters[self.atom_type]["sigma"]
+        epsilon = lj_parameters[self.atom_type]["epsilon"]   
+        return sigma, epsilon
     
 
     def run(self, max_iterations):
