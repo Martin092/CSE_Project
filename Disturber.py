@@ -14,7 +14,7 @@ class Disturber:
     def __init__(self, global_optimizer):
         self.global_optimizer = global_optimizer
 
-    def random_step(self, cluster, box_size):
+    def random_step(self, cluster):
         """
         Moves the highest energy atom in a random direction
         :param cluster: the cluster we want to disturb
