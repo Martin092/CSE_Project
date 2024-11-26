@@ -19,7 +19,7 @@ class GlobalOptimizer(ABC):
         self.covalentRadius = 1.0
         self.boxLength = 2 * self.covalentRadius * (1/2 + ((3.0 * self.atoms) / (4 * np.pi * np.sqrt(2)))**(1/3)) #More restrictive
         self.sigma,self.epsilon = self.setup()
-        #self.boxLength = self.sigma * np.sqrt(self.atoms) #More permissive
+        #self.boxLength = self.sigma * np.sqrt(self.atoms) #More permissive (assumes plane packing)
         self.atom_type = atom_type
         self.calculator = calculator
         self.disturber = Disturber(self)
