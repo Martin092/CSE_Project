@@ -3,14 +3,15 @@ from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 import numpy as np
 from ase.io import write
+from typing import Any
 from Disturber import Disturber
 
 
 class BasinHoppingOptimizer(GlobalOptimizer):
     def __init__(
-        self, localOptimizer, atoms, atom_type, calculator=LennardJones, num_clusters=1
-    ):
-        super().__init__(
+        self, localOptimizer: Any, atoms: int, atom_type: str, calculator: Any = LennardJones, num_clusters: int = 1
+    ) -> None:
+        super().__init__(  # type: ignore
             num_clusters=num_clusters,
             localOptimizer=localOptimizer,
             atoms=atoms,
@@ -19,7 +20,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         )
         self.last_energy = self.clusterList[0].get_potential_energy()
 
-    def iteration(self):
+    def iteration(self):  # type: ignore
         for index, cluster in enumerate(self.clusterList):
             self.last_energy = self.clusterList[index].get_potential_energy()
 
@@ -29,14 +30,14 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
             # self.disturber.random_step(cluster)
             if abs(min_energy - max_energy) < 1.5:
-                self.disturber.random_step(cluster)
+                self.disturber.random_step(cluster)  # type: ignore
             else:
                 self.disturber.angular_movement(cluster)
 
             self.optimizers[index].run(fmax=0.2)
             self.history[index].append(cluster)
 
-    def isConverged(self):
+    def isConverged(self):  # type: ignore
         if self.currentIteration < 2:
             return False
 
@@ -44,11 +45,11 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         current = self.clusterList[0].get_potential_energy()
         return abs(current - self.last_energy) < 2e-6
 
-    def setup(self):
+    def setup(self):  # type: ignore
         pass
 
 
-bh = BasinHoppingOptimizer(localOptimizer=BFGS, atoms=13, atom_type="Fe")
+bh = BasinHoppingOptimizer(localOptimizer=BFGS, atoms=13, atom_type="Fe")  # type: ignore
 print(bh.boxLength)
 write("clusters/basin_before.xyz", bh.clusterList[0])
 bh.run(1000)
@@ -64,4 +65,4 @@ for cluster in bh.history[0]:
 
 print(min_energy)
 
-write("clusters/basin_optimized.xyz", best_cluster)
+write("clusters/basin_optimized.xyz", best_cluster)  # type: ignore

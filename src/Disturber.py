@@ -1,9 +1,11 @@
 import numpy as np
 from ase.units import fs
 from ase.md.langevin import Langevin
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA  # type: ignore
 from reference_code.rotation_matrices import rotation_matrix
-from ase import Atoms
+from GlobalOptimizer import GlobalOptimizer
+from ase import Atoms, Atom
+from typing import List, Literal, Tuple
 import sys
 
 
@@ -11,19 +13,19 @@ class Disturber:
 
     # Class with all the methods to disturb a cluster
 
-    def __init__(self, global_optimizer):
+    def __init__(self, global_optimizer: GlobalOptimizer) -> None:
         self.global_optimizer = global_optimizer
 
-    def random_step(self, cluster, box_size):
+    def random_step(self, cluster: Atoms, box_size: float) -> None:
         """
         Moves the highest energy atom in a random direction
         :param cluster: the cluster we want to disturb
         :param box_size the size of the container containing the atoms
         :return: result is written directly to cluster, nothing is returned
         """
-        energies = cluster.get_potential_energies()
+        energies = cluster.get_potential_energies()  # type: ignore
         index = np.argmax(energies)
-        energy_before = cluster.get_potential_energy()
+        energy_before = cluster.get_potential_energy()  # type: ignore
 
         # random step from -1 to 1
         step_size = (np.random.rand(3) - 0.5) * 2
@@ -54,7 +56,7 @@ class Disturber:
                 continue
             break
 
-    def metropolis_criterion(self, initial_energy, new_energy, temp=0.8):
+    def metropolis_criterion(self, initial_energy: float, new_energy: float, temp: float = 0.8) -> bool:
         """
         Metropolis acceptance criterion for accepting a new move based on temperature
         :param initial_energy: The energy of the cluster before the move
@@ -69,11 +71,11 @@ class Disturber:
         elif new_energy > initial_energy:
             accept_prob = np.exp(-(new_energy - initial_energy) / temp)
             # We accept each move with a probability given by the Metropolis criterion
-            return np.random.rand() < accept_prob
+            return bool(np.random.rand() < accept_prob)
         else:  # We went downhill, cool
             return True
 
-    def check_atom_position(self, cluster, atom):
+    def check_atom_position(self, cluster: Atoms, atom: Atom) -> bool:
         if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
             return False
         for other_atom in cluster:
@@ -84,7 +86,7 @@ class Disturber:
                 return False
         return True
 
-    def check_group_position(self, group_static, group_moved):
+    def check_group_position(self, group_static: List[Atom], group_moved: List[Atom]) -> bool:
         for atom in group_moved:
             if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
                 return False
@@ -96,21 +98,21 @@ class Disturber:
                     return False
         return True
 
-    def angular_movement(self, cluster):
+    def angular_movement(self, cluster: Atoms) -> None:
         """
         Perform a rotational movement for the atom with the highest energy.
         :param cluster: The atomic cluster to modify
         """
 
-        energies = cluster.get_potential_energies()
+        energies = cluster.get_potential_energies()  # type: ignore
         index = np.argmax(energies)
 
         initial_positions = cluster.positions.copy()
-        initial_energy = cluster.get_potential_energy()
+        initial_energy = cluster.get_potential_energy()  # type: ignore
         max_attempts = 500
         temperature = 1.0
 
-        cluster.set_center_of_mass([0, 0, 0])
+        cluster.set_center_of_mass([0, 0, 0])  # type: ignore
 
         for attempt in range(max_attempts):
             vector = np.random.rand(3) - 0.5
@@ -127,7 +129,7 @@ class Disturber:
                 self.global_optimizer.boxLength,
             )
 
-            new_energy = cluster.get_potential_energy()
+            new_energy = cluster.get_potential_energy()  # type: ignore
 
             if self.metropolis_criterion(initial_energy, new_energy, temperature):
                 break
@@ -136,7 +138,7 @@ class Disturber:
         else:
             print("WARNING: Unable to find a valid rotational move.", file=sys.stderr)
 
-    def md(self, cluster, temperature, number_of_steps):
+    def md(self, cluster: Atoms, temperature: float, number_of_steps: int) -> None:
         """
         Perform a Molecular Dynamics run using Langevin Dynamics
         :param cluster: Cluster of atoms
@@ -150,9 +152,9 @@ class Disturber:
             friction=0.5 / fs,  # Feel free to mess with this parameter
         )
 
-        dyn.run(number_of_steps)
+        dyn.run(number_of_steps)  # type: ignore
 
-    def twist(self, cluster):
+    def twist(self, cluster: Atoms) -> Atoms:
         # Twist doesn't have a check since it is a rotation, and it wouldn't collide with already existing atoms.
         group1, group2, normal = self.split_cluster(cluster)
         choice = np.random.choice([0, 1])
@@ -166,16 +168,16 @@ class Disturber:
 
         return cluster
 
-    def etching(self, cluster):
+    def etching(self, cluster: Atoms) -> None:
         pass
 
     def split_cluster(
         self,
         cluster: Atoms,
-        p1=np.random.rand(3),
-        p2=np.random.rand(3),
-        p3=np.random.rand(3),
-    ):
+        p1: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
+        p2: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
+        p3: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
+    ) -> Tuple[List[Atom], List[Atom], np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]]]:
         v1 = p2 - p1
         v2 = p3 - p1
         normal = np.cross(v1, v2)
@@ -190,7 +192,7 @@ class Disturber:
                 group2.append(atom)
         return group1, group2, normal
 
-    def align_cluster(self, cluster: Atoms):
+    def align_cluster(self, cluster: Atoms) -> Atoms:
         cl = np.array(cluster.positions)
         center_of_mass = np.mean(cl, axis=0)
         cluster_centered = cl - center_of_mass

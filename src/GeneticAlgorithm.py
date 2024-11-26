@@ -1,4 +1,4 @@
-from typing import List, Tuple, Literal
+from typing import List, Tuple, Literal, Any
 import numpy as np
 from GlobalOptimizer import GlobalOptimizer
 from ase import Atoms, Atom
@@ -12,12 +12,12 @@ class GeneticAlgorithm(GlobalOptimizer):
     def __init__(
         self,
         mutation_probability: float = 0.2,
-        local_optimizer=BFGS,
+        local_optimizer: Any = BFGS,
         atoms: int = 30,
         atom_type: str = "C",
-        calculator=LennardJones,
+        calculator: Any = LennardJones,
         num_clusters: int = 16,
-    ):
+    ) -> None:
         """
         Genetic Algorithm Class constructor
         :param mutation_probability: probability to perform mutation
@@ -35,7 +35,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             calculator=calculator,
         )
         self.mutation_probability = mutation_probability
-        self.potentials = (
+        self.potentials: List[Any] = (
             []
         )  # Generate list for storing potentials of current generation
 
@@ -55,7 +55,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         self.selection()  # Perform selection
         children = self.generate_children()  # Generate children configurations
         for child in children:  # Add children to current generation
-            clus = Atoms(
+            clus = Atoms(  # type: ignore
                 self.atom_type + str(self.atoms), positions=child
             )  # Create a child object
             clus.calc = self.calculator()  # Assign energy calculator
@@ -97,12 +97,12 @@ class GeneticAlgorithm(GlobalOptimizer):
 
     def generate_children(
         self,
-    ) -> List[List[np.ndarray[Literal[3], np.dtype[np.float64]]]]:
+    ) -> List[List[np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]]]]:
         """
         Randomly selects two clusters as parents and generates at most two children out of them
         :return: List of atomic configurations (positions) of the children
         """
-        crossover = []  # List of children atomic positions
+        crossover: List[Any] = []  # List of children atomic positions
         while len(crossover) + len(self.clusterList) < self.num_clusters:
             i = np.random.randint(0, len(self.clusterList))
             parent1 = self.clusterList[i]  # Choose random candidate as parent
@@ -142,10 +142,10 @@ class GeneticAlgorithm(GlobalOptimizer):
         self.disturber.align_cluster(cluster2)
 
         # Generate four lists, two per cluster
-        group11 = []
-        group12 = []
-        group21 = []
-        group22 = []
+        group11: List[Any] = []
+        group12: List[Any] = []
+        group21: List[Any] = []
+        group22: List[Any] = []
         while len(group11) + len(group22) != len(
             cluster1.positions
         ):  # Make sure split is even between different parts
