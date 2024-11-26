@@ -58,7 +58,6 @@ class GlobalOptimizer(ABC):
 
         while self.currentIteration < max_iterations and not self.is_converged():
             self.history.append([])
-            print(self.currentIteration)
             self.iteration()
             self.currentIteration += 1
 

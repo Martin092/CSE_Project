@@ -47,10 +47,11 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         :return: A cluster of size self.atoms that is hopefully closer to the global minima
         """
         assert starting_from != self.atoms, "You cant seed from the same cluster size as the one you are optimizing for"
+        assert (starting_from + 1 == self.atoms) or (starting_from - 1 == self.atoms), "Seeding only works with one more or one less atoms"
 
         min_energy = float('inf')
         best_cluster = None
-        for i in range(1):
+        for i in range(5):
             bh = BasinHoppingOptimizer(local_optimizer=self.local_optimizer, atoms=starting_from, atom_type=self.atom_type)
             bh.run(1000)
 
@@ -59,52 +60,54 @@ class BasinHoppingOptimizer(GlobalOptimizer):
                 min_energy = energy
                 best_cluster = bh.clusterList[0]
 
-        write('clusters/seeded_LJ_starting.xyz', best_cluster)
-        print(best_cluster.get_potential_energy())
+        write('clusters/seeded_LJ_before.xyz', best_cluster)
+        print(f'seeding before {best_cluster.get_potential_energy()}')
 
+        # Add or remove atom from the found cluster
         positions = None
         if starting_from > self.atoms:
+            # if we started with more atoms just remove the highest energy one
             energies = best_cluster.get_potential_energies()
             index = np.argmax(energies)
             positions = np.delete(best_cluster.positions, index, axis=0)
         else:
-            # if we need to add an atom we add at the distance furthest from the center of mass plus some random number between 0 and 1
+            # if we started with fewer atoms add at the distance
+            # furthest from the center of mass plus some random number between 0 and 1
             best_cluster.set_center_of_mass(0)
             distances = np.zeros(starting_from)
             for i in range(starting_from):
                 distances[i] = np.linalg.norm(best_cluster.positions[i])
 
             max_dist = np.max(distances)
-            while True:
-                new_pos = (max_dist + np.random.rand(1, 3))
-                positions = best_cluster.positions.copy()
-                positions = np.vstack((positions, new_pos))
-                break
 
-        print(positions.shape)
+            new_pos = (max_dist + np.random.rand(1, 3))
+            positions = best_cluster.positions.copy()
+            positions = np.vstack((positions, new_pos))
+
         new_cluster = Atoms(self.atom_type + str(self.atoms), positions=positions)
         new_cluster.calc = self.calculator()
+
+        write('clusters/seeded_LJ_finished.xyz', new_cluster)
+        print(f'seeded finished {new_cluster.get_potential_energy()}')
+
         return new_cluster
 
 
 
-
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type='Fe')
+bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=25, atom_type='Fe')
 print(bh.boxLength)
 
-cluster = bh.seed(12)
-print(cluster.get_potential_energy())
-# bh.run(1000)
-#
-# min_energy = float('inf')
-# best_cluster = None
-# for cluster in bh.history[0]:
-#     cluster.calc = bh.calculator()
-#     curr_energy = cluster.get_potential_energy()
-#     if curr_energy < min_energy:
-#         min_energy = curr_energy
-#         best_cluster = cluster
-#
-# print(min_energy)
+bh.run(1000, seed=bh.seed(bh.atoms-1))
 
-write('clusters/seeded_LJ_finished.xyz', cluster)
+min_energy = float('inf')
+best_cluster = None
+for cluster in bh.history[0]:
+    cluster.calc = bh.calculator()
+    curr_energy = cluster.get_potential_energy()
+    if curr_energy < min_energy:
+        min_energy = curr_energy
+        best_cluster = cluster
+
+print(min_energy)
+
+write('clusters/LJ_min.xyz', best_cluster)
