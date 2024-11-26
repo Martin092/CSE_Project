@@ -7,6 +7,7 @@ from ase.calculators.lj import LennardJones
 from ase.io import write, read
 from ase.visualize import view
 from ase.io.trajectory import Trajectory,TrajectoryReader
+import time
 
 
 class GeneticAlgorithm(GlobalOptimizer):
@@ -136,6 +137,7 @@ class GeneticAlgorithm(GlobalOptimizer):
 
 
 
+start_time = time.time()
 
 ga = GeneticAlgorithm(atoms=13,mutation_probability=0.1,num_clusters=32)
 ga.run(20)
@@ -145,7 +147,13 @@ print("Best energy found: ")
 print(best_cluster.get_potential_energy())
 write('clusters/minima_optimized.xyz', best_cluster)
 
+end_time = time.time()
+
+print("Time taken: ", end_time - start_time)
+
 view(best_cluster)
+
+#The following works for optimizers that perform more linearly, such as MH.
 #traj = TrajectoryReader("clusters/minima_progress.traj")
 #for i in range(len(traj)):
 #    if ga.compare_clusters(traj[i],best_cluster):
