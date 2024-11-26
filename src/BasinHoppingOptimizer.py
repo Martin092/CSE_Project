@@ -9,7 +9,12 @@ from Disturber import Disturber
 
 class BasinHoppingOptimizer(GlobalOptimizer):
     def __init__(
-        self, localOptimizer: Any, atoms: int, atom_type: str, calculator: Any = LennardJones, num_clusters: int = 1
+        self,
+        localOptimizer: Any,
+        atoms: int,
+        atom_type: str,
+        calculator: Any = LennardJones,
+        num_clusters: int = 1,
     ) -> None:
         super().__init__(  # type: ignore
             num_clusters=num_clusters,

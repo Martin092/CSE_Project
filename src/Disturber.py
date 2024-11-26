@@ -56,7 +56,9 @@ class Disturber:
                 continue
             break
 
-    def metropolis_criterion(self, initial_energy: float, new_energy: float, temp: float = 0.8) -> bool:
+    def metropolis_criterion(
+        self, initial_energy: float, new_energy: float, temp: float = 0.8
+    ) -> bool:
         """
         Metropolis acceptance criterion for accepting a new move based on temperature
         :param initial_energy: The energy of the cluster before the move
@@ -86,7 +88,9 @@ class Disturber:
                 return False
         return True
 
-    def check_group_position(self, group_static: List[Atom], group_moved: List[Atom]) -> bool:
+    def check_group_position(
+        self, group_static: List[Atom], group_moved: List[Atom]
+    ) -> bool:
         for atom in group_moved:
             if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
                 return False
@@ -177,7 +181,9 @@ class Disturber:
         p1: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
         p2: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
         p3: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
-    ) -> Tuple[List[Atom], List[Atom], np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]]]:
+    ) -> Tuple[
+        List[Atom], List[Atom], np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]]
+    ]:
         v1 = p2 - p1
         v2 = p3 - p1
         normal = np.cross(v1, v2)

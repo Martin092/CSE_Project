@@ -9,7 +9,12 @@ from typing import Any, List
 class GlobalOptimizer(ABC):
 
     def __init__(
-        self, num_clusters: int, local_optimizer: Any, atoms: int, atom_type: str, calculator: Any
+        self,
+        num_clusters: int,
+        local_optimizer: Any,
+        atoms: int,
+        atom_type: str,
+        calculator: Any,
     ) -> None:
         self.history: List = []
         self.clusterList: List = []
