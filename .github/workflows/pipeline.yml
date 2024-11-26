@@ -35,7 +35,7 @@ jobs:
           mkdir -p reports/mypy
           mypy src --html-report ../reports/mypy
       - name: Upload mypy report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: mypy-report
           path: reports/mypy
