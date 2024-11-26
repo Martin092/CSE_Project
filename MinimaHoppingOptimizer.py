@@ -67,6 +67,6 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
     def is_converged(self):
         pass
 
-mh = MinimaHoppingOptimizer(num_clusters=1, local_optimizer=BFGS, atoms=7, atom_type='Fe', calculator=LennardJones, temperature=100, E_diff=0.5, mdmin=2)
+mh = MinimaHoppingOptimizer(num_clusters=1, local_optimizer=BFGS, atoms=13, atom_type='Fe', calculator=LennardJones, temperature=100, E_diff=0.5, mdmin=2)
 mh.run(40)
 write('clusters/minima_optimized.xyz', mh.clusterList[0])

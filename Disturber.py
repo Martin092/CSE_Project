@@ -128,8 +128,7 @@ class Disturber:
         else:
             print("WARNING: Unable to find a valid rotational move.", file=sys.stderr)
 
-    @staticmethod
-    def md(cluster, temperature, mdmin, seed=int(time.time())):
+    def md(self, cluster, temperature, mdmin, seed=int(time.time())):
         """
         Perform a Molecular Dynamics run using Langevin Dynamics
         :param cluster: Cluster of atoms
@@ -158,6 +157,8 @@ class Disturber:
             oldpositions.append(cluster.positions.copy())
             i += 1
         cluster.positions = oldpositions[passedmin[0]]
+        cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength,
+                                    self.global_optimizer.boxLength)
 
 
 
