@@ -3,8 +3,8 @@ import time
 from ase.calculators.lj import LennardJones
 from ase.optimize import BFGS
 from ase.optimize.minimahopping import ComparePositions
-from GlobalOptimizer import GlobalOptimizer
-from Disturber import Disturber
+from src.global_optimizer import GlobalOptimizer
+from src.disturber import Disturber
 import numpy as np
 from ase.io import write
 from ase.io.trajectory import TrajectoryReader
@@ -36,12 +36,12 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         Runs a single iteration of Minima hopping
         :return:
         """
-        for i, cluster in enumerate(self.clusterList):
+        for i, cluster in enumerate(self.cluster_list):
             self.disturber.md(cluster, self.temperature, self.mdmin)
             cluster.set_momenta(np.zeros(cluster.get_momenta().shape))
 
             with self.local_optimizer(cluster, logfile='log.txt') as opt:
-                opt.run(fmax=0.02)
+                opt.run(fmax=0.2)
 
             self.check_results(cluster, i)
             self.append_history()
@@ -91,15 +91,15 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
     def is_converged(self):
         pass
 
-mh = MinimaHoppingOptimizer(num_clusters=1, local_optimizer=BFGS, atoms=13, atom_type='Fe', calculator=LennardJones, temperature=100, E_diff=0.5, mdmin=3)
+mh = MinimaHoppingOptimizer(num_clusters=1, local_optimizer=BFGS, atoms=13, atom_type='Fe', calculator=LennardJones, temperature=300, E_diff=0.5, mdmin=3)
 mh.run(500)
 best_cluster = mh.get_best_cluster_found()
-mh.write_trajectory("clusters/minima_progress.traj")
+mh.write_trajectory("../clusters/minima_progress.traj")
 print("Best energy found: ")
 print(best_cluster.get_potential_energy())
 write('../clusters/minima_optimized.xyz', best_cluster)
 
-traj = TrajectoryReader("clusters/minima_progress.traj")
+traj = TrajectoryReader("../clusters/minima_progress.traj")
 for i in range(len(traj)):
     if mh.compare_clusters(traj[i], best_cluster):
         print("Found best cluster at iteration: ")

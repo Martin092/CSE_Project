@@ -156,12 +156,13 @@ class Disturber:
         else:
             print("WARNING: Unable to find a valid rotational move.", file=sys.stderr)
 
-    def md(self, cluster: Atoms, temperature: float, number_of_steps: int, seed: int = int(time.time())) -> None:
+    def md(self, cluster: Atoms, temperature: float, mdmin: int, seed: int = int(time.time())) -> None:
         """
         Perform a Molecular Dynamics run using Langevin Dynamics
         :param cluster: Cluster of atoms
         :param temperature: Temperature in Kelvin
         :param mdmin: Number of minima to be found before MD run halts. Alternatively it will halt once we reach 10000 iterations
+        :param seed: seed for random generation, can be used for testing
         """
         dyn = Langevin(
             cluster,
@@ -186,8 +187,8 @@ class Disturber:
             i += 1
         print("Number of MD steps: " + str(i))
         cluster.positions = oldpositions[passedmin[0]]
-        cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength,
-                                    self.global_optimizer.boxLength)
+        cluster.positions = np.clip(cluster.positions, -self.global_optimizer.box_length,
+                                    self.global_optimizer.box_length)
 
 
 
