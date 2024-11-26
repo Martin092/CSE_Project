@@ -40,8 +40,11 @@ class Disturber:
             energy_before = self.global_optimizer.clusterList[0].get_potential_energy()
 
             cluster.positions[index] += step
-            cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength,
-                                        self.global_optimizer.boxLength)
+            cluster.positions = np.clip(
+                cluster.positions,
+                -self.global_optimizer.boxLength,
+                self.global_optimizer.boxLength,
+            )
 
             energy_after = self.global_optimizer.clusterList[0].get_potential_energy()
 
@@ -59,7 +62,9 @@ class Disturber:
         :param temp: temperature at which we want the move to occur
         :return: whether the move is accepted
         """
-        if np.isnan(new_energy) or new_energy - initial_energy > 50:  # Energy is way too high, bad move
+        if (
+            np.isnan(new_energy) or new_energy - initial_energy > 50
+        ):  # Energy is way too high, bad move
             return False
         elif new_energy > initial_energy:
             accept_prob = np.exp(-(new_energy - initial_energy) / temp)
@@ -72,16 +77,22 @@ class Disturber:
         if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
             return False
         for other_atom in cluster:
-            if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.global_optimizer.covalentRadius:
+            if (
+                np.linalg.norm(atom.position - other_atom.position)
+                < 0.5 * self.global_optimizer.covalentRadius
+            ):
                 return False
         return True
-    
+
     def check_group_position(self, group_static, group_moved):
         for atom in group_moved:
             if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
                 return False
             for other_atom in group_static:
-                if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.global_optimizer.covalentRadius:
+                if (
+                    np.linalg.norm(atom.position - other_atom.position)
+                    < 0.5 * self.global_optimizer.covalentRadius
+                ):
                     return False
         return True
 
@@ -113,7 +124,7 @@ class Disturber:
             cluster.positions = np.clip(
                 cluster.positions,
                 -self.global_optimizer.boxLength,
-                self.global_optimizer.boxLength
+                self.global_optimizer.boxLength,
             )
 
             new_energy = cluster.get_potential_energy()
@@ -152,17 +163,23 @@ class Disturber:
 
         for atom in chosen_group:
             atom.position = np.dot(matrix, atom.position)
-        
+
         return cluster
 
     def etching(self, cluster):
         pass
 
-    def split_cluster(self, cluster: Atoms, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
+    def split_cluster(
+        self,
+        cluster: Atoms,
+        p1=np.random.rand(3),
+        p2=np.random.rand(3),
+        p3=np.random.rand(3),
+    ):
         v1 = p2 - p1
         v2 = p3 - p1
         normal = np.cross(v1, v2)
-        d = - np.dot(normal, p1)
+        d = -np.dot(normal, p1)
         group1 = []
         group2 = []
         for atom in cluster:

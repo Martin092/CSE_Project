@@ -19,4 +19,4 @@ six==1.16.0
 threadpoolctl==3.5.0
 black==24.8.0
 mypy==1.13.0
-pylint==1.9.5
+pylint==1.9.0

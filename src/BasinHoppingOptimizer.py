@@ -5,9 +5,18 @@ import numpy as np
 from ase.io import write
 from Disturber import Disturber
 
+
 class BasinHoppingOptimizer(GlobalOptimizer):
-    def __init__(self, localOptimizer, atoms, atom_type, calculator=LennardJones, num_clusters=1):
-        super().__init__(num_clusters=num_clusters, localOptimizer=localOptimizer, atoms=atoms, atom_type=atom_type, calculator=calculator)
+    def __init__(
+        self, localOptimizer, atoms, atom_type, calculator=LennardJones, num_clusters=1
+    ):
+        super().__init__(
+            num_clusters=num_clusters,
+            localOptimizer=localOptimizer,
+            atoms=atoms,
+            atom_type=atom_type,
+            calculator=calculator,
+        )
         self.last_energy = self.clusterList[0].get_potential_energy()
 
     def iteration(self):
@@ -35,17 +44,16 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         current = self.clusterList[0].get_potential_energy()
         return abs(current - self.last_energy) < 2e-6
 
-
     def setup(self):
         pass
 
 
-bh = BasinHoppingOptimizer(localOptimizer=BFGS, atoms=13, atom_type='Fe')
+bh = BasinHoppingOptimizer(localOptimizer=BFGS, atoms=13, atom_type="Fe")
 print(bh.boxLength)
-write('clusters/basin_before.xyz', bh.clusterList[0])
+write("clusters/basin_before.xyz", bh.clusterList[0])
 bh.run(1000)
 
-min_energy = float('inf')
+min_energy = float("inf")
 best_cluster = None
 for cluster in bh.history[0]:
     cluster.calc = bh.calculator()
@@ -56,4 +64,4 @@ for cluster in bh.history[0]:
 
 print(min_energy)
 
-write('clusters/basin_optimized.xyz', best_cluster)
+write("clusters/basin_optimized.xyz", best_cluster)
