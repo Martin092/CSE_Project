@@ -1,3 +1,5 @@
+import time
+
 from ase.calculators.lj import LennardJones
 from ase.optimize import BFGS
 from ase.optimize.minimahopping import ComparePositions
@@ -26,6 +28,7 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         self.m_cur = [None] * num_clusters
         self.minima_history = []
 
+
     def iteration(self):
         """
         Runs a single iteration of Minima hopping
@@ -39,7 +42,10 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
                 opt.run(fmax=0.02)
 
             self.check_results(cluster, i)
-            self.history[i].append(cluster)
+            self.append_history()
+            print("Temperature: " + str(self.temperature))
+            print("Energy: " + str(cluster.get_potential_energy()))
+            print()
 
     def check_results(self, m, i):
         """
@@ -50,20 +56,30 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         """
         if self.m_cur[i] is not None:  # Case 1: We did not find a new minimum
             if self.compare_clusters(self.m_cur[i], m):
+                print(self.m_cur[i].get_potential_energy())
+                print(m.get_potential_energy())
+                print("2 minima are the same")
                 self.temperature *= self.beta_S
                 return
 
             if m.get_potential_energy() - self.m_cur[i].get_potential_energy() < self.E_diff:  # Check if energy has decreased enough to be considered a new minimum
+                print("Energy between 2 minima has decreased enough")
                 self.E_diff *= self.alpha_a
-                self.m_cur = m
+                self.m_cur[i] = m.copy()
+                self.m_cur[i].calc = self.calculator()
             else:
                 self.E_diff *= self.alpha_r
+        else:
+            self.m_cur[i] = m.copy()
+            self.m_cur[i].calc = self.calculator()
 
         for minima in self.minima_history: # Is this a minima we've seen before? Change temperature accordingly
             if self.compare_clusters(m, minima):
+                print("We've seen this minima before")
                 self.temperature *= self.beta_O
                 return
 
+        print("We've never seen this minima before")
         self.minima_history.append(m)
         self.temperature *= self.beta_N
 
@@ -71,7 +87,9 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         pass
 
 mh = MinimaHoppingOptimizer(num_clusters=1, local_optimizer=BFGS, atoms=7, atom_type='Fe', calculator=LennardJones, temperature=100, E_diff=0.5, mdmin=3)
-mh.run(100)
+mh.run(1000)
 best_cluster = mh.get_best_cluster_found()
+mh.write_trajectory("clusters/minima_progress")
+print("Best energy found: ")
 print(best_cluster.get_potential_energy())
 write('clusters/minima_optimized.xyz', best_cluster)

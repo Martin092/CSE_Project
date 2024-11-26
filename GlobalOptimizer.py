@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from ase import Atoms
 import numpy as np
 from Disturber import Disturber
-from ase.io import write
+from ase.io import write, Trajectory
 
 
 class GlobalOptimizer(ABC):
@@ -62,6 +62,11 @@ class GlobalOptimizer(ABC):
         filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
         write(f'clusters/{filename}', self.clusterList[cluster_index])
 
+    def write_trajectory(self, filename: str, cluster_index=0):
+        with Trajectory(filename, mode='w') as traj:
+            for cluster in self.history[cluster_index]:
+                traj.write(cluster)
+
     def append_history(self):
         """
         Appends copies of all the clusters in the clusterList to the history.
@@ -82,10 +87,11 @@ class GlobalOptimizer(ABC):
         """
         return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())
 
-    def get_best_cluster_found(self):
+    def get_best_cluster_found(self, cluster_index=0):
+        # TODO Make this work for multiple clusters
         min_energy = float('inf')
         best_cluster = None
-        for cluster in self.history[0]: #TODO Make this work for multiple clusters
+        for cluster in self.history[cluster_index]:
             cluster.calc = self.calculator()
             curr_energy = cluster.get_potential_energy()
             if curr_energy < min_energy:
