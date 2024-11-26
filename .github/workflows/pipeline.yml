@@ -76,7 +76,7 @@ jobs:
           chmod +x backend/parse-pytest-coverage.sh
           ./backend/parse-pytest-coverage.sh
       - name: Upload pytest reports
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: pytest-reports
           path: reports/pytest
