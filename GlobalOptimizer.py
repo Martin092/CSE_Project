@@ -29,23 +29,32 @@ class GlobalOptimizer(ABC):
     def is_converged(self):
         pass
 
-    def setup(self):
+    def setup(self, seed=None):
+        """
+        Sets up the clusters by either initializing random clusters or using the seed provided
+        :param seed: A cluster that is used as initial point of the optimization
+        :return:
+        """
         self.currentIteration = 0
         self.history = []
         self.clusterList = []
         self.optimizers = []
         for i in range(self.num_clusters):
-            positions = (np.random.rand(self.atoms, 3) - 0.5) * self.boxLength * 1.5  # 1.5 is a magic number
-            # In the future, instead of number of atoms,
-            # we ask the user to choose how many atoms they want for each atom type.
-            clus = Atoms(self.atom_type + str(self.atoms), positions=positions)
+            clus = None
+            if seed:
+                clus = seed.copy()
+            else:
+                positions = (np.random.rand(self.atoms, 3) - 0.5) * self.boxLength * 1.5  # 1.5 is a magic number
+                # In the future, instead of number of atoms,
+                # we ask the user to choose how many atoms they want for each atom type.
+                clus = Atoms(self.atom_type + str(self.atoms), positions=positions)
             clus.calc = self.calculator()
             self.clusterList.append(clus)
             opt = self.local_optimizer(clus, logfile='log.txt')
             self.optimizers.append(opt)
 
-    def run(self, max_iterations):
-        self.setup()
+    def run(self, max_iterations, seed=None):
+        self.setup(seed)
 
         while self.currentIteration < max_iterations and not self.is_converged():
             self.history.append([])
@@ -53,13 +62,18 @@ class GlobalOptimizer(ABC):
             self.iteration()
             self.currentIteration += 1
 
-    def write_to_file(self, filename: str, cluster_index=0):
+    def write_to_file(self, filename: str = None, cluster_index: int = 0, is_minima: bool = False):
         """
-        Writes the cluster to a .xyz file.
+        Writes the cluster to a .xyz file in the clusters folder
+        :param is_minima: If this is set to true, the filename is overwritten to LJ_{num_atoms}.xyz. Used to have standard filenames for seeding
         :param filename: the name of the file, does not matter if it has the .xyz extension
         :param cluster_index: which cluster will be written
         """
-        filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
+        assert True if is_minima else filename, "Provide a valid filename or set is_minima to True"
+        if is_minima:
+            filename = f"LJ{len(self.clusterList[cluster_index])}_minima.xyz"
+        else:
+            filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
         write(f'clusters/{filename}', self.clusterList[cluster_index])
 
     def append_history(self):
