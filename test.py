@@ -3,8 +3,6 @@ import pytest
 from ase import Atoms
 from Disturber import Disturber
 from GeneticAlgorithm import GeneticAlgorithm
-from ase import 
-
 
 @pytest.fixture()
 def cluster_30():
