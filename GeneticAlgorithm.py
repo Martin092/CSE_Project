@@ -80,7 +80,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             j = np.random.randint(0, len(self.clusterList))
             while j == i:
                 j = np.random.randint(0, len(self.clusterList))
-            parent2 = self.clusterList[i]  # Choose another random parent
+            parent2 = self.clusterList[j]  # Choose another random parent
             group1, group2 = self.crossover(parent1, parent2)  # Generate atomic configuration of two children
             child1 = []
             for atom in group1:
