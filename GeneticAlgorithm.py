@@ -39,7 +39,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         :return: None, since everything is store in class fields.
         """
         for index, cluster in enumerate(self.clusterList):
-            self.optimizers[index].run(fmax=0.1)  # Local optimization
+            self.optimizers[index].run(fmax=0.02)  # Local optimization
             self.history[self.currentIteration].append(cluster)  # Save local minima
             self.potentials.append(cluster.get_potential_energy())  # Compute potential energy
         self.selection()  # Perform selection
@@ -137,7 +137,7 @@ class GeneticAlgorithm(GlobalOptimizer):
 
 
 
-ga = GeneticAlgorithm(atoms=13,mutation_probability=0.2,num_clusters=32)
+ga = GeneticAlgorithm(atoms=13,mutation_probability=0.1,num_clusters=32)
 ga.run(20)
 best_cluster = ga.get_best_cluster_found()
 ga.write_trajectory("clusters/minima_progress.traj")
@@ -147,5 +147,9 @@ write('clusters/minima_optimized.xyz', best_cluster)
 
 view(best_cluster)
 #traj = TrajectoryReader("clusters/minima_progress.traj")
-#view(traj)
-
+#for i in range(len(traj)):
+#    if ga.compare_clusters(traj[i],best_cluster):
+#        print("Found best cluster at iteration: ")
+#        print(i)
+#        break
+#view(traj[:i+1])
