@@ -11,7 +11,7 @@ class GeneticAlgorithm(GlobalOptimizer):
     """Class Structure for Genetic Algorithms"""
 
     def __init__(self, mutation_probability: float = 0.2, local_optimizer=BFGS, atoms: int = 30,
-                 atom_type: str = 'C', calculator=LennardJones, num_clusters: int = 16):
+                 atom_type: str = 'Fe', calculator=LennardJones, num_clusters: int = 16):
         """
         Genetic Algorithm Class constructor
         :param mutation_probability: probability to perform mutation
@@ -21,7 +21,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param calculator: calculator used to derive energies and potentials
         :param num_clusters: number of clusters/configurations per generation
         """
-        super(GeneticAlgorithm, self).__init__(num_clusters=num_clusters,
+        super().__init__(num_clusters=num_clusters,
                          local_optimizer=local_optimizer,
                          atoms=atoms,
                          atom_type=atom_type,
@@ -134,4 +134,12 @@ class GeneticAlgorithm(GlobalOptimizer):
 
 
 
+
+ga = GeneticAlgorithm()
+ga.run(2)
+best_cluster = ga.get_best_cluster_found()
+ga.write_trajectory("clusters/minima_progress")
+print("Best energy found: ")
+print(best_cluster.get_potential_energy())
+write('clusters/minima_optimized.xyz', best_cluster)
 
