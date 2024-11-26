@@ -1,4 +1,5 @@
 """Class Structure for Genetic Algorithms"""
+
 from typing import List, Tuple, Literal, Any
 from ase import Atoms, Atom
 from ase.optimize import BFGS
@@ -62,7 +63,9 @@ class GeneticAlgorithm(GlobalOptimizer):
                 self.atom_type + str(self.atoms), positions=child
             )  # Create a child object
             clus.calc = self.calculator()  # Assign energy calculator
-            self.cluster_list.append(clus)  # Add child to current list of configurations
+            self.cluster_list.append(
+                clus
+            )  # Add child to current list of configurations
             opt = self.local_optimizer(
                 clus, logfile="log.txt"
             )  # Create a local optimizer object

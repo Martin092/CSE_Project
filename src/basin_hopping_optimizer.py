@@ -1,4 +1,5 @@
 """TODO: Write this."""
+
 from typing import Any
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
@@ -10,6 +11,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
     """
     TODO: Write this.
     """
+
     def __init__(
         self,
         local_optimizer: Any,
@@ -18,7 +20,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         calculator: Any = LennardJones,
         num_clusters: int = 1,
     ) -> None:
-        super().__init__(  # type: ignore
+        super().__init__(
             num_clusters=num_clusters,
             local_optimizer=local_optimizer,
             atoms=atoms,
@@ -37,7 +39,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
             # self.disturber.random_step(cluster)
             if abs(min_en - max_energy) < 1.5:
-                self.disturber.random_step(clus)  # type: ignore
+                self.disturber.random_step(clus)
             else:
                 self.disturber.angular_movement(clus)
 
@@ -56,7 +58,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         pass
 
 
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")  # type: ignore
+bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
 print(bh.box_length)
 write("clusters/basin_before.xyz", bh.cluster_list[0])
 bh.run(1000)

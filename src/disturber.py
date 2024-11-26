@@ -1,4 +1,5 @@
 """TODO: Write this."""
+
 from typing import List, Literal, Tuple
 import sys
 import numpy as np
