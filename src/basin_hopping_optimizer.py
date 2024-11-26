@@ -1,6 +1,7 @@
 """TODO: Write this."""
 
 from typing import Any
+from ase import Atoms
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
@@ -29,7 +30,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         )
         self.last_energy = self.cluster_list[0].get_potential_energy()
 
-    def iteration(self):  # type: ignore
+    def iteration(self) -> None:
         for index, clus in enumerate(self.cluster_list):
             self.last_energy = self.cluster_list[index].get_potential_energy()
 
@@ -46,15 +47,15 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.optimizers[index].run(fmax=0.2)
             self.history[index].append(cluster)
 
-    def is_converged(self):  # type: ignore
+    def is_converged(self) -> bool:
         if self.current_iteration < 2:
             return False
 
         # TODO this takes in only one cluster into account, use all of them
         current = self.cluster_list[0].get_potential_energy()
-        return abs(current - self.last_energy) < 2e-6
+        return bool(abs(current - self.last_energy) < 2e-6)
 
-    def setup(self):  # type: ignore
+    def setup(self) -> None:
         pass
 
 
@@ -64,7 +65,7 @@ write("clusters/basin_before.xyz", bh.cluster_list[0])
 bh.run(1000)
 
 min_energy = float("inf")
-BEST = None
+BEST: Atoms
 for cluster in bh.history[0]:
     cluster.calc = bh.calculator()
     curr_energy = cluster.get_potential_energy()
@@ -74,4 +75,4 @@ for cluster in bh.history[0]:
 
 print(min_energy)
 
-write("clusters/basin_optimized.xyz", BEST)  # type: ignore
+write("clusters/basin_optimized.xyz", BEST)
