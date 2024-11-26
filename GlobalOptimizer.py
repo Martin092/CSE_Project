@@ -67,8 +67,7 @@ class GlobalOptimizer(ABC):
         for i, cluster in enumerate(self.clusterList):
             self.history[i].append(cluster.copy())
 
-    @staticmethod
-    def compare_clusters(cluster1, cluster2):
+    def compare_clusters(self, cluster1, cluster2):
         """
         Checks whether two clusters are equal based on their potential energy.
         This method may be changed in the future to use more sophisticated methods,
