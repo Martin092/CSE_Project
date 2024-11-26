@@ -4,7 +4,6 @@ from ase.md.langevin import Langevin
 from sklearn.decomposition import PCA
 from reference_code.rotation_matrices import rotation_matrix
 from ase import Atoms
-from reference_code.rotation_matrices import rotation_y, rotation_x, rotation_z
 import sys
 
 
@@ -12,12 +11,10 @@ class Disturber:
 
     # Class with all the methods to disturb a cluster
 
-    def __init__(self, local_optimizer, global_optimizer):
-        self.local_optimizer = local_optimizer
+    def __init__(self, global_optimizer):
         self.global_optimizer = global_optimizer
 
-
-    def random_step(self, cluster):
+    def random_step(self, cluster, box_size):
         """
         Moves the highest energy atom in a random direction
         :param cluster: the cluster we want to disturb
@@ -29,21 +26,22 @@ class Disturber:
         energy_before = cluster.get_potential_energy()
 
         # random step from -1 to 1
-        stepSize = (np.random.rand(3) - 0.5) * 2
+        step_size = (np.random.rand(3) - 0.5) * 2
 
         attempts = 0
         while True:
             # every 100 attempts to find a new step, increase the step size by 1.
-            # NOTE: probably not the best way to go about the algorithm not finding an appropriate step but works for now
+            # NOTE: probably not the best way to go about the algorithm not finding an appropriate step but works
             attempts += 1
             if attempts % 100 == 0:
-                stepSize += 1
+                step_size += 1
 
-            step = (np.random.rand(3) - 0.5) * 2 * stepSize
+            step = (np.random.rand(3) - 0.5) * 2 * step_size
             energy_before = self.global_optimizer.clusterList[0].get_potential_energy()
 
             cluster.positions[index] += step
-            cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength, self.global_optimizer.boxLength)
+            cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength,
+                                        self.global_optimizer.boxLength)
 
             energy_after = self.global_optimizer.clusterList[0].get_potential_energy()
 
@@ -52,7 +50,6 @@ class Disturber:
                 cluster.positions[index] -= step
                 continue
             break
-
 
     def metropolis_criterion(self, initial_energy, new_energy, temp=0.8):
         """
@@ -66,30 +63,26 @@ class Disturber:
             return False
         elif new_energy > initial_energy:
             accept_prob = np.exp(-(new_energy - initial_energy) / temp)
-            return np.random.rand() < accept_prob # We accept each move with a probability given by the Metropolis criterion
+            # We accept each move with a probability given by the Metropolis criterion
+            return np.random.rand() < accept_prob
         else:  # We went downhill, cool
             return True
 
-
-    def check_position(self, cluster, atom):
-        if np.linalg.norm(atom.position) > self.boxLength:
+    def check_atom_position(self, cluster, atom):
+        if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
             return False
-        
         for other_atom in cluster:
-            if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.covalentRadius:
+            if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.global_optimizer.covalentRadius:
                 return False
-        
         return True
     
-    def check_position(self, group_static, group_moved):
+    def check_group_position(self, group_static, group_moved):
         for atom in group_moved:
-            if np.linalg.norm(atom.position) > self.boxLength:
+            if np.linalg.norm(atom.position) > self.global_optimizer.boxLength:
                 return False
-    
             for other_atom in group_static:
-                if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.covalentRadius:
+                if np.linalg.norm(atom.position - other_atom.position) < 0.5 * self.global_optimizer.covalentRadius:
                     return False
-        
         return True
 
     def angular_movement(self, cluster):
@@ -149,7 +142,7 @@ class Disturber:
         dyn.run(number_of_steps)
 
     def twist(self, cluster):
-        #Twist doesnt have a check since it is a rotation and it wouldnt collide with already existing atoms.
+        # Twist doesn't have a check since it is a rotation, and it wouldn't collide with already existing atoms.
         group1, group2, normal = self.split_cluster(cluster)
         choice = np.random.choice([0, 1])
         chosen_group = group1 if choice == 0 else group2
@@ -159,17 +152,11 @@ class Disturber:
 
         for atom in chosen_group:
             atom.position = np.dot(matrix, atom.position)
-
-        if choice == 0:
-            group = group1.extend(chosen_group)
-        else:
-            group = group2.extend(chosen_group)
         
-        return group
+        return cluster
 
     def etching(self, cluster):
         pass
-
 
     def split_cluster(self, cluster: Atoms, p1=np.random.rand(3), p2=np.random.rand(3), p3=np.random.rand(3)):
         v1 = p2 - p1
@@ -185,7 +172,6 @@ class Disturber:
             else:
                 group2.append(atom)
         return group1, group2, normal
-
 
     def align_cluster(self, cluster: Atoms):
         cl = np.array(cluster.positions)
