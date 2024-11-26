@@ -156,6 +156,7 @@ class Disturber:
                 mincount += 1 #Add this minimum to our mincount
             oldpositions.append(cluster.positions.copy())
             i += 1
+        print("Number of MD steps: " + str(i))
         cluster.positions = oldpositions[passedmin[0]]
         cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength,
                                     self.global_optimizer.boxLength)

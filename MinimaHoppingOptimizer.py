@@ -75,12 +75,15 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
 
         for minima in self.minima_history: # Is this a minima we've seen before? Change temperature accordingly
             if self.compare_clusters(m, minima):
+                print(minima.get_potential_energy())
+                print(m.get_potential_energy())
                 print("We've seen this minima before")
                 self.temperature *= self.beta_O
                 return
 
         print("We've never seen this minima before")
-        self.minima_history.append(m)
+        self.minima_history.append(m.copy())
+        self.minima_history[-1].calc = self.calculator()
         self.temperature *= self.beta_N
 
     def is_converged(self):

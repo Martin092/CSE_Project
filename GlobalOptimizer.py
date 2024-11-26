@@ -85,7 +85,7 @@ class GlobalOptimizer(ABC):
         :param cluster2: Second cluster
         :return: boolean
         """
-        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())
+        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy(), atol=1e-7, rtol=0)
 
     def get_best_cluster_found(self, cluster_index=0):
         # TODO Make this work for multiple clusters
