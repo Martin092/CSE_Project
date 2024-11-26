@@ -82,3 +82,14 @@ class GlobalOptimizer(ABC):
         """
         return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())
 
+    def get_best_cluster_found(self):
+        min_energy = float('inf')
+        best_cluster = None
+        for cluster in self.history[0]: #TODO Make this work for multiple clusters
+            cluster.calc = self.calculator()
+            curr_energy = cluster.get_potential_energy()
+            if curr_energy < min_energy:
+                min_energy = curr_energy
+                best_cluster = cluster
+
+        return best_cluster
