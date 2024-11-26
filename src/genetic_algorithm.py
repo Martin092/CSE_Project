@@ -5,7 +5,7 @@ from ase import Atoms, Atom
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 import numpy as np
-from global_optimizer import GlobalOptimizer
+from src.global_optimizer import GlobalOptimizer
 
 
 class GeneticAlgorithm(GlobalOptimizer):

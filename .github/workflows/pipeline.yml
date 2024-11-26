@@ -72,7 +72,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           mkdir -p reports/pytest/html reports/pytest/xml
-          pytest --cov=src --cov-config=setup.cfg --cov-branch --cov-report=html:reports/pytest/html --cov-report=xml:reports/pytest/xml/coverage.xml --cov-report=term test/ | tee pytest_output.txt
+          pytest --cov=src --cov-config=setup.cfg --cov-branch --cov-report=html:reports/pytest/html --cov-report=xml:reports/pytest/xml/coverage.xml --cov-report=term test | tee pytest_output.txt
       - name: Upload pytest reports
         uses: actions/upload-artifact@v3
         with:

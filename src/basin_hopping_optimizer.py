@@ -5,7 +5,7 @@ from ase import Atoms
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
-from global_optimizer import GlobalOptimizer
+from src.global_optimizer import GlobalOptimizer
 
 
 class BasinHoppingOptimizer(GlobalOptimizer):
@@ -31,6 +31,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         self.last_energy = self.cluster_list[0].get_potential_energy()
 
     def iteration(self) -> None:
+        """
+        TODO: Write this.
+        :return:
+        """
         for index, clus in enumerate(self.cluster_list):
             self.last_energy = self.cluster_list[index].get_potential_energy()
 
@@ -48,6 +52,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.history[index].append(cluster)
 
     def is_converged(self) -> bool:
+        """
+        TODO: Write this.
+        :return:
+        """
         if self.current_iteration < 2:
             return False
 
@@ -56,7 +64,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         return bool(abs(current - self.last_energy) < 2e-6)
 
     def setup(self) -> None:
-        pass
+        """
+        TODO: Write this.
+        :return:
+        """
 
 
 bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")

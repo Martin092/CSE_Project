@@ -1,6 +1,6 @@
 """TODO: Write this."""
 
-from typing import List, Literal, Tuple
+from typing import Any, List, Literal, Tuple
 import sys
 import numpy as np
 from ase.units import fs
@@ -8,7 +8,6 @@ from ase import Atoms, Atom
 from ase.md.langevin import Langevin
 from sklearn.decomposition import PCA  # type: ignore
 from reference_code.rotation_matrices import rotation_matrix
-from global_optimizer import GlobalOptimizer
 
 
 class Disturber:
@@ -16,7 +15,7 @@ class Disturber:
     Class with all the methods to disturb a cluster
     """
 
-    def __init__(self, global_optimizer: GlobalOptimizer) -> None:
+    def __init__(self, global_optimizer: Any) -> None:
         self.global_optimizer = global_optimizer
 
     def random_step(self, cluster: Atoms) -> None:

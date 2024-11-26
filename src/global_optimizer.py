@@ -5,7 +5,7 @@ from typing import Any, List
 from ase import Atoms
 from ase.io import write
 import numpy as np
-from disturber import Disturber
+from src.disturber import Disturber
 
 
 class GlobalOptimizer(ABC):
