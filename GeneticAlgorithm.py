@@ -4,6 +4,7 @@ from GlobalOptimizer import GlobalOptimizer
 from ase import Atoms, Atom
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
+from ase.io import write
 
 
 class GeneticAlgorithm(GlobalOptimizer):
@@ -20,7 +21,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param calculator: calculator used to derive energies and potentials
         :param num_clusters: number of clusters/configurations per generation
         """
-        super().__init__(num_clusters=num_clusters,
+        super(GeneticAlgorithm, self).__init__(num_clusters=num_clusters,
                          local_optimizer=local_optimizer,
                          atoms=atoms,
                          atom_type=atom_type,
@@ -130,3 +131,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         for i in range(self.atoms):
             if np.random.rand() <= self.mutation_probability / self.atoms:
                 cluster.positions[i] += (np.random.rand(3) - 0.5)  # Perform single atom displacement mutation
+
+
+
+
