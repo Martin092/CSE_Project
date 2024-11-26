@@ -1,13 +1,16 @@
+"""Class Structure for Genetic Algorithms"""
 from typing import List, Tuple, Literal, Any
-import numpy as np
-from GlobalOptimizer import GlobalOptimizer
 from ase import Atoms, Atom
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
+import numpy as np
+from global_optimizer import GlobalOptimizer
 
 
 class GeneticAlgorithm(GlobalOptimizer):
-    """Class Structure for Genetic Algorithms"""
+    """
+    Class Structure for Genetic Algorithms
+    """
 
     def __init__(
         self,
@@ -46,9 +49,9 @@ class GeneticAlgorithm(GlobalOptimizer):
         to create a new generation.
         :return: None, since everything is store in class fields.
         """
-        for index, cluster in enumerate(self.clusterList):
+        for index, cluster in enumerate(self.cluster_list):
             self.optimizers[index].run(fmax=0.1)  # Local optimization
-            self.history[self.currentIteration].append(cluster)  # Save local minima
+            self.history[self.current_iteration].append(cluster)  # Save local minima
             self.potentials.append(
                 cluster.get_potential_energy()
             )  # Compute potential energy
@@ -59,14 +62,14 @@ class GeneticAlgorithm(GlobalOptimizer):
                 self.atom_type + str(self.atoms), positions=child
             )  # Create a child object
             clus.calc = self.calculator()  # Assign energy calculator
-            self.clusterList.append(clus)  # Add child to current list of configurations
+            self.cluster_list.append(clus)  # Add child to current list of configurations
             opt = self.local_optimizer(
                 clus, logfile="log.txt"
             )  # Create a local optimizer object
             self.optimizers.append(
                 opt
             )  # Add local optimizer object to current list of optimizers
-        for cluster in self.clusterList:
+        for cluster in self.cluster_list:
             self.mutation(cluster)  # Perform mutation
 
     def is_converged(self) -> bool:
@@ -82,13 +85,13 @@ class GeneticAlgorithm(GlobalOptimizer):
         :return: None, since relevant class lists are used for storing, thus they are only updated.
         """
         pairs = list(
-            zip(self.potentials, self.clusterList, self.optimizers)
+            zip(self.potentials, self.cluster_list, self.optimizers)
         )  # Zip clusters, potentials and optimizers
         pairs.sort(key=lambda x: x[0])  # Sort clusters on potentials
         midpoint = (
             len(pairs) + 1
         ) // 2  # Determine the number of clusters to be selected
-        self.clusterList = [
+        self.cluster_list = [
             pair[1] for pair in pairs[:midpoint]
         ]  # Update current clusters to contain only selected
         self.optimizers = [
@@ -103,13 +106,13 @@ class GeneticAlgorithm(GlobalOptimizer):
         :return: List of atomic configurations (positions) of the children
         """
         crossover: List[Any] = []  # List of children atomic positions
-        while len(crossover) + len(self.clusterList) < self.num_clusters:
-            i = np.random.randint(0, len(self.clusterList))
-            parent1 = self.clusterList[i]  # Choose random candidate as parent
-            j = np.random.randint(0, len(self.clusterList))
+        while len(crossover) + len(self.cluster_list) < self.num_clusters:
+            i = np.random.randint(0, len(self.cluster_list))
+            parent1 = self.cluster_list[i]  # Choose random candidate as parent
+            j = np.random.randint(0, len(self.cluster_list))
             while j == i:
-                j = np.random.randint(0, len(self.clusterList))
-            parent2 = self.clusterList[j]  # Choose another random parent
+                j = np.random.randint(0, len(self.cluster_list))
+            parent2 = self.cluster_list[j]  # Choose another random parent
             group1, group2 = self.crossover(
                 parent1, parent2
             )  # Generate atomic configuration of two children
@@ -118,7 +121,7 @@ class GeneticAlgorithm(GlobalOptimizer):
                 child1.append(atom.position)  # Extract only atomic positions of child
             crossover.append(child1)
             if (
-                len(self.clusterList) + len(crossover) != self.num_clusters
+                len(self.cluster_list) + len(crossover) != self.num_clusters
             ):  # Take second child only if necessary
                 child2 = []
                 for atom in group2:
