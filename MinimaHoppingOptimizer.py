@@ -1,6 +1,7 @@
 from ase.optimize.minimahopping import ComparePositions
 from GlobalOptimizer import GlobalOptimizer
 from Disturber import Disturber
+import numpy as np
 
 
 class MinimaHoppingOptimizer(GlobalOptimizer):
@@ -28,6 +29,10 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
             # TODO: Initialize velocities of atoms based on Maxwell Boltzmann
             self.disturber.md(cluster, self.temperature, self.mdmin)
             #TODO: Locally Optimize #self.localOptimizer
+            cluster.set_momenta(np.zeros(cluster.get_momenta().shape))
+            with self.localOptimizer(cluster, logfile='log.txt') as opt:
+                opt.run(fmax=0.02)  
+            # Check if any other parameters need to be inputted when calling the local optimizer
             #TODO: Check results, edit temperature and E_diff accordingly, see reference code and flowchart
 
     def check_results(self, m):
