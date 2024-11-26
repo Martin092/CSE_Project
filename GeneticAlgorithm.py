@@ -4,9 +4,9 @@ from GlobalOptimizer import GlobalOptimizer
 from ase import Atoms, Atom
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
-from ase.io import write
+from ase.io import write, read
 from ase.visualize import view
-from ase.io.trajectory import Trajectory
+from ase.io.trajectory import Trajectory,TrajectoryReader
 
 
 class GeneticAlgorithm(GlobalOptimizer):
@@ -137,11 +137,15 @@ class GeneticAlgorithm(GlobalOptimizer):
 
 
 
-ga = GeneticAlgorithm()
-ga.run(2)
+ga = GeneticAlgorithm(atoms=13,mutation_probability=0.2,num_clusters=32)
+ga.run(20)
 best_cluster = ga.get_best_cluster_found()
-ga.write_trajectory("clusters/minima_progress")
+ga.write_trajectory("clusters/minima_progress.traj")
 print("Best energy found: ")
 print(best_cluster.get_potential_energy())
 write('clusters/minima_optimized.xyz', best_cluster)
+
 view(best_cluster)
+#traj = TrajectoryReader("clusters/minima_progress.traj")
+#view(traj)
+
