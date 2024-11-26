@@ -137,21 +137,32 @@ class GeneticAlgorithm(GlobalOptimizer):
 
 
 
-start_time = time.time()
+# Example of usage -----------------------------------------------------------------------------------------------
 
-ga = GeneticAlgorithm(atoms=13,mutation_probability=0.1,num_clusters=32)
-ga.run(20)
-best_cluster = ga.get_best_cluster_found()
-ga.write_trajectory("clusters/minima_progress.traj")
-print("Best energy found: ")
-print(best_cluster.get_potential_energy())
-write('clusters/minima_optimized.xyz', best_cluster)
+LJ_index = [5,13,26]
+times = []
+for LJ in LJ_index:
 
-end_time = time.time()
+    start_time = time.time()
 
-print("Time taken: ", end_time - start_time)
+    ga = GeneticAlgorithm(atoms=LJ,mutation_probability=0.1,num_clusters=32)
+    ga.run(20)
+    best_cluster = ga.get_best_cluster_found()
+    ga.write_trajectory("clusters/minima_progress.traj")
+    print("Best energy found: ")
+    print(best_cluster.get_potential_energy())
+    write('clusters/minima_optimized.xyz', best_cluster)
 
-view(best_cluster)
+    end_time = time.time()
+
+    times.append(end_time - start_time)
+
+    print("Time taken: ", end_time - start_time)
+
+#view(best_cluster)
+
+for i in range(len(LJ_index)):
+    print("LJ ", LJ_index[i], " Time taken: ", times[i])
 
 #The following works for optimizers that perform more linearly, such as MH.
 #traj = TrajectoryReader("clusters/minima_progress.traj")
@@ -161,3 +172,4 @@ view(best_cluster)
 #        print(i)
 #        break
 #view(traj[:i+1])
+
