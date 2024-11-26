@@ -1,0 +1,80 @@
+name: CI/CD Pipeline
+
+on: [push]
+
+jobs:
+  format_check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Black
+        run: black --check src/
+
+  type_check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install lxml
+      - name: Run mypy
+        run: |
+          mkdir -p reports/mypy
+          mypy src --html-report ../reports/mypy
+      - name: Upload mypy report
+        uses: actions/upload-artifact@v3
+        with:
+          name: mypy-report
+          path: reports/mypy
+
+  codestyle_check:
+    name: Code Style Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run pylint
+        run: pylint src
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests with coverage
+        run: |
+          mkdir -p reports/pytest/html reports/pytest/xml
+          pytest --cov=src --cov-config=setup.cfg --cov-branch --cov-report=html:reports/pytest/html --cov-report=xml:reports/pytest/xml/coverage.xml --cov-report=term test | tee pytest_output.txt
+      - name: Upload pytest reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-reports
+          path: reports/pytest
