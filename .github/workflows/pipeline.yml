@@ -1,0 +1,82 @@
+name: CI/CD Pipeline
+
+on: [push]
+
+jobs:
+  format_check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install black
+      - name: Run Black
+        run: black --check src/
+
+  type_check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install mypy
+      - name: Run mypy
+        run: |
+          mkdir -p reports/mypy
+          mypy src --html-report ../reports/mypy
+      - name: Upload mypy report
+        uses: actions/upload-artifact@v2
+        with:
+          name: mypy-report
+          path: reports/mypy
+
+  codestyle_check:
+    name: Code Style Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pylint
+      - name: Run pylint
+        run: pylint src
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pytest pytest-cov
+      - name: Run tests with coverage
+        run: |
+          mkdir -p reports/pytest/html reports/pytest/xml
+          pytest --cov-config=setup.cfg --cov-branch --cov=src/ --cov-report=html:reports/pytest/html --cov-report=xml:reports/pytest/xml/coverage.xml --cov-report=term | tee pytest_output.txt
+      - name: Parse and upload coverage
+        run: |
+          chmod +x backend/parse-pytest-coverage.sh
+          ./backend/parse-pytest-coverage.sh
+      - name: Upload pytest reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: pytest-reports
+          path: reports/pytest

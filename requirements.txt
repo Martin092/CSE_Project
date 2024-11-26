@@ -17,3 +17,6 @@ scikit-learn==1.5.2
 scipy==1.14.1
 six==1.16.0
 threadpoolctl==3.5.0
+black==24.8.0
+mypy==1.13.0
+pylint==1.9.5
