@@ -4,7 +4,6 @@ from ase.md.langevin import Langevin
 from sklearn.decomposition import PCA
 from reference_code.rotation_matrices import rotation_matrix
 from ase import Atoms
-from reference_code.rotation_matrices import rotation_y, rotation_x, rotation_z
 import sys
 
 
@@ -27,21 +26,22 @@ class Disturber:
         energy_before = cluster.get_potential_energy()
 
         # random step from -1 to 1
-        stepSize = (np.random.rand(3) - 0.5) * 2
+        step_size = (np.random.rand(3) - 0.5) * 2
 
         attempts = 0
         while True:
             # every 100 attempts to find a new step, increase the step size by 1.
-            # NOTE: probably not the best way to go about the algorithm not finding an appropriate step but works for now
+            # NOTE: probably not the best way to go about the algorithm not finding an appropriate step but works
             attempts += 1
             if attempts % 100 == 0:
-                stepSize += 1
+                step_size += 1
 
-            step = (np.random.rand(3) - 0.5) * 2 * stepSize
+            step = (np.random.rand(3) - 0.5) * 2 * step_size
             energy_before = self.global_optimizer.clusterList[0].get_potential_energy()
 
             cluster.positions[index] += step
-            cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength, self.global_optimizer.boxLength)
+            cluster.positions = np.clip(cluster.positions, -self.global_optimizer.boxLength,
+                                        self.global_optimizer.boxLength)
 
             energy_after = self.global_optimizer.clusterList[0].get_potential_energy()
 
@@ -50,7 +50,6 @@ class Disturber:
                 cluster.positions[index] -= step
                 continue
             break
-
 
     def metropolis_criterion(self, initial_energy, new_energy, temp=0.8):
         """
@@ -64,7 +63,8 @@ class Disturber:
             return False
         elif new_energy > initial_energy:
             accept_prob = np.exp(-(new_energy - initial_energy) / temp)
-            return np.random.rand() < accept_prob # We accept each move with a probability given by the Metropolis criterion
+            # We accept each move with a probability given by the Metropolis criterion
+            return np.random.rand() < accept_prob
         else:  # We went downhill, cool
             return True
 
