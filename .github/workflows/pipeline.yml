@@ -29,7 +29,9 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install lxml
       - name: Run mypy
         run: |
           mkdir -p reports/mypy
@@ -71,10 +73,6 @@ jobs:
         run: |
           mkdir -p reports/pytest/html reports/pytest/xml
           pytest --cov=src --cov-config=setup.cfg --cov-branch --cov-report=html:reports/pytest/html --cov-report=xml:reports/pytest/xml/coverage.xml --cov-report=term test | tee pytest_output.txt
-      - name: Parse and upload coverage
-        run: |
-          chmod +x src/parse-pytest-coverage.sh
-          ./src/parse-pytest-coverage.sh
       - name: Upload pytest reports
         uses: actions/upload-artifact@v3
         with:
