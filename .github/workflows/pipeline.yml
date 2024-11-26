@@ -73,8 +73,8 @@ jobs:
           pytest --cov-config=setup.cfg --cov-branch --cov=src/ --cov-report=html:reports/pytest/html --cov-report=xml:reports/pytest/xml/coverage.xml --cov-report=term | tee pytest_output.txt
       - name: Parse and upload coverage
         run: |
-          chmod +x backend/parse-pytest-coverage.sh
-          ./backend/parse-pytest-coverage.sh
+          chmod +x parse-pytest-coverage.sh
+          ./parse-pytest-coverage.sh
       - name: Upload pytest reports
         uses: actions/upload-artifact@v3
         with:
