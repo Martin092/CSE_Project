@@ -1,22 +1,19 @@
 """Class Structure for Genetic Algorithms"""
 
 from typing import List, Tuple, Literal, Any
+import time
 from ase import Atoms, Atom
+from ase.io import write
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 import numpy as np
 from src.global_optimizer import GlobalOptimizer
-from ase.io import write, read
-from ase.visualize import view
-from ase.io.trajectory import Trajectory,TrajectoryReader
-import time
 
 
 class GeneticAlgorithm(GlobalOptimizer):
     """
     Class Structure for Genetic Algorithms
     """
-
 
     def __init__(
         self,
@@ -187,22 +184,21 @@ class GeneticAlgorithm(GlobalOptimizer):
                 )  # Perform single atom displacement mutation
 
 
-
 # Example of usage -----------------------------------------------------------------------------------------------
 
-LJ_index = [5,13,26]
+LJ_index = [5, 13, 26]
 times = []
 for LJ in LJ_index:
 
     start_time = time.time()
 
-    ga = GeneticAlgorithm(atoms=LJ,mutation_probability=0.1,num_clusters=32)
+    ga = GeneticAlgorithm(atoms=LJ, mutation_probability=0.1, num_clusters=32)
     ga.run(20)
     best_cluster = ga.get_best_cluster_found()
     ga.write_trajectory("clusters/minima_progress.traj")
     print("Best energy found: ")
     print(best_cluster.get_potential_energy())
-    write('clusters/minima_optimized.xyz', best_cluster)
+    write("clusters/minima_optimized.xyz", best_cluster)
 
     end_time = time.time()
 
@@ -210,17 +206,16 @@ for LJ in LJ_index:
 
     print("Time taken: ", end_time - start_time)
 
-#view(best_cluster)
+# view(best_cluster)
 
-for i in range(len(LJ_index)):
-    print("LJ ", LJ_index[i], " Time taken: ", times[i])
+for k in enumerate(LJ_index):
+    print("LJ ", k[1], " Time taken: ", times[k[0]])
 
-#The following works for optimizers that perform more linearly, such as MH.
-#traj = TrajectoryReader("clusters/minima_progress.traj")
-#for i in range(len(traj)):
+# The following works for optimizers that perform more linearly, such as MH.
+# traj = TrajectoryReader("clusters/minima_progress.traj")
+# for i in range(len(traj)):
 #    if ga.compare_clusters(traj[i],best_cluster):
 #        print("Found best cluster at iteration: ")
 #        print(i)
 #        break
-#view(traj[:i+1])
-
+# view(traj[:i+1])
