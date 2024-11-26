@@ -59,16 +59,18 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
             else:
                 self.E_diff *= self.alpha_r
 
-        if m in self.minima_history:  # Is this a minima we've seen before? Change temperature accordingly
-            self.temperature *= self.beta_O
-        else:
-            self.minima_history.append(m)
-            self.temperature *= self.beta_N
+        for minima in self.minima_history: # Is this a minima we've seen before? Change temperature accordingly
+            if self.compare_clusters(m, minima):
+                self.temperature *= self.beta_O
+                return
+
+        self.minima_history.append(m)
+        self.temperature *= self.beta_N
 
     def is_converged(self):
         pass
 
-mh = MinimaHoppingOptimizer(num_clusters=1, local_optimizer=BFGS, atoms=13, atom_type='Fe', calculator=LennardJones, temperature=100, E_diff=0.5, mdmin=3)
+mh = MinimaHoppingOptimizer(num_clusters=1, local_optimizer=BFGS, atoms=7, atom_type='Fe', calculator=LennardJones, temperature=100, E_diff=0.5, mdmin=3)
 mh.run(100)
 best_cluster = mh.get_best_cluster_found()
 print(best_cluster.get_potential_energy())
