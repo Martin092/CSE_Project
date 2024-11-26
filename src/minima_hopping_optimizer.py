@@ -97,7 +97,7 @@ best_cluster = mh.get_best_cluster_found()
 mh.write_trajectory("clusters/minima_progress.traj")
 print("Best energy found: ")
 print(best_cluster.get_potential_energy())
-write('clusters/minima_optimized.xyz', best_cluster)
+write('../clusters/minima_optimized.xyz', best_cluster)
 
 traj = TrajectoryReader("clusters/minima_progress.traj")
 for i in range(len(traj)):

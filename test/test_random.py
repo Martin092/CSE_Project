@@ -2,9 +2,8 @@ import numpy as np
 import pytest
 from ase import Atoms
 from ase.calculators.lj import LennardJones
-from Disturber import Disturber
-from GeneticAlgorithm import GeneticAlgorithm
-from GlobalOptimizer import GlobalOptimizer
+from src.disturber import Disturber
+from src.genetic_algorithm import GeneticAlgorithm
 
 np.random.seed(0)
 
