@@ -97,13 +97,14 @@ class GlobalOptimizer(ABC):
         filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
         write(f"clusters/{filename}", self.cluster_list[cluster_index])
 
-    def write_trajectory(self, filename: str, cluster_index: int = 0) -> None:
+    def write_trajectory(self, filename: str) -> None:
         """
         TODO: Write this.
         """
         traj = Trajectory(filename, mode="w")  # type: ignore
-        for cluster in self.history[cluster_index]:
-            traj.write(cluster)
+        for index in range(self.current_iteration):
+            for cluster in self.history[index]:
+                traj.write(cluster)
 
     def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> np.bool:
         """
@@ -116,19 +117,22 @@ class GlobalOptimizer(ABC):
         """
         return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore
 
-    def get_best_cluster_found(self, cluster_index: int = 0) -> Any:
+    def get_best_cluster_found(self) -> Any:
         """
         TODO: Write this.
         """
         # TODO Make this work for multiple clusters
         min_energy = float("inf")
         best_cluster = None
-        for cluster in self.history[cluster_index]:
-            cluster.calc = self.calculator()
-            curr_energy = cluster.get_potential_energy()
-            if curr_energy < min_energy:
-                min_energy = curr_energy
-                best_cluster = cluster
+        for index in range(self.current_iteration):
+            for cluster in self.history[index]:
+
+                cluster.calc = self.calculator()
+                curr_energy = cluster.get_potential_energy()
+
+                if curr_energy < min_energy:
+                    min_energy = curr_energy
+                    best_cluster = cluster
 
         return best_cluster
 

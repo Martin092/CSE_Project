@@ -5,8 +5,11 @@ import time
 from ase import Atoms, Atom
 from ase.io import write
 from ase.optimize import BFGS
+
+# from ase.visualize import view
 from ase.calculators.lj import LennardJones
 import numpy as np
+
 from src.global_optimizer import GlobalOptimizer
 
 
@@ -41,7 +44,8 @@ class GeneticAlgorithm(GlobalOptimizer):
             calculator=calculator,
         )
         self.mutation_probability = mutation_probability
-        self.potentials: List[Any] = (
+        self.best_potential: List[float] = []
+        self.potentials: List[float] = (
             []
         )  # Generate list for storing potentials of current generation
 
@@ -52,12 +56,14 @@ class GeneticAlgorithm(GlobalOptimizer):
         to create a new generation.
         :return: None, since everything is store in class fields.
         """
+        self.potentials = []
         for index, cluster in enumerate(self.cluster_list):
             self.optimizers[index].run(fmax=0.02)  # Local optimization
             self.history[self.current_iteration].append(cluster)  # Save local minima
             self.potentials.append(
                 cluster.get_potential_energy()
             )  # Compute potential energy
+        self.best_potential.append(min(self.potentials))
         self.selection()  # Perform selection
         children = self.generate_children()  # Generate children configurations
         for child in children:  # Add children to current generation
@@ -82,7 +88,13 @@ class GeneticAlgorithm(GlobalOptimizer):
         Checks if convergence criteria is satisfied
         :return: True if convergence criteria is met, otherwise False
         """
-        return False  # TODO: implement
+        if self.current_iteration < 10:
+            return False
+        ret = True
+        cur = self.best_potential[self.current_iteration - 1]
+        for i in range(self.current_iteration - 10, self.current_iteration - 1):
+            ret &= bool(cur == self.best_potential[i])
+        return ret
 
     def selection(self) -> None:
         """
@@ -183,39 +195,37 @@ class GeneticAlgorithm(GlobalOptimizer):
                     np.random.rand(3) - 0.5
                 )  # Perform single atom displacement mutation
 
+    def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
+        """
+        TODO: Write this.
+        """
+        times = []
 
-# Example of usage -----------------------------------------------------------------------------------------------
+        for lj in indices:
+            self.atoms = lj
+            start_time = time.time()
+            self.run(num_iterations)
+            best_cluster = self.get_best_cluster_found()
 
-LJ_index = [5, 13, 26]
-times = []
-for LJ in LJ_index:
+            self.write_trajectory("clusters/minima_progress.traj")
+            print("Best energy found: ")
+            print(best_cluster.get_potential_energy())
+            write("clusters/minima_optimized.xyz", best_cluster)
 
-    start_time = time.time()
+            dur = time.time() - start_time
+            print(f"Time taken: {int(np.floor_divide(dur, 60))} min {int(dur)%60} sec")
+            times.append(dur)
 
-    ga = GeneticAlgorithm(atoms=LJ, mutation_probability=0.1, num_clusters=32)
-    ga.run(20)
-    best_cluster = ga.get_best_cluster_found()
-    ga.write_trajectory("clusters/minima_progress.traj")
-    print("Best energy found: ")
-    print(best_cluster.get_potential_energy())
-    write("clusters/minima_optimized.xyz", best_cluster)
+            # view(best_cluster)
 
-    end_time = time.time()
+        for k in enumerate(indices):
+            print(f"LJ {k[1]}: {times[k[0]]}")
 
-    times.append(end_time - start_time)
-
-    print("Time taken: ", end_time - start_time)
-
-# view(best_cluster)
-
-for k in enumerate(LJ_index):
-    print("LJ ", k[1], " Time taken: ", times[k[0]])
-
-# The following works for optimizers that perform more linearly, such as MH.
-# traj = TrajectoryReader("clusters/minima_progress.traj")
-# for i in range(len(traj)):
-#    if ga.compare_clusters(traj[i],best_cluster):
-#        print("Found best cluster at iteration: ")
-#        print(i)
-#        break
-# view(traj[:i+1])
+        # The following works for optimizers that perform more linearly, such as MH.
+        # traj = TrajectoryReader("clusters/minima_progress.traj")
+        # for i in range(len(traj)):
+        #    if ga.compare_clusters(traj[i],best_cluster):
+        #        print("Found best cluster at iteration: ")
+        #        print(i)
+        #        break
+        # view(traj[:i+1])
