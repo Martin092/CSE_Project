@@ -230,7 +230,10 @@ class GeneticAlgorithm(GlobalOptimizer):
 
             for j in enumerate(self.best_potentials):
                 if self.best_potentials[j[0]] - self.best_potential < 0.01:
-                    plt.plot(range(j[0], self.current_iteration), self.best_potentials[j[0]:])
+                    plt.plot(
+                        range(j[0], self.current_iteration),
+                        self.best_potentials[j[0] :],
+                    )
                     plt.title(f"Execution on LJ{lj}")
                     plt.xlabel("Iteration")
                     plt.ylabel("Potential Energy")
