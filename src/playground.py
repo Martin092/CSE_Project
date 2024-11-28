@@ -8,14 +8,11 @@ from ase.visualize import view
 
 from src.genetic_algorithm import GeneticAlgorithm
 
-ga = GeneticAlgorithm()
-ga.benchmark_run([5, 13], 20)
+if not os.path.exists("clusters/"):
+    os.makedirs("clusters/")
 
-if not os.path.exists("clusters/minima_optimized.xyz"):
-    os.makedirs("clusters/minima_optimized.xyz")
-
-if not os.path.exists("clusters/minima_progress.traj"):
-    os.makedirs("clusters/minima_progress.traj")
+ga = GeneticAlgorithm(num_clusters=4)
+ga.benchmark_run([38], 100)
 
 final_atoms = read("clusters/minima_optimized.xyz")
 view(final_atoms)  # type: ignore

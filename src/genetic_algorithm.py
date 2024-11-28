@@ -1,14 +1,13 @@
 """Class Structure for Genetic Algorithms"""
 
 from typing import List, Tuple, Literal, Any
-import time
 from ase import Atoms, Atom
 from ase.io import write
+from ase.io.trajectory import Trajectory
 from ase.optimize import BFGS
-
-# from ase.visualize import view
 from ase.calculators.lj import LennardJones
 import numpy as np
+from matplotlib import pyplot as plt
 
 from src.global_optimizer import GlobalOptimizer
 
@@ -44,7 +43,12 @@ class GeneticAlgorithm(GlobalOptimizer):
             calculator=calculator,
         )
         self.mutation_probability = mutation_probability
-        self.best_potential: List[float] = []
+        self.best_potentials: List[float] = []
+        self.best_configs: List[Atoms] = []
+        self.best_config: Atoms = Atoms(
+            self.atom_type + str(self.atoms), positions=np.random.rand(self.atoms, 3)
+        )  # type: ignore
+        self.best_potential: float = float("inf")
         self.potentials: List[float] = (
             []
         )  # Generate list for storing potentials of current generation
@@ -63,7 +67,6 @@ class GeneticAlgorithm(GlobalOptimizer):
             self.potentials.append(
                 cluster.get_potential_energy()
             )  # Compute potential energy
-        self.best_potential.append(min(self.potentials))
         self.selection()  # Perform selection
         children = self.generate_children()  # Generate children configurations
         for child in children:  # Add children to current generation
@@ -91,9 +94,9 @@ class GeneticAlgorithm(GlobalOptimizer):
         if self.current_iteration < 10:
             return False
         ret = True
-        cur = self.best_potential[self.current_iteration - 1]
+        cur = self.best_potentials[self.current_iteration - 1]
         for i in range(self.current_iteration - 10, self.current_iteration - 1):
-            ret &= bool(cur == self.best_potential[i])
+            ret &= bool(abs(cur - self.best_potentials[i]) <= 10**-15)
         return ret
 
     def selection(self) -> None:
@@ -105,6 +108,11 @@ class GeneticAlgorithm(GlobalOptimizer):
             zip(self.potentials, self.cluster_list, self.optimizers)
         )  # Zip clusters, potentials and optimizers
         pairs.sort(key=lambda x: x[0])  # Sort clusters on potentials
+        if self.best_potential > pairs[0][0]:
+            self.best_potential = pairs[0][0]
+            self.best_config = pairs[0][1].copy()
+        self.best_potentials.append(self.best_potential)
+        self.best_configs.append(self.best_config)
         midpoint = (
             len(pairs) + 1
         ) // 2  # Determine the number of clusters to be selected
@@ -189,43 +197,48 @@ class GeneticAlgorithm(GlobalOptimizer):
         """
         if np.random.rand() <= self.mutation_probability:
             self.disturber.twist(cluster)  # Perform twist mutation
-        for i in range(self.atoms):
-            if np.random.rand() <= self.mutation_probability / self.atoms:
-                cluster.positions[i] += (
-                    np.random.rand(3) - 0.5
-                )  # Perform single atom displacement mutation
 
     def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
         """
         TODO: Write this.
         """
         times = []
-
+        convergence = []
         for lj in indices:
             self.atoms = lj
-            start_time = time.time()
             self.run(num_iterations)
-            best_cluster = self.get_best_cluster_found()
 
-            self.write_trajectory("clusters/minima_progress.traj")
-            print("Best energy found: ")
-            print(best_cluster.get_potential_energy())
+            best_cluster = self.best_config
+            print(f"Best energy found: {self.best_potential}")
             write("clusters/minima_optimized.xyz", best_cluster)
 
-            dur = time.time() - start_time
-            print(f"Time taken: {int(np.floor_divide(dur, 60))} min {int(dur)%60} sec")
-            times.append(dur)
+            traj = Trajectory("clusters/minima_progress.traj", mode="w")  # type: ignore
+            for cluster in self.best_configs:
+                traj.write(cluster)
 
-            # view(best_cluster)
+            times.append(self.execution_time)
+            convergence.append(self.current_iteration)
+            print(
+                f"Time taken: {int(np.floor_divide(self.execution_time, 60))} min {int(self.execution_time)%60} sec"
+            )
+
+            plt.plot(self.best_potentials)
+            plt.title(f"Execution on LJ{lj}")
+            plt.xlabel("Iteration")
+            plt.ylabel("Potential Energy")
+            plt.show()
+
+            for j in enumerate(self.best_potentials):
+                if self.best_potentials[j[0]] - self.best_potential < 0.01:
+                    plt.plot(range(j[0], self.current_iteration), self.best_potentials[j[0]:])
+                    plt.title(f"Execution on LJ{lj}")
+                    plt.xlabel("Iteration")
+                    plt.ylabel("Potential Energy")
+                    plt.show()
+                    break
 
         for k in enumerate(indices):
-            print(f"LJ {k[1]}: {times[k[0]]}")
-
-        # The following works for optimizers that perform more linearly, such as MH.
-        # traj = TrajectoryReader("clusters/minima_progress.traj")
-        # for i in range(len(traj)):
-        #    if ga.compare_clusters(traj[i],best_cluster):
-        #        print("Found best cluster at iteration: ")
-        #        print(i)
-        #        break
-        # view(traj[:i+1])
+            print(
+                f"LJ {k[1]}: {convergence[k[0]]} iterations for"
+                f"{int(np.floor_divide(times[k[0]], 60))} min {int(times[k[0]])%60} sec"
+            )

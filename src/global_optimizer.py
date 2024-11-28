@@ -1,10 +1,9 @@
 """TODO: Write this."""
-
+import time
 from abc import ABC, abstractmethod
 from typing import Any, List
 from ase import Atoms
 from ase.io import write
-from ase.io.trajectory import Trajectory
 import numpy as np
 from src.disturber import Disturber
 
@@ -38,6 +37,7 @@ class GlobalOptimizer(ABC):
         self.atom_type = atom_type
         self.calculator = calculator
         self.disturber = Disturber(self)
+        self.execution_time: float = 0.0
 
     @abstractmethod
     def iteration(self) -> None:
@@ -80,6 +80,7 @@ class GlobalOptimizer(ABC):
         :param max_iterations:
         :return:
         """
+        start_time = time.time()
         self.setup()
 
         while self.current_iteration < max_iterations and not self.is_converged():
@@ -87,6 +88,8 @@ class GlobalOptimizer(ABC):
             print(self.current_iteration)
             self.iteration()
             self.current_iteration += 1
+
+        self.execution_time = time.time() - start_time
 
     def write_to_file(self, filename: str, cluster_index: int = 0) -> None:
         """
@@ -96,15 +99,6 @@ class GlobalOptimizer(ABC):
         """
         filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
         write(f"clusters/{filename}", self.cluster_list[cluster_index])
-
-    def write_trajectory(self, filename: str) -> None:
-        """
-        TODO: Write this.
-        """
-        traj = Trajectory(filename, mode="w")  # type: ignore
-        for index in range(self.current_iteration):
-            for cluster in self.history[index]:
-                traj.write(cluster)
 
     def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> np.bool:
         """
@@ -116,25 +110,6 @@ class GlobalOptimizer(ABC):
         :return: boolean
         """
         return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore
-
-    def get_best_cluster_found(self) -> Any:
-        """
-        TODO: Write this.
-        """
-        # TODO Make this work for multiple clusters
-        min_energy = float("inf")
-        best_cluster = None
-        for index in range(self.current_iteration):
-            for cluster in self.history[index]:
-
-                cluster.calc = self.calculator()
-                curr_energy = cluster.get_potential_energy()
-
-                if curr_energy < min_energy:
-                    min_energy = curr_energy
-                    best_cluster = cluster
-
-        return best_cluster
 
     def append_history(self) -> None:
         """
