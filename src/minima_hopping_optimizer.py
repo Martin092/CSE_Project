@@ -47,7 +47,7 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         :return:
         """
         for cluster_index, cluster in enumerate(self.cluster_list):
-            self.disturber.md(cluster, self.temperature, self.mdmin)
+            self.utility.md(cluster, self.temperature, self.mdmin)
             cluster.set_momenta(np.zeros(cluster.get_momenta().shape))
 
             with self.local_optimizer(cluster, logfile="log.txt") as opt:
@@ -63,13 +63,13 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         """
         Checks the outcome of a minima hopping run and changes temperature and e_diff variables depending on the outcome
         :param m: Minima we found
-        :param i: Current index in the cluster list
+        :param cluster_index: Current index in the cluster list
         :return: None
         """
         if (
             self.m_cur[cluster_index] is not None
         ):  # Case 1: We did not find a new minimum
-            if self.compare_clusters(self.m_cur[cluster_index], m):  # type: ignore
+            if self.utility.compare_clusters(self.m_cur[cluster_index], m):  # type: ignore
                 # print(self.m_cur[i].get_potential_energy())
                 # print(m.get_potential_energy())
                 # print("2 minima are the same")
@@ -95,7 +95,7 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         ) in (
             self.minima_history
         ):  # Is this a minima we've seen before? Change temperature accordingly
-            if self.compare_clusters(m, minima):
+            if self.utility.compare_clusters(m, minima):
                 # print(minima.get_potential_energy())
                 # print(m.get_potential_energy())
                 # print("We've seen this minima before")
@@ -127,7 +127,7 @@ write("../clusters/minima_optimized.xyz", best_cluster)
 traj = TrajectoryReader("../clusters/minima_progress.traj")  # type: ignore
 BEST_INDEX = 0
 for i, _ in enumerate(traj):
-    if mh.compare_clusters(traj[i], best_cluster):
+    if mh.utility.compare_clusters(traj[i], best_cluster):
         print("Found best cluster at iteration: ")
         print(i)
         BEST_INDEX = i

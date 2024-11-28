@@ -5,11 +5,9 @@ import time
 import sys
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
-from ase.units import fs
 from ase import Atoms, Atom
+from ase.units import fs
 from ase.md.langevin import Langevin
-from sklearn.decomposition import PCA  # type: ignore
-from reference_code.rotation_matrices import rotation_matrix
 from ase.optimize.minimahopping import PassedMinimum
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from reference_code.rotation_matrices import rotation_matrix

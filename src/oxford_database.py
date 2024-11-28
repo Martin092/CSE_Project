@@ -3,7 +3,7 @@ TODO: Write this
 """
 
 import sys
-import requests
+import requests  # type: ignore
 from ase.io import read
 from ase.calculators.lj import LennardJones
 

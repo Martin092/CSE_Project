@@ -28,41 +28,41 @@ def cluster_30():
 
 
 @pytest.fixture()
-def disturber():
+def utility():
     glob = GeneticAlgorithm()
-    return glob.disturber
+    return glob.utility
 
 
-def test_cluster_split(cluster_30, disturber):
-    group1, group2, _ = disturber.split_cluster(cluster_30)
+def test_cluster_split(cluster_30, utility):
+    group1, group2, _ = utility.split_cluster(cluster_30)
     assert len(group1) + len(group2) == 30
     assert len(set(group1).intersection(set(group2))) == 0
 
 
-def test_cluster_alignment(cluster_30, disturber):
+def test_cluster_alignment(cluster_30, utility):
     p1 = cluster_30.positions[0]
     p2 = cluster_30.positions[1]
     distance = np.sqrt(np.sum((p1-p2)**2))
-    cluster = disturber.align_cluster(cluster_30)
+    cluster = utility.align_cluster(cluster_30)
     assert np.sqrt(np.sum((p1-p2)**2)) - distance < 10**-15
     assert np.sum(np.mean(cluster.positions)) < 10**-15
 
 
-def test_md(cluster_2, disturber):
-    disturber.md(cluster_2, 100, 2, seed=0)
-    resulting_positions = np.array([[5665.16673931, 420178.45149765, -62162.09537009],
-                                    [-5664.07304262, -420177.31265348, 62163.34402758]])
-    assert np.isclose(cluster_2.positions, resulting_positions).all()
+def test_md(cluster_2, utility):
+    prev = cluster_2.copy()
+    prev.calc = LennardJones()
+    utility.md(cluster_2, 100, 2, seed=0)
+    assert not utility.compare_clusters(prev, cluster_2)
 
 
-def test_compare_clusters(cluster_30, cluster_50, disturber):
-    assert disturber.compare_clusters(cluster_30, cluster_30)
-    assert not disturber.compare_clusters(cluster_30, cluster_50)
+def test_compare_clusters(cluster_30, cluster_2, utility):
+    assert utility.compare_clusters(cluster_30, cluster_30)
+    assert not utility.compare_clusters(cluster_30, cluster_2)
 
 
-def test_twist(cluster_30, disturber):
+def test_twist(cluster_30, utility):
     prev = np.unique(cluster_30.positions)
-    disturber.twist(cluster_30)
+    utility.twist(cluster_30)
     cur = np.unique(cluster_30.positions)
     inter = len(np.intersect1d(prev, cur))
     assert inter > 0

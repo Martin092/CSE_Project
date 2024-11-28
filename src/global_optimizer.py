@@ -37,7 +37,7 @@ class GlobalOptimizer(ABC):
         )
         self.atom_type = atom_type
         self.calculator = calculator
-        self.disturber = Utility(self)
+        self.utility = Utility(self)
         self.execution_time: float = 0.0
 
     @abstractmethod
@@ -125,24 +125,6 @@ class GlobalOptimizer(ABC):
         """
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
-
-    def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> bool:
-        """
-        Checks whether two clusters are equal based on their potential energy.
-        This method may be changed in the future to use more sophisticated methods,
-        such as overlap matrix fingerprint thresholding.
-        :param cluster1: First cluster
-        :param cluster2: Second cluster
-        :return: boolean, whether they are the same function
-        """
-        return bool(
-            np.isclose(
-                cluster1.get_potential_energy(),  # type: ignore
-                cluster2.get_potential_energy(),  # type: ignore
-                atol=1e-7,
-                rtol=0,
-            )
-        )
 
     def get_best_cluster_found(self, cluster_index: int = 0) -> Any:
         """
