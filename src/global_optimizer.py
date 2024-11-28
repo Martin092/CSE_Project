@@ -52,7 +52,7 @@ class GlobalOptimizer(ABC):
         :return:
         """
 
-    def setup(self, seed: Atoms = None) -> None:
+    def setup(self, seed: Atoms | None = None) -> None:
         """
         Sets up the clusters by either initializing random clusters or using the seed provided
         :param seed: A cluster that is used as initial point of the optimization
@@ -63,20 +63,22 @@ class GlobalOptimizer(ABC):
         self.cluster_list = []
         self.optimizers = []
         for _ in range(self.num_clusters):
-            clus = None
+            clus: Atoms
             if seed:
-                clus = seed.copy()
+                clus = seed.copy()  # type: ignore
             else:
-                positions = (np.random.rand(self.atoms, 3) - 0.5) * self.box_length * 1.5  # 1.5 is a magic number
+                positions = (
+                    (np.random.rand(self.atoms, 3) - 0.5) * self.box_length * 1.5
+                )  # 1.5 is a magic number
                 # In the future, instead of number of atoms,
                 # we ask the user to choose how many atoms they want for each atom type.
-                clus = Atoms(self.atom_type + str(self.atoms), positions=positions)
+                clus = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
             clus.calc = self.calculator()
             self.cluster_list.append(clus)
             opt = self.local_optimizer(clus, logfile="log.txt")
             self.optimizers.append(opt)
 
-    def run(self, max_iterations: int, seed: Atoms = None) -> None:
+    def run(self, max_iterations: int, seed: Atoms | None = None) -> None:
         """
         TOOD: Write this.
         :param max_iterations:
