@@ -22,5 +22,4 @@ black==24.8.0
 mypy==1.13.0
 pylint==3.3.0
 astroid==3.3.5
-
-requests~=2.32.3
+types-requests==2.31.0
