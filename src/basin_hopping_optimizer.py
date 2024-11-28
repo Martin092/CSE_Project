@@ -1,5 +1,6 @@
 """TODO: Write this."""
 
+import sys
 from typing import Any
 from ase import Atoms
 from ase.optimize import BFGS
@@ -127,14 +128,14 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             new_pos = max_dist + np.random.rand(1, 3)
             positions = best_cluster.positions.copy()
             if positions is None:
-                exit("Something went wrong")
+                sys.exit("Something went wrong")
             positions = np.vstack((positions, new_pos))
 
-        new_cluster = Atoms(self.atom_type + str(self.atoms), positions=positions) # type: ignore
+        new_cluster = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
         new_cluster.calc = self.calculator()
 
         write("../clusters/seeded_LJ_finished.xyz", new_cluster)
-        print(f"seeded finished {new_cluster.get_potential_energy()}") # type: ignore
+        print(f"seeded finished {new_cluster.get_potential_energy()}")  # type: ignore
 
         return new_cluster
 
