@@ -1,11 +1,12 @@
 """TODO: Write this."""
 
+import time
 from abc import ABC, abstractmethod
 from typing import Any, List
 from ase import Atoms
 from ase.io import write, Trajectory
 import numpy as np
-from src.disturber import Disturber
+from src.utility import Utility
 
 
 class GlobalOptimizer(ABC):
@@ -36,7 +37,8 @@ class GlobalOptimizer(ABC):
         )
         self.atom_type = atom_type
         self.calculator = calculator
-        self.disturber = Disturber(self)
+        self.utility = Utility(self)
+        self.execution_time: float = 0.0
 
     @abstractmethod
     def iteration(self) -> None:
@@ -80,16 +82,20 @@ class GlobalOptimizer(ABC):
 
     def run(self, max_iterations: int, seed: Atoms | None = None) -> None:
         """
-        TOOD: Write this.
+        TODO: Write this.
         :param max_iterations:
+        :param seed:
         :return:
         """
+        start_time = time.time()
         self.setup(seed)
 
         while self.current_iteration < max_iterations and not self.is_converged():
             self.history.append([])
             self.iteration()
             self.current_iteration += 1
+
+        self.execution_time = time.time() - start_time
 
     def write_to_file(self, filename: str, cluster_index: int = 0) -> None:
         """
@@ -119,24 +125,6 @@ class GlobalOptimizer(ABC):
         """
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
-
-    def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> bool:
-        """
-        Checks whether two clusters are equal based on their potential energy.
-        This method may be changed in the future to use more sophisticated methods,
-        such as overlap matrix fingerprint thresholding.
-        :param cluster1: First cluster
-        :param cluster2: Second cluster
-        :return: boolean, whether they are the same function
-        """
-        return bool(
-            np.isclose(
-                cluster1.get_potential_energy(),  # type: ignore
-                cluster2.get_potential_energy(),  # type: ignore
-                atol=1e-7,
-                rtol=0,
-            )
-        )
 
     def get_best_cluster_found(self, cluster_index: int = 0) -> Any:
         """

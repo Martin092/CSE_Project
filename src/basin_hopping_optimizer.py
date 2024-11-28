@@ -49,9 +49,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
             # self.disturber.random_step(cluster)
             if abs(min_en - max_energy) < 1.5:
-                self.disturber.random_step(clus)
+                self.utility.random_step(clus)
             else:
-                self.disturber.angular_movement(clus)
+                self.utility.angular_movement(clus)
 
             self.optimizers[index].run(fmax=0.2)
             self.history[index].append(clus)

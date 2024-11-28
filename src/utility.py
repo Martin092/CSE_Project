@@ -5,15 +5,15 @@ import time
 import sys
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
-from ase.units import fs
 from ase import Atoms, Atom
+from ase.units import fs
 from ase.md.langevin import Langevin
 from ase.optimize.minimahopping import PassedMinimum
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from reference_code.rotation_matrices import rotation_matrix
 
 
-class Disturber:
+class Utility:
     """
     Class with all the methods to disturb a cluster
     """
@@ -270,3 +270,14 @@ class Disturber:
         rotated_cluster = np.dot(cluster_centered, principal_axes.T)
         cluster.positions = rotated_cluster
         return cluster
+
+    def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> np.bool:
+        """
+        Checks whether two clusters are equal based on their potential energy.
+        This method may be changed in the future to use more sophisticated methods,
+        such as overlap matrix fingerprint thresholding.
+        :param cluster1: First cluster
+        :param cluster2: Second cluster
+        :return: boolean
+        """
+        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore
