@@ -106,10 +106,16 @@ class GlobalOptimizer(ABC):
         filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
         write(f"clusters/{filename}", self.cluster_list[cluster_index])
 
-    def write_trajectory(self, filename: str, cluster_index=0):
-        with Trajectory(filename, mode="w") as traj:
+    def write_trajectory(self, filename: str, cluster_index: int = 0) -> None:
+        """
+        Writes all clusters in the history to a trajectory file
+        :param filename: File name of the trajectory file
+        :param cluster_index: Which cluster history to write to the trajectory file
+        :return: None, writes to file
+        """
+        with Trajectory(filename, mode="w") as traj:  # type: ignore
             for cluster in self.history[cluster_index]:
-                traj.write(cluster)
+                traj.write(cluster)  # pylint: disable=E1101
 
     def append_history(self) -> None:
         """
@@ -120,7 +126,30 @@ class GlobalOptimizer(ABC):
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
 
-    def get_best_cluster_found(self, cluster_index=0):
+    def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> bool:
+        """
+        Checks whether two clusters are equal based on their potential energy.
+        This method may be changed in the future to use more sophisticated methods,
+        such as overlap matrix fingerprint thresholding.
+        :param cluster1: First cluster
+        :param cluster2: Second cluster
+        :return: boolean, whether they are the same function
+        """
+        return bool(
+            np.isclose(
+                cluster1.get_potential_energy(),  # type: ignore
+                cluster2.get_potential_energy(),  # type: ignore
+                atol=1e-7,
+                rtol=0,
+            )
+        )
+
+    def get_best_cluster_found(self, cluster_index: int = 0) -> Any:
+        """
+        Finds the cluster with the lowest energy from the cluster history
+        :param cluster_index: Which cluster history to look through
+        :return: Cluster with the lowest energy
+        """
         # TODO Make this work for multiple clusters
         min_energy = float("inf")
         best_cluster = None

@@ -1,7 +1,10 @@
 """TODO: Write this."""
 
 from typing import Any, List, Literal, Tuple
+import time
+import sys
 import numpy as np
+from sklearn.decomposition import PCA  # type: ignore
 from ase.units import fs
 from ase import Atoms, Atom
 from ase.md.langevin import Langevin
@@ -9,8 +12,7 @@ from sklearn.decomposition import PCA  # type: ignore
 from reference_code.rotation_matrices import rotation_matrix
 from ase.optimize.minimahopping import PassedMinimum
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
-import time
-import sys
+from reference_code.rotation_matrices import rotation_matrix
 
 
 class Utility:
@@ -165,7 +167,8 @@ class Utility:
         Perform a Molecular Dynamics run using Langevin Dynamics
         :param cluster: Cluster of atoms
         :param temperature: Temperature in Kelvin
-        :param mdmin: Number of minima to be found before MD run halts. Alternatively it will halt once we reach 10000 iterations
+        :param mdmin: Number of minima to be found before MD run halts.
+        Alternatively it will halt once we reach 10000 iterations
         :param seed: seed for random generation, can be used for testing
         """
         dyn = Langevin(
@@ -177,13 +180,13 @@ class Utility:
         )
 
         MaxwellBoltzmannDistribution(cluster, temperature_K=temperature)
-        passed_minimum = PassedMinimum()
+        passed_minimum = PassedMinimum()  # type: ignore
         mincount = 0
         energies, oldpositions = [], []
         i = 0
         while mincount < mdmin and i < 10000:
-            dyn.run(1)  # Run MD for 1 step
-            energies.append(cluster.get_potential_energy())
+            dyn.run(1)  # type: ignore # Run MD for 1 step
+            energies.append(cluster.get_potential_energy())  # type: ignore
             passedmin = passed_minimum(energies)
             if passedmin:  # Check if we have passed a minimum
                 mincount += 1  # Add this minimum to our mincount
