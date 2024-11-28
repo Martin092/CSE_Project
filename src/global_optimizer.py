@@ -4,7 +4,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, List
 from ase import Atoms
-from ase.io import write
+from ase.io import write, Trajectory
 import numpy as np
 from src.disturber import Disturber
 
@@ -54,9 +54,10 @@ class GlobalOptimizer(ABC):
         :return:
         """
 
-    def setup(self) -> None:
+    def setup(self, seed: Atoms | None = None) -> None:
         """
-        TODO: Write this.
+        Sets up the clusters by either initializing random clusters or using the seed provided
+        :param seed: A cluster that is used as initial point of the optimization
         :return:
         """
         self.current_iteration = 0
@@ -64,29 +65,32 @@ class GlobalOptimizer(ABC):
         self.cluster_list = []
         self.optimizers = []
         for _ in range(self.num_clusters):
-            positions = (
-                (np.random.rand(self.atoms, 3) - 0.5) * self.box_length * 1.5
-            )  # 1.5 is a magic number
-            # In the future, instead of number of atoms,
-            # we ask the user to choose how many atoms they want for each atom type.
-            clus = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
+            clus: Atoms
+            if seed:
+                clus = seed.copy()  # type: ignore
+            else:
+                positions = (
+                    (np.random.rand(self.atoms, 3) - 0.5) * self.box_length * 1.5
+                )  # 1.5 is a magic number
+                # In the future, instead of number of atoms,
+                # we ask the user to choose how many atoms they want for each atom type.
+                clus = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
             clus.calc = self.calculator()
             self.cluster_list.append(clus)
             opt = self.local_optimizer(clus, logfile="log.txt")
             self.optimizers.append(opt)
 
-    def run(self, max_iterations: int) -> None:
+    def run(self, max_iterations: int, seed: Atoms | None = None) -> None:
         """
         TODO: Write this.
         :param max_iterations:
         :return:
         """
         start_time = time.time()
-        self.setup()
+        self.setup(seed)
 
         while self.current_iteration < max_iterations and not self.is_converged():
             self.history.append([])
-            print(self.current_iteration)
             self.iteration()
             self.current_iteration += 1
 
@@ -112,6 +116,11 @@ class GlobalOptimizer(ABC):
         """
         return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore
 
+    def write_trajectory(self, filename: str, cluster_index=0):
+        with Trajectory(filename, mode='w') as traj:
+            for cluster in self.history[cluster_index]:
+                traj.write(cluster)
+
     def append_history(self) -> None:
         """
         Appends copies of all the clusters in the clusterList to the history.
@@ -120,3 +129,27 @@ class GlobalOptimizer(ABC):
         """
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
+
+    def compare_clusters(self, cluster1, cluster2):
+        """
+        Checks whether two clusters are equal based on their potential energy.
+        This method may be changed in the future to use more sophisticated methods,
+        such as overlap matrix fingerprint thresholding.
+        :param cluster1: First cluster
+        :param cluster2: Second cluster
+        :return: boolean
+        """
+        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy(), atol=1e-7, rtol=0)
+
+    def get_best_cluster_found(self, cluster_index=0):
+        # TODO Make this work for multiple clusters
+        min_energy = float('inf')
+        best_cluster = None
+        for cluster in self.history[cluster_index]:
+            cluster.calc = self.calculator()
+            curr_energy = cluster.get_potential_energy()
+            if curr_energy < min_energy:
+                min_energy = curr_energy
+                best_cluster = cluster
+
+        return best_cluster
