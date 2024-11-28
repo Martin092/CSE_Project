@@ -1,21 +1,19 @@
 """TODO: Write this."""
 
 from typing import Any, List, Literal, Tuple
-import sys
 import numpy as np
 from ase.units import fs
 from ase import Atoms, Atom
 from ase.md.langevin import Langevin
 from sklearn.decomposition import PCA  # type: ignore
 from reference_code.rotation_matrices import rotation_matrix
-from ase import Atoms
 from ase.optimize.minimahopping import PassedMinimum
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 import time
 import sys
 
 
-class Disturber:
+class Utility:
     """
     Class with all the methods to disturb a cluster
     """
@@ -156,7 +154,13 @@ class Disturber:
         else:
             print("WARNING: Unable to find a valid rotational move.", file=sys.stderr)
 
-    def md(self, cluster: Atoms, temperature: float, mdmin: int, seed: int = int(time.time())) -> None:
+    def md(
+        self,
+        cluster: Atoms,
+        temperature: float,
+        mdmin: int,
+        seed: int = int(time.time()),
+    ) -> None:
         """
         Perform a Molecular Dynamics run using Langevin Dynamics
         :param cluster: Cluster of atoms
@@ -169,7 +173,7 @@ class Disturber:
             timestep=5.0 * fs,  # Feel free to mess with this parameter
             temperature_K=temperature,
             friction=0.5 / fs,  # Feel free to mess with this parameter
-            rng = np.random.default_rng(seed)
+            rng=np.random.default_rng(seed),
         )
 
         MaxwellBoltzmannDistribution(cluster, temperature_K=temperature)
@@ -178,19 +182,20 @@ class Disturber:
         energies, oldpositions = [], []
         i = 0
         while mincount < mdmin and i < 10000:
-            dyn.run(1) #Run MD for 1 step
+            dyn.run(1)  # Run MD for 1 step
             energies.append(cluster.get_potential_energy())
             passedmin = passed_minimum(energies)
-            if passedmin: #Check if we have passed a minimum
-                mincount += 1 #Add this minimum to our mincount
+            if passedmin:  # Check if we have passed a minimum
+                mincount += 1  # Add this minimum to our mincount
             oldpositions.append(cluster.positions.copy())
             i += 1
         print("Number of MD steps: " + str(i))
         cluster.positions = oldpositions[passedmin[0]]
-        cluster.positions = np.clip(cluster.positions, -self.global_optimizer.box_length,
-                                    self.global_optimizer.box_length)
-
-
+        cluster.positions = np.clip(
+            cluster.positions,
+            -self.global_optimizer.box_length,
+            self.global_optimizer.box_length,
+        )
 
     def twist(self, cluster: Atoms) -> Atoms:
         """
@@ -264,3 +269,14 @@ class Disturber:
         rotated_cluster = np.dot(cluster_centered, principal_axes.T)
         cluster.positions = rotated_cluster
         return cluster
+
+    def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> np.bool:
+        """
+        Checks whether two clusters are equal based on their potential energy.
+        This method may be changed in the future to use more sophisticated methods,
+        such as overlap matrix fingerprint thresholding.
+        :param cluster1: First cluster
+        :param cluster2: Second cluster
+        :return: boolean
+        """
+        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore

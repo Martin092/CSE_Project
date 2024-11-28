@@ -6,7 +6,7 @@ from typing import Any, List
 from ase import Atoms
 from ase.io import write, Trajectory
 import numpy as np
-from src.disturber import Disturber
+from src.utility import Utility
 
 
 class GlobalOptimizer(ABC):
@@ -37,7 +37,7 @@ class GlobalOptimizer(ABC):
         )
         self.atom_type = atom_type
         self.calculator = calculator
-        self.disturber = Disturber(self)
+        self.disturber = Utility(self)
         self.execution_time: float = 0.0
 
     @abstractmethod
@@ -84,6 +84,7 @@ class GlobalOptimizer(ABC):
         """
         TODO: Write this.
         :param max_iterations:
+        :param seed:
         :return:
         """
         start_time = time.time()
@@ -105,19 +106,8 @@ class GlobalOptimizer(ABC):
         filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
         write(f"clusters/{filename}", self.cluster_list[cluster_index])
 
-    def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> np.bool:
-        """
-        Checks whether two clusters are equal based on their potential energy.
-        This method may be changed in the future to use more sophisticated methods,
-        such as overlap matrix fingerprint thresholding.
-        :param cluster1: First cluster
-        :param cluster2: Second cluster
-        :return: boolean
-        """
-        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore
-
     def write_trajectory(self, filename: str, cluster_index=0):
-        with Trajectory(filename, mode='w') as traj:
+        with Trajectory(filename, mode="w") as traj:
             for cluster in self.history[cluster_index]:
                 traj.write(cluster)
 
@@ -130,20 +120,9 @@ class GlobalOptimizer(ABC):
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
 
-    def compare_clusters(self, cluster1, cluster2):
-        """
-        Checks whether two clusters are equal based on their potential energy.
-        This method may be changed in the future to use more sophisticated methods,
-        such as overlap matrix fingerprint thresholding.
-        :param cluster1: First cluster
-        :param cluster2: Second cluster
-        :return: boolean
-        """
-        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy(), atol=1e-7, rtol=0)
-
     def get_best_cluster_found(self, cluster_index=0):
         # TODO Make this work for multiple clusters
-        min_energy = float('inf')
+        min_energy = float("inf")
         best_cluster = None
         for cluster in self.history[cluster_index]:
             cluster.calc = self.calculator()
