@@ -2,6 +2,8 @@
 
 import sys
 from typing import Any
+
+import matplotlib.pyplot as plt
 from ase import Atoms
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
@@ -10,10 +12,24 @@ import numpy as np
 from src.global_optimizer import GlobalOptimizer
 from mpi4py import MPI
 
+from src.oxford_database import get_cluster_energy
+
 
 class BasinHoppingOptimizer(GlobalOptimizer):
     """
-    TODO: Write this.
+    A class for optimizing atomic clusters using the basin hopping algorithm
+
+    Attributes:
+        local_optimizer     the optimizer used for local optimization of the clusters
+        atoms               number of atoms that we want to optimize
+        atom_type           type of the atoms
+        calculator          the calculator used for calculating the intermolecular potentials
+        num_clusters        the number of clusters we want to work on (sequentially)
+        alpha               the minimum energy difference between the lowest and highest
+        energy pair for angular movements to take place. Keep in mind that this parameter
+        changes overtime and will oscillate around a certain value. Optimally it should
+        start around that value.
+        sensitivity         how quickly will alpha change. Larger values result in bigger oscillations
     """
 
     def __init__(
@@ -23,6 +39,8 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         atom_type: str,
         calculator: Any = LennardJones,
         num_clusters: int = 1,
+        alpha: float = 2,
+        sensitivity: float = 0.3
     ) -> None:
         super().__init__(
             num_clusters=num_clusters,
@@ -32,6 +50,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             calculator=calculator,
         )
         self.last_energy = float("inf")
+        self.alpha = alpha
+        self.angular_moves = 0
+        self.alphas = np.array([self.alpha])
+        self.sensitivity = sensitivity
 
     def iteration(self) -> None:
         """
@@ -49,25 +71,37 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             max_energy = max(energies)
 
             # self.disturber.random_step(cluster)
-            if abs(min_en - max_energy) < 1.5:
+            if max_energy - min_en < self.alpha:
                 self.disturber.random_step(clus)
             else:
+                print(f"get rotated bitch: {self.alpha}")
+                self.angular_moves += 1
                 self.disturber.angular_movement(clus)
 
+            if self.current_iteration != 0:
+                fraction = self.angular_moves / self.current_iteration
+                self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
+
+            self.alphas = np.append(self.alphas, self.alpha)
             self.optimizers[index].run(fmax=0.2)
-            self.history[index].append(clus)
+            self.history[index].append(clus.copy())
 
     def is_converged(self) -> bool:
         """
         TODO: Write this.
         :return:
         """
-        if self.current_iteration < 2:
+        if self.current_iteration < 10:
             return False
 
-        # TODO this takes in only one cluster into account, use all of them
-        current = self.cluster_list[0].get_potential_energy()
-        return bool(abs(current - self.last_energy) < 2e-6)
+        ret = True
+        cur = self.cluster_list[0].get_potential_energy()
+        for i in range(self.current_iteration - 8, self.current_iteration - 1):
+            self.history[0][i].calc = self.calculator()
+            energy_hist = self.history[0][i].get_potential_energy()
+            ret &= bool(abs(cur - energy_hist) <= 1e-14)
+        # return ret
+        return False
 
     def seed(self, starting_from: int) -> Atoms:
         """
@@ -146,7 +180,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
         self.setup(seed)
         while self.current_iteration < max_iterations and not self.is_converged():
-            self.history.append([])
             self.iteration()
             self.current_iteration += 1
 
@@ -162,13 +195,37 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         # MPI.Finalize()
 
 
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
+bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=38, atom_type="Fe")
 print(bh.box_length)
 
 bh.run(5000)
+print("Algorithm finished")
 
 energy, cluster = bh.best_energy(0)
-print(energy)
-# write("clusters/LJ_min.xyz", cluster)
+print(f"Result: {energy}")
+print(f"Actual: {get_cluster_energy(bh.atoms, bh.atom_type)}")
 
-# -251.6265812591563
+print(bh.current_iteration)
+print(bh.angular_moves)
+
+print(f"alpha: {bh.alpha}")
+print(f"step: {bh.disturber.step}")
+
+plt.plot(bh.alphas)
+plt.title("Alpha values per iteration")
+plt.xlabel("Iteration")
+plt.ylabel("Alpha value")
+plt.show()
+
+energies = np.array([])
+for clus in bh.history[0]:
+    clus.calc = bh.calculator()
+    energies = np.append(energies, clus.get_potential_energy())
+
+plt.plot(energies)
+plt.title(f"Energy levels discovered for LJ{bh.atoms}")
+plt.xlabel("Iteration")
+plt.ylabel("Energy")
+plt.show()
+
+write("clusters/LJmin.xyz", cluster)
