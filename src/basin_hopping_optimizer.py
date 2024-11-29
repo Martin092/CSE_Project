@@ -8,6 +8,7 @@ from ase.calculators.lj import LennardJones
 from ase.io import write
 import numpy as np
 from src.global_optimizer import GlobalOptimizer
+from mpi4py import MPI
 
 
 class BasinHoppingOptimizer(GlobalOptimizer):
@@ -68,12 +69,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         current = self.cluster_list[0].get_potential_energy()
         return bool(abs(current - self.last_energy) < 2e-6)
 
-    # def setup(self) -> None:
-    #     """
-    #     TODO: Write this.
-    #     :return:
-    #     """
-
     def seed(self, starting_from: int) -> Atoms:
         """
         Finds the best cluster by starting from the given number atoms,
@@ -92,7 +87,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
         min_energy = float("inf")
         best_cluster: Atoms
-        for i in range(5):
+        for i in range(10):
             alg = BasinHoppingOptimizer(
                 local_optimizer=self.local_optimizer,
                 atoms=starting_from,
@@ -105,7 +100,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
                 min_energy = energy
                 best_cluster = alg.cluster_list[0]
 
-        write("../clusters/seeded_LJ_before.xyz", best_cluster)
+        write("clusters/seeded_LJ_before.xyz", best_cluster)
         print(f"seeding before {best_cluster.get_potential_energy()}")  # type: ignore
 
         # Add or remove atom from the found cluster
@@ -134,26 +129,46 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         new_cluster = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
         new_cluster.calc = self.calculator()
 
-        write("../clusters/seeded_LJ_finished.xyz", new_cluster)
+        write("clusters/seeded_LJ_finished.xyz", new_cluster)
         print(f"seeded finished {new_cluster.get_potential_energy()}")  # type: ignore
 
         return new_cluster
 
+    def run_parallel(self, max_iterations: int, seed: Atoms | None = None, cpus: int = 2) -> None:
+        """
+        TOOD: Write this.
+        :param max_iterations:
+        :return:
+        """
+        comm = MPI.COMM_WORLD
+        size = comm.Get_size()
+        rank = comm.Get_rank()
 
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=14, atom_type="Fe")
+        self.setup(seed)
+        while self.current_iteration < max_iterations and not self.is_converged():
+            self.history.append([])
+            self.iteration()
+            self.current_iteration += 1
+
+        # if rank != 0:
+        #     energy, cluster = self.best_energy()
+        #     comm.send(energy, dest=0, tag=1)
+        #     print(f"send from {rank}")
+        # else:
+        #     for i in range(size - 1):
+        #         energy = comm.recv(tag=1)
+        #         print(energy)
+        #
+        # MPI.Finalize()
+
+
+bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
 print(bh.box_length)
 
-bh.run(1000, seed=bh.seed(bh.atoms - 1))
+bh.run(5000)
 
-min_energy2 = float("inf")
-BEST_CLUSTER2: Atoms
-for cluster in bh.history[0]:
-    cluster.calc = bh.calculator()
-    curr_energy = cluster.get_potential_energy()
-    if curr_energy < min_energy2:
-        min_energy2 = curr_energy
-        BEST_CLUSTER2 = cluster
+energy, cluster = bh.best_energy(0)
+print(energy)
+# write("clusters/LJ_min.xyz", cluster)
 
-print(min_energy2)
-
-write("../clusters/LJ_min.xyz", BEST_CLUSTER2)
+# -251.6265812591563

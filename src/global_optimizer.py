@@ -77,6 +77,7 @@ class GlobalOptimizer(ABC):
             self.cluster_list.append(clus)
             opt = self.local_optimizer(clus, logfile="log.txt")
             self.optimizers.append(opt)
+            self.history.append([])
 
     def run(self, max_iterations: int, seed: Atoms | None = None) -> None:
         """
@@ -108,3 +109,15 @@ class GlobalOptimizer(ABC):
         """
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
+
+    def best_energy(self, index: int = 0):
+        min_energy = float("inf")
+        best_cluster: Atoms = self.cluster_list[index][0]
+        for cluster in self.history[index]:
+            cluster.calc = self.calculator()
+            curr_energy = cluster.get_potential_energy()
+            if curr_energy < min_energy:
+                min_energy = curr_energy
+                best_cluster = cluster
+
+        return min_energy, best_cluster

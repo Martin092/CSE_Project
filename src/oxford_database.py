@@ -45,4 +45,4 @@ def get_cluster_energy(atoms: int, atom_type: str) -> float:
     return cluster.get_potential_energy()  # type: ignore
 
 
-print(get_cluster_energy(12, "C"))
+print(get_cluster_energy(55, "C"))

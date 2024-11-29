@@ -24,3 +24,4 @@ pylint==3.3.0
 astroid==3.3.5
 
 requests~=2.32.3
+mpi4py~=4.0.1
