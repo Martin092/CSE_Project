@@ -3,7 +3,6 @@
 import time
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
-from typing import Any, List, Tuple
 from mpi4py import MPI
 from ase import Atoms
 from ase.io import write, Trajectory
