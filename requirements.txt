@@ -23,3 +23,4 @@ mypy==1.13.0
 pylint==3.3.0
 astroid==3.3.5
 types-requests==2.31.0
+mpi4py~=4.0.1
