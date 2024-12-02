@@ -5,4 +5,5 @@ __pycache__/
 data/
 .vscode/
 .clusters/*
+.src/clusters/*
 log.txt
