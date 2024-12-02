@@ -2,6 +2,8 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List
+
+from mpi4py import MPI
 from ase import Atoms
 from ase.io import write
 import numpy as np
@@ -20,6 +22,7 @@ class GlobalOptimizer(ABC):
         atoms: int,
         atom_type: str,
         calculator: Any,
+        comm: MPI.Intracomm = None
     ) -> None:
         self.history: List = []
         self.cluster_list: List = []
@@ -37,6 +40,7 @@ class GlobalOptimizer(ABC):
         self.atom_type = atom_type
         self.calculator = calculator
         self.disturber = Disturber(self)
+        self.comm = comm
 
     @abstractmethod
     def iteration(self) -> None:

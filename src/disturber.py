@@ -2,6 +2,8 @@
 
 from typing import Any, List, Literal, Tuple
 import sys
+
+from mpi4py import MPI
 import numpy as np
 from ase.units import fs
 from ase import Atoms, Atom
@@ -67,6 +69,8 @@ class Disturber:
         ):  # Energy is way too high, bad move
             return 0
         elif np.isnan(new_energy):
+            if self.global_optimizer.comm:
+                self.global_optimizer.comm.Send([np.array([]), MPI.DOUBLE], dest=0, tag=1)
             sys.exit("NaN encountered, exiting")
         if new_energy > initial_energy:
             return min(1, np.exp(-(new_energy - initial_energy) / self.temp))
