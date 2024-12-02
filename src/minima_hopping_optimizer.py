@@ -118,16 +118,16 @@ mh = MinimaHoppingOptimizer(
     temperature=300,
 )
 mh.run(500)
-best_cluster = mh.get_best_cluster_found()
+best_cluster = mh.best_energy()
 mh.write_trajectory("../clusters/minima_progress.traj")
 print("Best energy found: ")
-print(best_cluster.get_potential_energy())
-write("../clusters/minima_optimized.xyz", best_cluster)
+print(best_cluster[0])
+write("../clusters/minima_optimized.xyz", best_cluster[1])
 
 traj = TrajectoryReader("../clusters/minima_progress.traj")  # type: ignore
 BEST_INDEX = 0
 for i, _ in enumerate(traj):
-    if mh.utility.compare_clusters(traj[i], best_cluster):
+    if mh.utility.compare_clusters(traj[i], best_cluster[1]):
         print("Found best cluster at iteration: ")
         print(i)
         BEST_INDEX = i

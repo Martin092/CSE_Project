@@ -9,9 +9,8 @@ from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
 import numpy as np
-from src.global_optimizer import GlobalOptimizer
 from mpi4py import MPI
-
+from src.global_optimizer import GlobalOptimizer
 from src.oxford_database import get_cluster_energy
 
 
@@ -40,7 +39,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         calculator: Any = LennardJones,
         num_clusters: int = 1,
         alpha: float = 2,
-        sensitivity: float = 0.3
+        sensitivity: float = 0.3,
     ) -> None:
         super().__init__(
             num_clusters=num_clusters,
@@ -168,7 +167,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
         return new_cluster
 
-    def run_parallel(self, max_iterations: int, seed: Atoms | None = None, cpus: int = 2) -> None:
+    def run_parallel(
+        self, max_iterations: int, seed: Atoms | None = None, cpus: int = 2
+    ) -> None:
         """
         TOOD: Write this.
         :param max_iterations:
@@ -209,7 +210,7 @@ print(bh.current_iteration)
 print(bh.angular_moves)
 
 print(f"alpha: {bh.alpha}")
-print(f"step: {bh.disturber.step}")
+print(f"step: {bh.utility.step}")
 
 plt.plot(bh.alphas)
 plt.title("Alpha values per iteration")

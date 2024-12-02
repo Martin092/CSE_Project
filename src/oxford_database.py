@@ -1,6 +1,7 @@
 """
 TODO: Write this
 """
+
 import os
 import sys
 import requests
@@ -43,4 +44,3 @@ def get_cluster_energy(atoms: int, atom_type: str) -> float:
 
     cluster.calc = LennardJones()  # type: ignore
     return cluster.get_potential_energy()  # type: ignore
-

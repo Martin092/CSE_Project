@@ -1,4 +1,4 @@
-"""Class Structure for Genetic Algorithms"""
+"""Genetic Algorithms module"""
 
 from typing import List, Tuple, Literal, Any
 from ase import Atoms, Atom
@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from src.global_optimizer import GlobalOptimizer
-from oxford_database import get_cluster_energy
+from src.oxford_database import get_cluster_energy
 
 
 class GeneticAlgorithm(GlobalOptimizer):
@@ -180,9 +180,9 @@ class GeneticAlgorithm(GlobalOptimizer):
             cluster1.positions
         ):  # Make sure split is even between different parts
             # Generate 3 points to define the random plane which will split the clusters
-            p1 = np.random.rand(3)
-            p2 = np.random.rand(3)
-            p3 = np.random.rand(3)
+            p1 = np.random.rand(3) - 0.5
+            p2 = np.random.rand(3) - 0.5
+            p3 = np.random.rand(3) - 0.5
             # Split the clusters
             group11, group12, _ = self.utility.split_cluster(cluster1, p1, p2, p3)
             group21, group22, _ = self.utility.split_cluster(cluster2, p1, p2, p3)
@@ -201,7 +201,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             self.utility.twist(cluster)  # Perform twist mutation
         if np.random.rand() <= self.mutation_probability:
             self.utility.angular_movement(cluster)  # Perform angular mutation
-        #if np.random.rand() <= self.mutation_probability:
+        # if np.random.rand() <= self.mutation_probability:
         #    self.utility.
 
     def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
@@ -217,11 +217,15 @@ class GeneticAlgorithm(GlobalOptimizer):
             best_cluster = self.best_config
             print(f"Best energy found: {self.best_potential}")
             write("clusters/minima_optimized.xyz", best_cluster)
-            
-            if abs(get_cluster_energy(lj, self.atom_type)-self.best_potential) < 0.001:
+
+            best = get_cluster_energy(lj, self.atom_type)
+
+            if self.best_potential > best and self.best_potential - best < 0.001:
                 print("Best energy matches the database")
+            elif self.best_potential < best:
+                print("GROUNDBREAKING!!!")
             else:
-                print("Best energy does not match the database")
+                print(f"Best energy in database is {best}.")
 
             traj = Trajectory("clusters/minima_progress.traj", mode="w")  # type: ignore
             for cluster in self.best_configs:

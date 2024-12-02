@@ -1,10 +1,11 @@
-"""TODO: Write this."""
+"""Utility methods module"""
 
 from typing import Any, List, Literal, Tuple
 import time
 import sys
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
+from scipy.spatial.distance import pdist  # type: ignore
 from ase import Atoms, Atom
 from ase.units import fs
 from ase.md.langevin import Langevin
@@ -18,7 +19,9 @@ class Utility:
     Class with all the methods to disturb a cluster
     """
 
-    def __init__(self, global_optimizer: Any, temp: float = 0.8, step: float = 1) -> None:
+    def __init__(
+        self, global_optimizer: Any, temp: float = 0.8, step: float = 1
+    ) -> None:
         self.global_optimizer = global_optimizer
         self.temp = temp
         self.step = step
@@ -35,7 +38,7 @@ class Utility:
 
         while True:
             step = (np.random.rand(3) - 0.5) * 2 * self.step
-            energy_before = self.global_optimizer.cluster_list[0].get_potential_energy()
+            energy_before = cluster.get_potential_energy()  # type: ignore
 
             cluster.positions[index] += step
             cluster.positions = np.clip(
@@ -44,12 +47,11 @@ class Utility:
                 self.global_optimizer.box_length,
             )
 
-            energy_after = self.global_optimizer.cluster_list[0].get_potential_energy()
+            energy_after = cluster.get_potential_energy()  # type: ignore
 
             # Metropolis criterion gives an acceptance probability based on temperature for each move
             accept = self.metropolis_criterion(energy_before, energy_after)
             self.step = self.step * (1 - 0.01 * (0.5 - accept))
-
 
             if np.random.rand() > accept:
                 cluster.positions[index] -= step
@@ -57,60 +59,20 @@ class Utility:
             print(accept)
             break
 
-    def metropolis_criterion(
-        self, initial_energy: float, new_energy: float
-    ) -> float:
+    def metropolis_criterion(self, initial_energy: float, new_energy: float) -> float:
         """
         Metropolis acceptance criterion for accepting a new move based on temperature
         :param initial_energy: The energy of the cluster before the move
         :param new_energy: The energy of the cluster after the move
-        :param temp: temperature at which we want the move to occur
         :return: probability of accepting the move
         """
-        if (
-             new_energy - initial_energy > 50
-        ):  # Energy is way too high, bad move
+        if new_energy - initial_energy > 50:  # Energy is way too high, bad move
             return 0
-        elif np.isnan(new_energy):
+        if np.isnan(new_energy):
             sys.exit("NaN encountered, exiting")
         if new_energy > initial_energy:
-            return min(1, np.exp(-(new_energy - initial_energy) / self.temp))
-        else:
-            return 1
-
-    def check_atom_position(self, cluster: Atoms, atom: Atom) -> bool:
-        """
-        TODO: Write this.
-        :param cluster:
-        :param atom:
-        :return:
-        """
-        if np.linalg.norm(atom.position) > self.global_optimizer.box_length:
-            return False
-        for other_atom in cluster:
-            if (
-                np.linalg.norm(atom.position - other_atom.position)
-                < 0.5 * self.global_optimizer.covalent_radius
-            ):
-                return False
-        return True
-
-    def check_group_position(
-        self, group_static: List[Atom], group_moved: List[Atom]
-    ) -> bool:
-        """
-        TODO: Write this.
-        """
-        for atom in group_moved:
-            if np.linalg.norm(atom.position) > self.global_optimizer.box_length:
-                return False
-            for other_atom in group_static:
-                if (
-                    np.linalg.norm(atom.position - other_atom.position)
-                    < 0.5 * self.global_optimizer.covalent_radius
-                ):
-                    return False
-        return True
+            return float(min(1, np.exp(-(new_energy - initial_energy) / self.temp)))
+        return 1
 
     def angular_movement(self, cluster: Atoms) -> None:
         """
@@ -195,16 +157,31 @@ class Utility:
         :param cluster:
         :return:
         """
-        # Twist doesn't have a check since it is a rotation, and it wouldn't collide with already existing atoms.
-        group1, group2, normal = self.split_cluster(cluster)
-        choice = np.random.choice([0, 1])
-        chosen_group = group1 if choice == 0 else group2
+        while True:
+            group1, group2, normal = self.split_cluster(cluster)
+            choice = np.random.choice([0, 1])
+            if choice == 0:
+                rotate = group1
+                still = group2
+            else:
+                rotate = group2
+                still = group1
 
-        angle = np.random.uniform(0, 2 * np.pi)
-        matrix = rotation_matrix(normal, angle)
+            angle = np.random.uniform(0, 2 * np.pi)
+            matrix = rotation_matrix(normal, angle)
 
-        for atom in chosen_group:
-            atom.position = np.dot(matrix, atom.position)
+            positions = []
+
+            for atom in still:
+                positions.append(atom.position)
+
+            for atom in rotate:
+                positions.append(np.dot(matrix, atom.position))
+
+            if self.configuration_validity(np.array(positions)):
+                for atom in rotate:
+                    atom.position = np.dot(matrix, atom.position)
+                break
 
         return cluster
 
@@ -218,19 +195,23 @@ class Utility:
     def split_cluster(
         self,
         cluster: Atoms,
-        p1: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
-        p2: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
-        p3: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
+        p1: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3)
+        - 0.5,
+        p2: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3)
+        - 0.5,
+        p3: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3)
+        - 0.5,
     ) -> Tuple[
         List[Atom], List[Atom], np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]]
     ]:
         """
-        TODO: Write this.
-        :param cluster:
-        :param p1:
-        :param p2:
-        :param p3:
-        :return:
+        Takes a geometric plane defined by three points (if points are not specified,
+        randomly generated points are taken) and splits the cluster atoms into two groups based on that plane.
+        :param cluster: Cluster object to be split
+        :param p1: 3D coordinates of the first point
+        :param p2: 3D coordinates of the second point
+        :param p3: 3D coordinates of the third point
+        :return: List of the two atom groups as well as the normal of the geometric plane.
         """
         v1 = p2 - p1
         v2 = p3 - p1
@@ -248,13 +229,13 @@ class Utility:
 
     def align_cluster(self, cluster: Atoms) -> Atoms:
         """
-        TODO: Write this.
-        :param cluster:
-        :return:
+        Aligns a cluster such that the center of mass is the origin and
+        the highest variance lies in the x-axis, while the smallest one in the z-axis.
+        :param cluster: Cluster to be aligned.
+        :return: Cluster object with the new atom coordinates.
         """
-        cl = np.array(cluster.positions)
-        center_of_mass = np.mean(cl, axis=0)
-        cluster_centered = cl - center_of_mass
+        center_of_mass = cluster.get_center_of_mass()  # type: ignore
+        cluster_centered = cluster.get_positions() - center_of_mass  # type: ignore
         pca = PCA(n_components=3)
         pca.fit(cluster_centered)
         principal_axes = pca.components_
@@ -272,3 +253,12 @@ class Utility:
         :return: boolean
         """
         return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore
+
+    def configuration_validity(
+        self, positions: np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]]
+    ) -> bool:
+        """
+        TODO: Write this.
+        """
+        distances = pdist(positions)
+        return bool(float(np.min(distances)) >= 0.1)

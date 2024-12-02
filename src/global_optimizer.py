@@ -2,7 +2,7 @@
 
 import time
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Tuple
 from ase import Atoms
 from ase.io import write, Trajectory
 import numpy as np
@@ -33,7 +33,7 @@ class GlobalOptimizer(ABC):
         self.box_length = (
             2
             * self.covalent_radius
-            * (1 / 2 + ((3.0 * self.atoms) / (4 * np.pi * np.sqrt(2))) ** (1 / 3))
+            * (0.5 + ((3.0 * self.atoms) / (4 * np.pi * np.sqrt(2))) ** (1 / 3))
         )
         self.atom_type = atom_type
         self.calculator = calculator
@@ -58,7 +58,7 @@ class GlobalOptimizer(ABC):
         """
         Sets up the clusters by either initializing random clusters or using the seed provided
         :param seed: A cluster that is used as initial point of the optimization
-        :return:
+        :return: None.
         """
         self.current_iteration = 0
         self.history = []
@@ -69,11 +69,12 @@ class GlobalOptimizer(ABC):
             if seed:
                 clus = seed.copy()  # type: ignore
             else:
-                positions = (
-                    (np.random.rand(self.atoms, 3) - 0.5) * self.box_length * 1.5
-                )  # 1.5 is a magic number
-                # In the future, instead of number of atoms,
-                # we ask the user to choose how many atoms they want for each atom type.
+                while True:
+                    positions = (
+                        (np.random.rand(self.atoms, 3) - 0.5) * self.box_length * 1.5
+                    )
+                    if self.utility.configuration_validity(positions):
+                        break
                 clus = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
             clus.calc = self.calculator()
             self.cluster_list.append(clus)
@@ -127,7 +128,7 @@ class GlobalOptimizer(ABC):
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
 
-    def best_energy(self, index: int = 0):
+    def best_energy(self, index: int = 0) -> Tuple[float, Atoms]:
         """
         Finds the cluster with the lowest energy from the cluster history
         :param cluster_index: Which cluster history to look through
