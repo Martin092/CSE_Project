@@ -1,4 +1,5 @@
 """TODO: Write this."""
+
 import sys
 import time
 from typing import Any
@@ -79,10 +80,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
             # self.disturber.random_step(cluster)
             if max_energy - min_en < self.alpha:
-                self.disturber.random_step(clus)
+                self.utility.random_step(clus)
             else:
                 self.angular_moves += 1
-                self.disturber.angular_movement(clus)
+                self.utility.angular_movement(clus)
 
             if self.current_iteration != 0:
                 fraction = self.angular_moves / self.current_iteration
@@ -195,7 +196,7 @@ if __name__ == "__main__":
     print(bh.box_length)
 
     start = time.time()
-    bh.run(200)
+    bh.run(100)
     print(f"Algorithm finished for {time.time() - start}")
 
     energy, cluster = bh.best_energy(0)
@@ -206,7 +207,7 @@ if __name__ == "__main__":
     print(bh.angular_moves)
 
     print(f"alpha: {bh.alpha}")
-    print(f"step: {bh.disturber.step}")
+    print(f"step: {bh.utility.step}")
 
     plt.plot(bh.alphas)
     plt.title("Alpha values per iteration")

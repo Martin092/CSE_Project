@@ -1,13 +1,14 @@
 """TODO: Write this."""
 
+import time
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 
 from mpi4py import MPI
 from ase import Atoms
-from ase.io import write
+from ase.io import write, Trajectory
 import numpy as np
-from src.disturber import Disturber
+from src.utility import Utility
 
 
 class GlobalOptimizer(ABC):
@@ -39,7 +40,8 @@ class GlobalOptimizer(ABC):
         )
         self.atom_type = atom_type
         self.calculator = calculator
-        self.disturber = Disturber(self)
+        self.utility = Utility(self)
+        self.execution_time: float = 0.0
         self.comm = comm
 
     @abstractmethod
@@ -85,16 +87,20 @@ class GlobalOptimizer(ABC):
 
     def run(self, max_iterations: int, seed: Atoms | None = None) -> None:
         """
-        TOOD: Write this.
+        TODO: Write this.
         :param max_iterations:
+        :param seed:
         :return:
         """
+        start_time = time.time()
         self.setup(seed)
 
         while self.current_iteration < max_iterations and not self.is_converged():
             self.history.append([])
             self.iteration()
             self.current_iteration += 1
+
+        self.execution_time = time.time() - start_time
 
     def write_to_file(self, filename: str, cluster_index: int = 0) -> None:
         """
@@ -104,6 +110,17 @@ class GlobalOptimizer(ABC):
         """
         filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
         write(f"clusters/{filename}", self.cluster_list[cluster_index])
+
+    def write_trajectory(self, filename: str, cluster_index: int = 0) -> None:
+        """
+        Writes all clusters in the history to a trajectory file
+        :param filename: File name of the trajectory file
+        :param cluster_index: Which cluster history to write to the trajectory file
+        :return: None, writes to file
+        """
+        with Trajectory(filename, mode="w") as traj:  # type: ignore
+            for cluster in self.history[cluster_index]:
+                traj.write(cluster)  # pylint: disable=E1101
 
     def append_history(self) -> None:
         """
@@ -129,3 +146,21 @@ class GlobalOptimizer(ABC):
                 best_cluster = cluster
 
         return min_energy, best_cluster
+
+    def get_best_cluster_found(self, cluster_index: int = 0) -> Any:
+        """
+        Finds the cluster with the lowest energy from the cluster history
+        :param cluster_index: Which cluster history to look through
+        :return: Cluster with the lowest energy
+        """
+        # TODO Make this work for multiple clusters
+        min_energy = float("inf")
+        best_cluster = None
+        for cluster in self.history[cluster_index]:
+            cluster.calc = self.calculator()
+            curr_energy = cluster.get_potential_energy()
+            if curr_energy < min_energy:
+                min_energy = curr_energy
+                best_cluster = cluster
+
+        return best_cluster
