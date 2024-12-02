@@ -1,6 +1,7 @@
 """
 TODO: Write this
 """
+
 import os
 import sys
 import requests
@@ -46,4 +47,3 @@ def get_cluster_energy(atoms: int, atom_type: str) -> float:
 
 
 # print(get_cluster_energy(25, "C"))
-

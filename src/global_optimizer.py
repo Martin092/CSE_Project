@@ -1,7 +1,7 @@
 """TODO: Write this."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Tuple
 
 from mpi4py import MPI
 from ase import Atoms
@@ -22,7 +22,7 @@ class GlobalOptimizer(ABC):
         atoms: int,
         atom_type: str,
         calculator: Any,
-        comm: MPI.Intracomm = None
+        comm: MPI.Intracomm | None = None,
     ) -> None:
         self.history: List = []
         self.cluster_list: List = []
@@ -114,7 +114,11 @@ class GlobalOptimizer(ABC):
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
 
-    def best_energy(self, index: int = 0):
+    def best_energy(self, index: int = 0) -> Tuple[float, Atoms]:
+        """
+        Gets the best energy from the history
+        @param index which cluster from the history to pick from
+        """
         min_energy = float("inf")
         best_cluster: Atoms = self.cluster_list[index][0]
         for cluster in self.history[index]:

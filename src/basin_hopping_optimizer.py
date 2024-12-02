@@ -1,5 +1,4 @@
 """TODO: Write this."""
-import os
 import sys
 import time
 from typing import Any
@@ -10,9 +9,9 @@ from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
 import numpy as np
-from src.global_optimizer import GlobalOptimizer
 from mpi4py import MPI
 
+from src.global_optimizer import GlobalOptimizer
 from src.oxford_database import get_cluster_energy
 
 
@@ -42,7 +41,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         num_clusters: int = 1,
         alpha: float = 2,
         sensitivity: float = 0.3,
-        comm=None
+        comm: MPI.Intracomm | None = None,
     ) -> None:
         super().__init__(
             num_clusters=num_clusters,
@@ -50,7 +49,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             atoms=atoms,
             atom_type=atom_type,
             calculator=calculator,
-            comm=comm
+            comm=comm,
         )
         self.last_energy = float("inf")
         self.alpha = alpha
@@ -136,9 +135,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             )
             alg.run(1000)
 
-            energy = alg.cluster_list[0].get_potential_energy()
-            if energy < min_energy:
-                min_energy = energy
+            energy_curr = alg.cluster_list[0].get_potential_energy()
+            if energy_curr < min_energy:
+                min_energy = energy_curr
                 best_cluster = alg.cluster_list[0]
 
         write("clusters/seeded_LJ_before.xyz", best_cluster)
@@ -175,14 +174,17 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
         return new_cluster
 
-    def plot_energies(self):
+    def plot_energies(self) -> None:
+        """
+        Plots the energy values over the course of the entire run
+        """
         energies = np.array([])
         for clus in self.history[0]:
-            clus.calc = bh.calculator()
+            clus.calc = self.calculator()
             energies = np.append(energies, clus.get_potential_energy())
 
         plt.plot(energies)
-        plt.title(f"Energy levels discovered for LJ{bh.atoms}")
+        plt.title(f"Energy levels discovered for LJ{self.atoms}")
         plt.xlabel("Iteration")
         plt.ylabel("Energy")
         plt.show()

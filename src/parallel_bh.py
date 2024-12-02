@@ -1,18 +1,13 @@
-import os
-import sys
+"""
+Parallel implementation of the basin hopping algorithm
+"""
 import time
-from typing import Any
-import matplotlib.pyplot as plt
 from ase import Atoms
 from ase.optimize import BFGS
-from ase.calculators.lj import LennardJones
 from ase.io import write
 import numpy as np
-
-from src.basin_hopping_optimizer import BasinHoppingOptimizer
-from src.global_optimizer import GlobalOptimizer
 from mpi4py import MPI
-
+from src.basin_hopping_optimizer import BasinHoppingOptimizer
 from src.oxford_database import get_cluster_energy
 
 
@@ -43,9 +38,9 @@ if rank == 0:
         if data.shape != (bh.atoms, 3):
             continue
 
-        new_cluster = Atoms(bh.atom_type + str(bh.atoms), positions=data)
+        new_cluster = Atoms(bh.atom_type + str(bh.atoms), positions=data) # type: ignore
         new_cluster.calc = bh.calculator()
-        new_energy = new_cluster.get_potential_energy()
+        new_energy = new_cluster.get_potential_energy() # type: ignore
 
         if new_energy < best_energy:
             best_cluster = new_cluster

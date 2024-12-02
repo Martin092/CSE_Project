@@ -17,7 +17,9 @@ class Disturber:
     Class with all the methods to disturb a cluster
     """
 
-    def __init__(self, global_optimizer: Any, temp: float = 0.8, step: float = 1) -> None:
+    def __init__(
+        self, global_optimizer: Any, temp: float = 0.8, step: float = 1
+    ) -> None:
         self.global_optimizer = global_optimizer
         self.temp = temp
         self.step = step
@@ -54,9 +56,7 @@ class Disturber:
                 continue
             break
 
-    def metropolis_criterion(
-        self, initial_energy: float, new_energy: float
-    ) -> float:
+    def metropolis_criterion(self, initial_energy: float, new_energy: float) -> float:
         """
         Metropolis acceptance criterion for accepting a new move based on temperature
         :param initial_energy: The energy of the cluster before the move
@@ -64,18 +64,18 @@ class Disturber:
         :param temp: temperature at which we want the move to occur
         :return: probability of accepting the move
         """
-        if (
-             new_energy - initial_energy > 50
-        ):  # Energy is way too high, bad move
-            return 0
-        elif np.isnan(new_energy):
+        if new_energy - initial_energy > 50:  # Energy is way too high, bad move
+            return float(0)
+        if np.isnan(new_energy):
             if self.global_optimizer.comm:
-                self.global_optimizer.comm.Send([np.array([]), MPI.DOUBLE], dest=0, tag=1)
+                self.global_optimizer.comm.Send(
+                    [np.array([]), MPI.DOUBLE], dest=0, tag=1
+                )
             sys.exit("NaN encountered, exiting")
         if new_energy > initial_energy:
-            return min(1, np.exp(-(new_energy - initial_energy) / self.temp))
-        else:
-            return 1
+            return float(min(1, np.exp(-(new_energy - initial_energy) / self.temp)))
+
+        return float(1)
 
     def check_atom_position(self, cluster: Atoms, atom: Atom) -> bool:
         """
