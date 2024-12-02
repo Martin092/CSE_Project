@@ -1,6 +1,8 @@
 """GA playground"""
 
-import os
+import os,sys
+
+sys.path.append('./')
 
 from ase.io import read
 from ase.io.trajectory import TrajectoryReader
@@ -12,7 +14,7 @@ if not os.path.exists("clusters/"):
     os.makedirs("clusters/")
 
 ga = GeneticAlgorithm(num_clusters=4)
-ga.benchmark_run([38], 100)
+ga.benchmark_run([5], 100)
 
 final_atoms = read("clusters/minima_optimized.xyz")
 view(final_atoms)  # type: ignore

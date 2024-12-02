@@ -10,6 +10,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from src.global_optimizer import GlobalOptimizer
+from oxford_database import get_cluster_energy
 
 
 class GeneticAlgorithm(GlobalOptimizer):
@@ -211,6 +212,9 @@ class GeneticAlgorithm(GlobalOptimizer):
             best_cluster = self.best_config
             print(f"Best energy found: {self.best_potential}")
             write("clusters/minima_optimized.xyz", best_cluster)
+            
+            if abs(get_cluster_energy(lj, self.atom_type)-self.best_potential) < 0.001:
+                print("Best energy matches the database")
 
             traj = Trajectory("clusters/minima_progress.traj", mode="w")  # type: ignore
             for cluster in self.best_configs:
