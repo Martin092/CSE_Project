@@ -13,7 +13,7 @@ from src.genetic_algorithm import GeneticAlgorithm
 if not os.path.exists("clusters/"):
     os.makedirs("clusters/")
 
-ga = GeneticAlgorithm(num_clusters=4)
+ga = GeneticAlgorithm(num_clusters=4, mutation_probability=0.1)
 ga.benchmark_run([38], 100)
 
 final_atoms = read("clusters/minima_optimized.xyz")

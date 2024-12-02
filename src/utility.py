@@ -11,6 +11,8 @@ from ase.md.langevin import Langevin
 from ase.optimize.minimahopping import PassedMinimum
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from reference_code.rotation_matrices import rotation_matrix
+from ase.optimize import BFGS
+
 
 
 class Utility:
@@ -217,12 +219,69 @@ class Utility:
 
         return cluster
 
-    def etching(self, cluster: Atoms) -> None:
+    def etching_substraction(self, cluster: Atoms) -> None:
         """
-        TODO: Write this.
-        :param cluster:
-        :return:
+        Deletes a random atom from the cluster, optimizes the cluster, and then adds a new atom to maintain the same number of atoms.
+        :param cluster: The atomic cluster to modify
         """
+        atom_index = np.random.randint(len(cluster))
+        atom_copy = cluster[atom_index]
+
+        del cluster[atom_index]
+        opt = BFGS(cluster, logfile="log.txt")
+        opt.run(fmax=0.02)
+        
+        bool = False
+        i = 0
+    
+        while not bool:
+            i += 1
+            new_atom = Atom(self.global_optimizer.atom_type, position=np.random.uniform(-self.global_optimizer.box_length, self.global_optimizer.box_length, size=3))
+            initial_energy = cluster.get_potential_energy()  # type: ignore
+            cluster.append(new_atom)
+            new_energy = cluster.get_potential_energy()  # type: ignore
+
+            if self.metropolis_criterion(initial_energy, new_energy, 1):
+                bool = True
+                break
+            cluster.pop(-1)
+
+            if i > 100:
+                print("Unable to find a valid etching move.")
+                return cluster.append(atom_copy)
+                
+
+
+    def etching_addition(self, cluster: Atoms) -> None:
+        """
+        Adds a new atom to the cluster, optimizes the cluster, and then deletes the highest energy atom.
+        :param cluster: The atomic cluster to modify
+        """
+        bool = False
+        i = 0
+
+        while not bool:
+            i += 1
+            new_atom = Atom(self.global_optimizer.atom_type, position=np.random.uniform(-self.global_optimizer.box_length, self.global_optimizer.box_length, size=3))
+            initial_energy = cluster.get_potential_energy()  # type: ignore
+            cluster.append(new_atom)
+            new_energy = cluster.get_potential_energy()  # type: ignore
+
+            if self.metropolis_criterion(initial_energy, new_energy, 1):
+                bool = True
+                break
+
+            cluster.pop(-1)
+
+            if i > 100:
+                print("Unable to find a valid etching move.")
+                return cluster
+        
+        opt = BFGS(cluster, logfile="log.txt")
+        opt.run(fmax=0.02)
+
+        atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
+        del cluster[atom_index]
 
     def split_cluster(
         self,
