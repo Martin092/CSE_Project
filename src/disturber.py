@@ -47,11 +47,9 @@ class Disturber:
             accept = self.metropolis_criterion(energy_before, energy_after)
             self.step = self.step * (1 - 0.01 * (0.5 - accept))
 
-
             if np.random.rand() > accept:
                 cluster.positions[index] -= step
                 continue
-            print(accept)
             break
 
     def metropolis_criterion(

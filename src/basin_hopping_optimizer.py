@@ -1,6 +1,7 @@
 """TODO: Write this."""
-
+import os
 import sys
+import time
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -56,10 +57,12 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         self.sensitivity = sensitivity
 
     def iteration(self) -> None:
+        # TODO: make sure the algorithm doesnt stay for too long on the same energy levels
         """
         TODO: Write this.
         :return:
         """
+        # print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
             self.last_energy = self.cluster_list[0].get_potential_energy()
 
@@ -74,7 +77,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             if max_energy - min_en < self.alpha:
                 self.disturber.random_step(clus)
             else:
-                print(f"get rotated bitch: {self.alpha}")
                 self.angular_moves += 1
                 self.disturber.angular_movement(clus)
 
@@ -168,6 +170,19 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
         return new_cluster
 
+    def plot_energies(self):
+        energies = np.array([])
+        for clus in self.history[0]:
+            clus.calc = bh.calculator()
+            energies = np.append(energies, clus.get_potential_energy())
+
+        plt.plot(energies)
+        plt.title(f"Energy levels discovered for LJ{bh.atoms}")
+        plt.xlabel("Iteration")
+        plt.ylabel("Energy")
+        plt.show()
+
+
     def run_parallel(self, max_iterations: int, seed: Atoms | None = None, cpus: int = 2) -> None:
         """
         TOOD: Write this.
@@ -178,10 +193,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         size = comm.Get_size()
         rank = comm.Get_rank()
 
-        self.setup(seed)
-        while self.current_iteration < max_iterations and not self.is_converged():
-            self.iteration()
-            self.current_iteration += 1
+        # self.run(max_iterations)
 
         # if rank != 0:
         #     energy, cluster = self.best_energy()
@@ -194,11 +206,18 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         #
         # MPI.Finalize()
 
+# comm = MPI.COMM_WORLD
+# size = comm.Get_size()
+# rank = comm.Get_rank()
 
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=38, atom_type="Fe")
+# print(rank)
+
+bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
 print(bh.box_length)
 
-bh.run(5000)
+start = time.time()
+bh.run(200)
+print(f"Algorithm took ")
 print("Algorithm finished")
 
 energy, cluster = bh.best_energy(0)
@@ -217,15 +236,6 @@ plt.xlabel("Iteration")
 plt.ylabel("Alpha value")
 plt.show()
 
-energies = np.array([])
-for clus in bh.history[0]:
-    clus.calc = bh.calculator()
-    energies = np.append(energies, clus.get_potential_energy())
+bh.plot_energies()
 
-plt.plot(energies)
-plt.title(f"Energy levels discovered for LJ{bh.atoms}")
-plt.xlabel("Iteration")
-plt.ylabel("Energy")
-plt.show()
-
-write("clusters/LJmin.xyz", cluster)
+# write("clusters/LJmin.xyz", cluster)
