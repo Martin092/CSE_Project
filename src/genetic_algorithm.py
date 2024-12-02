@@ -61,6 +61,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         to create a new generation.
         :return: None, since everything is store in class fields.
         """
+        print(f"Iteration {self.current_iteration}")
         self.potentials = []
         for index, cluster in enumerate(self.cluster_list):
             self.optimizers[index].run(fmax=0.02)  # Local optimization
@@ -198,6 +199,10 @@ class GeneticAlgorithm(GlobalOptimizer):
         """
         if np.random.rand() <= self.mutation_probability:
             self.utility.twist(cluster)  # Perform twist mutation
+        if np.random.rand() <= self.mutation_probability:
+            self.utility.angular_movement(cluster)  # Perform angular mutation
+        #if np.random.rand() <= self.mutation_probability:
+        #    self.utility.
 
     def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
         """
@@ -215,6 +220,8 @@ class GeneticAlgorithm(GlobalOptimizer):
             
             if abs(get_cluster_energy(lj, self.atom_type)-self.best_potential) < 0.001:
                 print("Best energy matches the database")
+            else:
+                print("Best energy does not match the database")
 
             traj = Trajectory("clusters/minima_progress.traj", mode="w")  # type: ignore
             for cluster in self.best_configs:
@@ -246,6 +253,6 @@ class GeneticAlgorithm(GlobalOptimizer):
 
         for k in enumerate(indices):
             print(
-                f"LJ {k[1]}: {convergence[k[0]]} iterations for"
+                f"LJ {k[1]}: {convergence[k[0]]} iterations for "
                 f"{int(np.floor_divide(times[k[0]], 60))} min {int(times[k[0]])%60} sec"
             )
