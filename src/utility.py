@@ -3,6 +3,8 @@
 from typing import Any, List, Literal, Tuple
 import time
 import sys
+
+from mpi4py import MPI
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
 from scipy.spatial.distance import pdist  # type: ignore
@@ -58,7 +60,6 @@ class Utility:
             if np.random.rand() > accept:
                 cluster.positions[index] -= step
                 continue
-            print(accept)
             break
 
     def metropolis_criterion(self, initial_energy: float, new_energy: float) -> float:
@@ -69,12 +70,17 @@ class Utility:
         :return: probability of accepting the move
         """
         if new_energy - initial_energy > 50:  # Energy is way too high, bad move
-            return 0
+            return float(0)
         if np.isnan(new_energy):
+            if self.global_optimizer.comm:
+                self.global_optimizer.comm.Send(
+                    [np.array([]), MPI.DOUBLE], dest=0, tag=1
+                )
             sys.exit("NaN encountered, exiting")
         if new_energy > initial_energy:
             return float(min(1, np.exp(-(new_energy - initial_energy) / self.temp)))
-        return 1
+
+        return float(1)
 
     def angular_movement(self, cluster: Atoms) -> None:
         """
@@ -198,10 +204,10 @@ class Utility:
         del cluster[atom_index]
         opt = BFGS(cluster, logfile="log.txt")
         opt.run(fmax=0.02)
-        
+
         bool = False
         i = 0
-    
+
         while not bool:
             i += 1
             new_atom = Atom(self.global_optimizer.atom_type, position=np.random.uniform(-self.global_optimizer.box_length, self.global_optimizer.box_length, size=3))
@@ -217,7 +223,7 @@ class Utility:
             if i > 100:
                 print("Unable to find a valid etching move.")
                 return cluster.append(atom_copy)
-                
+
 
 
     def etching_addition(self, cluster: Atoms) -> None:
@@ -244,7 +250,7 @@ class Utility:
             if i > 100:
                 print("Unable to find a valid etching move.")
                 return cluster
-        
+
         opt = BFGS(cluster, logfile="log.txt")
         opt.run(fmax=0.02)
 

@@ -3,6 +3,8 @@
 import time
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
+from typing import Any, List, Tuple
+from mpi4py import MPI
 from ase import Atoms
 from ase.io import write, Trajectory
 import numpy as np
@@ -21,6 +23,7 @@ class GlobalOptimizer(ABC):
         atoms: int,
         atom_type: str,
         calculator: Any,
+        comm: MPI.Intracomm | None = None,
     ) -> None:
         self.history: List = []
         self.cluster_list: List = []
@@ -39,6 +42,7 @@ class GlobalOptimizer(ABC):
         self.calculator = calculator
         self.utility = Utility(self)
         self.execution_time: float = 0.0
+        self.comm = comm
 
     @abstractmethod
     def iteration(self) -> None:
@@ -130,11 +134,9 @@ class GlobalOptimizer(ABC):
 
     def best_energy(self, index: int = 0) -> Tuple[float, Atoms]:
         """
-        Finds the cluster with the lowest energy from the cluster history
-        :param cluster_index: Which cluster history to look through
-        :return: Cluster with the lowest energy
+        Gets the best energy from the history
+        :param index: which cluster from the history to pick from
         """
-        # TODO Make this work for multiple clusters
         min_energy = float("inf")
         best_cluster: Atoms = self.cluster_list[index][0]
         for cluster in self.history[index]:
@@ -145,3 +147,21 @@ class GlobalOptimizer(ABC):
                 best_cluster = cluster
 
         return min_energy, best_cluster
+
+    def get_best_cluster_found(self, cluster_index: int = 0) -> Any:
+        """
+        Finds the cluster with the lowest energy from the cluster history
+        :param cluster_index: Which cluster history to look through
+        :return: Cluster with the lowest energy
+        """
+        # TODO Make this work for multiple clusters
+        min_energy = float("inf")
+        best_cluster = None
+        for cluster in self.history[cluster_index]:
+            cluster.calc = self.calculator()
+            curr_energy = cluster.get_potential_energy()
+            if curr_energy < min_energy:
+                min_energy = curr_energy
+                best_cluster = cluster
+
+        return best_cluster

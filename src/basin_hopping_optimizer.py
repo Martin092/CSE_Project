@@ -1,6 +1,7 @@
 """TODO: Write this."""
 
 import sys
+import time
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -40,6 +41,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         num_clusters: int = 1,
         alpha: float = 2,
         sensitivity: float = 0.3,
+        comm: MPI.Intracomm | None = None,
     ) -> None:
         super().__init__(
             num_clusters=num_clusters,
@@ -47,6 +49,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             atoms=atoms,
             atom_type=atom_type,
             calculator=calculator,
+            comm=comm,
         )
         self.last_energy = float("inf")
         self.alpha = alpha
@@ -55,10 +58,15 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         self.sensitivity = sensitivity
 
     def iteration(self) -> None:
+        # TODO: make sure the algorithm doesnt stay for too long on the same energy levels
         """
         TODO: Write this.
         :return:
         """
+        if self.comm:
+            print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
+        else:
+            print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
             self.last_energy = self.cluster_list[0].get_potential_energy()
 
@@ -73,7 +81,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             if max_energy - min_en < self.alpha:
                 self.utility.random_step(clus)
             else:
-                print(f"get rotated bitch: {self.alpha}")
                 self.angular_moves += 1
                 self.utility.angular_movement(clus)
 
@@ -128,9 +135,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             )
             alg.run(1000)
 
-            energy = alg.cluster_list[0].get_potential_energy()
-            if energy < min_energy:
-                min_energy = energy
+            energy_curr = alg.cluster_list[0].get_potential_energy()
+            if energy_curr < min_energy:
+                min_energy = energy_curr
                 best_cluster = alg.cluster_list[0]
 
         write("clusters/seeded_LJ_before.xyz", best_cluster)
@@ -167,66 +174,46 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
         return new_cluster
 
-    def run_parallel(
-        self, max_iterations: int, seed: Atoms | None = None, cpus: int = 2
-    ) -> None:
+    def plot_energies(self) -> None:
         """
-        TOOD: Write this.
-        :param max_iterations:
-        :return:
+        Plots the energy values over the course of the entire run
         """
-        comm = MPI.COMM_WORLD
-        size = comm.Get_size()
-        rank = comm.Get_rank()
+        energies = np.array([])
+        for clus in self.history[0]:
+            clus.calc = self.calculator()
+            energies = np.append(energies, clus.get_potential_energy())
 
-        self.setup(seed)
-        while self.current_iteration < max_iterations and not self.is_converged():
-            self.iteration()
-            self.current_iteration += 1
-
-        # if rank != 0:
-        #     energy, cluster = self.best_energy()
-        #     comm.send(energy, dest=0, tag=1)
-        #     print(f"send from {rank}")
-        # else:
-        #     for i in range(size - 1):
-        #         energy = comm.recv(tag=1)
-        #         print(energy)
-        #
-        # MPI.Finalize()
+        plt.plot(energies)
+        plt.title(f"Energy levels discovered for LJ{self.atoms}")
+        plt.xlabel("Iteration")
+        plt.ylabel("Energy")
+        plt.show()
 
 
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=38, atom_type="Fe")
-print(bh.box_length)
+if __name__ == "__main__":
+    bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
+    print(bh.box_length)
 
-bh.run(5000)
-print("Algorithm finished")
+    start = time.time()
+    bh.run(100)
+    print(f"Algorithm finished for {time.time() - start}")
 
-energy, cluster = bh.best_energy(0)
-print(f"Result: {energy}")
-print(f"Actual: {get_cluster_energy(bh.atoms, bh.atom_type)}")
+    energy, cluster = bh.best_energy(0)
+    print(f"Result: {energy}")
+    print(f"Actual: {get_cluster_energy(bh.atoms, bh.atom_type)}")
 
-print(bh.current_iteration)
-print(bh.angular_moves)
+    print(bh.current_iteration)
+    print(bh.angular_moves)
 
-print(f"alpha: {bh.alpha}")
-print(f"step: {bh.utility.step}")
+    print(f"alpha: {bh.alpha}")
+    print(f"step: {bh.utility.step}")
 
-plt.plot(bh.alphas)
-plt.title("Alpha values per iteration")
-plt.xlabel("Iteration")
-plt.ylabel("Alpha value")
-plt.show()
+    plt.plot(bh.alphas)
+    plt.title("Alpha values per iteration")
+    plt.xlabel("Iteration")
+    plt.ylabel("Alpha value")
+    plt.show()
 
-energies = np.array([])
-for clus in bh.history[0]:
-    clus.calc = bh.calculator()
-    energies = np.append(energies, clus.get_potential_energy())
+    bh.plot_energies()
 
-plt.plot(energies)
-plt.title(f"Energy levels discovered for LJ{bh.atoms}")
-plt.xlabel("Iteration")
-plt.ylabel("Energy")
-plt.show()
-
-write("clusters/LJmin.xyz", cluster)
+    write("clusters/LJmin.xyz", cluster)
