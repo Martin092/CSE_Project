@@ -54,6 +54,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             []
         )  # Generate list for storing potentials of current generation
 
+
     def iteration(self) -> None:
         """
         Performs single iteration of the Genetic Algorithm. That is first perform local optimization and save relevant
@@ -93,7 +94,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         Checks if convergence criteria is satisfied
         :return: True if convergence criteria is met, otherwise False
         """
-        if self.current_iteration < 10:
+        if self.current_iteration < 50: #10
             return False
         ret = True
         cur = self.best_potentials[self.current_iteration - 1]
@@ -186,9 +187,12 @@ class GeneticAlgorithm(GlobalOptimizer):
             # Split the clusters
             group11, group12, _ = self.utility.split_cluster(cluster1, p1, p2, p3)
             group21, group22, _ = self.utility.split_cluster(cluster2, p1, p2, p3)
+
+            Child_1 = group11 + group22
+            Child_2 = group12 + group21
         return (
-            group11 + group22,
-            group12 + group21,
+            Child_1,
+            Child_2
         )  # Return crossed parts of parent clusters
 
     def mutation(self, cluster: Atoms) -> None:
@@ -198,11 +202,18 @@ class GeneticAlgorithm(GlobalOptimizer):
         :return: None, since clusters are dynamically binding object in the scope of the program.
         """
         if np.random.rand() <= self.mutation_probability:
+            print("Twist")
             self.utility.twist(cluster)  # Perform twist mutation
         if np.random.rand() <= self.mutation_probability:
             self.utility.angular_movement(cluster)  # Perform angular mutation
-        # if np.random.rand() <= self.mutation_probability:
-        #    self.utility.
+            print("Angular")
+        if np.random.rand() <= self.mutation_probability:
+            print("Etching (-)")
+            self.utility.etching_substraction(cluster)  # Perform etching mutation (-)
+        if np.random.rand() <= self.mutation_probability:
+            print("Etching (+)")
+            self.utility.etching_addition(cluster) # Perform etching mutation (+)
+
 
     def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
         """

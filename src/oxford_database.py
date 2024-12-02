@@ -43,4 +43,5 @@ def get_cluster_energy(atoms: int, atom_type: str) -> float:
     cluster = read(filename)
 
     cluster.calc = LennardJones()  # type: ignore
+    print("Energy Database: ", cluster.get_potential_energy())  # type: ignore
     return cluster.get_potential_energy()  # type: ignore
