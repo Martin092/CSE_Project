@@ -3,6 +3,8 @@
 from typing import Any, List, Literal, Tuple
 import time
 import sys
+
+from mpi4py import MPI
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
 from ase import Atoms, Atom
@@ -18,8 +20,12 @@ class Utility:
     Class with all the methods to disturb a cluster
     """
 
-    def __init__(self, global_optimizer: Any) -> None:
+    def __init__(
+        self, global_optimizer: Any, temp: float = 0.8, step: float = 1
+    ) -> None:
         self.global_optimizer = global_optimizer
+        self.temp = temp
+        self.step = step
 
     def random_step(self, cluster: Atoms) -> None:
         """
@@ -31,18 +37,8 @@ class Utility:
         index = np.argmax(energies)
         energy_before = cluster.get_potential_energy()  # type: ignore
 
-        # random step from -1 to 1
-        step_size = (np.random.rand(3) - 0.5) * 2
-
-        attempts = 0
         while True:
-            # every 100 attempts to find a new step, increase the step size by 1.
-            # NOTE: probably not the best way to go about the algorithm not finding an appropriate step but works
-            attempts += 1
-            if attempts % 100 == 0:
-                step_size += 1
-
-            step = (np.random.rand(3) - 0.5) * 2 * step_size
+            step = (np.random.rand(3) - 0.5) * 2 * self.step
             energy_before = self.global_optimizer.cluster_list[0].get_potential_energy()
 
             cluster.positions[index] += step
@@ -55,31 +51,34 @@ class Utility:
             energy_after = self.global_optimizer.cluster_list[0].get_potential_energy()
 
             # Metropolis criterion gives an acceptance probability based on temperature for each move
-            if not self.metropolis_criterion(energy_before, energy_after, 1):
+            accept = self.metropolis_criterion(energy_before, energy_after)
+            self.step = self.step * (1 - 0.01 * (0.5 - accept))
+
+            if np.random.rand() > accept:
                 cluster.positions[index] -= step
                 continue
             break
 
-    def metropolis_criterion(
-        self, initial_energy: float, new_energy: float, temp: float = 0.8
-    ) -> bool:
+    def metropolis_criterion(self, initial_energy: float, new_energy: float) -> float:
         """
         Metropolis acceptance criterion for accepting a new move based on temperature
         :param initial_energy: The energy of the cluster before the move
         :param new_energy: The energy of the cluster after the move
         :param temp: temperature at which we want the move to occur
-        :return: whether the move is accepted
+        :return: probability of accepting the move
         """
-        if (
-            np.isnan(new_energy) or new_energy - initial_energy > 50
-        ):  # Energy is way too high, bad move
-            return False
+        if new_energy - initial_energy > 50:  # Energy is way too high, bad move
+            return float(0)
+        if np.isnan(new_energy):
+            if self.global_optimizer.comm:
+                self.global_optimizer.comm.Send(
+                    [np.array([]), MPI.DOUBLE], dest=0, tag=1
+                )
+            sys.exit("NaN encountered, exiting")
         if new_energy > initial_energy:
-            accept_prob = np.exp(-(new_energy - initial_energy) / temp)
-            # We accept each move with a probability given by the Metropolis criterion
-            return bool(np.random.rand() < accept_prob)
-        # We went downhill, cool
-        return True
+            return float(min(1, np.exp(-(new_energy - initial_energy) / self.temp)))
+
+        return float(1)
 
     def check_atom_position(self, cluster: Atoms, atom: Atom) -> bool:
         """
@@ -127,7 +126,6 @@ class Utility:
         initial_positions = cluster.positions.copy()
         initial_energy = cluster.get_potential_energy()  # type: ignore
         max_attempts = 500
-        temperature = 1.0
 
         cluster.set_center_of_mass([0, 0, 0])  # type: ignore
 
@@ -140,15 +138,10 @@ class Utility:
             rotated_position = np.dot(rotation, cluster.positions[index])
             cluster.positions[index] = rotated_position
 
-            cluster.positions = np.clip(
-                cluster.positions,
-                -self.global_optimizer.box_length,
-                self.global_optimizer.box_length,
-            )
-
             new_energy = cluster.get_potential_energy()  # type: ignore
 
-            if self.metropolis_criterion(initial_energy, new_energy, temperature):
+            accept = self.metropolis_criterion(initial_energy, new_energy)
+            if np.random.rand() < accept:
                 break
             cluster.positions = initial_positions
         else:
