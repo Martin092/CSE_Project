@@ -64,10 +64,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         TODO: Write this.
         :return:
         """
-        if self.comm:
-            print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
-        else:
-            print(f"Iteration {self.current_iteration}")
+        # if self.comm:
+        #     print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
+        # else:
+        #     print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
             self.last_energy = self.cluster_list[0].get_potential_energy()
 
@@ -175,21 +175,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
         return new_cluster
 
-    def plot_energies(self) -> None:
-        """
-        Plots the energy values over the course of the entire run
-        """
-        energies = np.array([])
-        for clus in self.history[0]:
-            clus.calc = self.calculator()
-            energies = np.append(energies, clus.get_potential_energy())
-
-        plt.plot(energies)
-        plt.title(f"Energy levels discovered for LJ{self.atoms}")
-        plt.xlabel("Iteration")
-        plt.ylabel("Energy")
-        plt.show()
-
 
 if __name__ == "__main__":
     bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
@@ -215,6 +200,6 @@ if __name__ == "__main__":
     plt.ylabel("Alpha value")
     plt.show()
 
-    bh.plot_energies()
+    # bh.plot_energies()
 
     write("clusters/LJmin.xyz", cluster)
