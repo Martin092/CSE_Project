@@ -32,6 +32,7 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: |
+          sudo apt install libopenmpi-dev
           python3 -m pip install types-requests
           pip install -r requirements.txt
           pip install lxml
@@ -56,7 +57,9 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          sudo apt install libopenmpi-dev
+          pip install -r requirements.txt
       - name: Run pylint
         run: pylint src
 
@@ -71,7 +74,9 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          sudo apt install libopenmpi-dev
+          pip install -r requirements.txt
       - name: Run tests with coverage
         run: |
           mkdir -p reports/pytest/html reports/pytest/xml
