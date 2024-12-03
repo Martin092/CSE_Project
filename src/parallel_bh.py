@@ -1,6 +1,7 @@
 """
 Parallel implementation of the basin hopping algorithm
 """
+
 import time
 from ase import Atoms
 from ase.optimize import BFGS
@@ -38,9 +39,9 @@ if rank == 0:
         if data.shape != (bh.atoms, 3):
             continue
 
-        new_cluster = Atoms(bh.atom_type + str(bh.atoms), positions=data) # type: ignore
+        new_cluster = Atoms(bh.atom_type + str(bh.atoms), positions=data)  # type: ignore
         new_cluster.calc = bh.calculator()
-        new_energy = new_cluster.get_potential_energy() # type: ignore
+        new_energy = new_cluster.get_potential_energy()  # type: ignore
 
         if new_energy < best_energy:
             best_cluster = new_cluster
