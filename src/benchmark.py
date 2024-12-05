@@ -2,6 +2,7 @@
 A class that provides utility methods for easily
 comparing the performance of two global optimization algorithms
 """
+
 from typing import List
 
 import numpy as np
@@ -21,6 +22,7 @@ class Benchmark:
     Class that provides utility methods for easily comparing
     the performance of global optimization algorithms
     """
+
     def __init__(self, optimizer: GlobalOptimizer):
         self.optimizer = optimizer
 

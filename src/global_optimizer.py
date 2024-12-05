@@ -8,7 +8,6 @@ from mpi4py import MPI
 from ase import Atoms
 from ase.io import write, Trajectory
 import numpy as np
-from numpy import ndarray, dtype
 
 from src.utility import Utility
 
