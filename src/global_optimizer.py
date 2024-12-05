@@ -3,11 +3,12 @@
 import time
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
-
+from deprecated import deprecated
 from mpi4py import MPI
 from ase import Atoms
 from ase.io import write, Trajectory
 import numpy as np
+
 from src.utility import Utility
 
 
@@ -131,22 +132,49 @@ class GlobalOptimizer(ABC):
         for i, cluster in enumerate(self.cluster_list):
             self.history[i].append(cluster.copy())
 
-    def best_energy(self, index: int = 0) -> Tuple[float, Atoms]:
+    def best_energy_cluster(self) -> Tuple[float, Atoms]:
         """
-        Gets the best energy from the history
+        Gets the best energy and the best cluster from the history
         @param index which cluster from the history to pick from
         """
         min_energy = float("inf")
-        best_cluster: Atoms = self.cluster_list[index][0]
-        for cluster in self.history[index]:
-            cluster.calc = self.calculator()
-            curr_energy = cluster.get_potential_energy()
-            if curr_energy < min_energy:
-                min_energy = curr_energy
-                best_cluster = cluster
+        best_cluster: Atoms = self.cluster_list[0][0]
+        for history_list in self.history:
+            for cluster in history_list:
+                cluster.calc = self.calculator()
+                curr_energy = cluster.get_potential_energy()
+                if curr_energy < min_energy:
+                    min_energy = curr_energy
+                    best_cluster = cluster
 
         return min_energy, best_cluster
 
+    def best_energy(self) -> float:
+        """
+        Returns the best energy found so far
+        """
+        return self.best_energy_cluster()[0]
+
+    def best_cluster(self) -> Atoms:
+        """
+        Returns the cluster with the best energy found so far
+        """
+        return self.best_energy_cluster()[1]
+
+    def potentials_history(self, index: int = 0) -> list[float]:
+        """
+        Returns an array of all the energies found at a
+        particular cluster index in the history
+        """
+        energies = []
+        for cluster in self.history[index]:
+            cluster.calc = self.calculator()
+            curr_energy = cluster.get_potential_energy()
+            energies.append(curr_energy)
+
+        return energies
+
+    @deprecated(reason="Get deprecated Moham, now switch to my method")
     def get_best_cluster_found(self, cluster_index: int = 0) -> Any:
         """
         Finds the cluster with the lowest energy from the cluster history
