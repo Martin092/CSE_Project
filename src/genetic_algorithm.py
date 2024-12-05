@@ -204,7 +204,7 @@ class GeneticAlgorithm(GlobalOptimizer):
     def best_cluster(self) -> Atoms:
         return self.best_config
 
-    def potentials_history(self, index: int = 0):
+    def potentials_history(self, index: int = 0) -> List[float]:
         return self.best_potentials
 
     def benchmark_run(self, indices: List[int], num_iterations: int) -> None:

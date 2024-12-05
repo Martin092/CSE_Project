@@ -24,7 +24,7 @@ class Benchmark:
     def __init__(self, optimizer: GlobalOptimizer):
         self.optimizer = optimizer
 
-    def compare_to_oxford(self):
+    def compare_to_oxford(self) -> float:
         """
         Returns the difference between the actual global minima and the one found
         by the algorithm
@@ -48,7 +48,7 @@ class Benchmark:
         plt.ylabel("Energy")
         plt.show()
 
-    def get_time(self):
+    def get_time(self) -> float:
         """
         Returns the time for the last run of the algorithm
         """

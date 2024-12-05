@@ -8,6 +8,8 @@ from mpi4py import MPI
 from ase import Atoms
 from ase.io import write, Trajectory
 import numpy as np
+from numpy import ndarray, dtype
+
 from src.utility import Utility
 
 
@@ -160,16 +162,16 @@ class GlobalOptimizer(ABC):
         """
         return self.best_energy_cluster()[1]
 
-    def potentials_history(self, index: int = 0):
+    def potentials_history(self, index: int = 0) -> list[float]:
         """
         Returns an array of all the energies found at a
         particular cluster index in the history
         """
-        energies = np.array([])
+        energies = []
         for cluster in self.history[index]:
             cluster.calc = self.calculator()
             curr_energy = cluster.get_potential_energy()
-            energies = np.append(energies, curr_energy)
+            energies.append(curr_energy)
 
         return energies
 
