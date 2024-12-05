@@ -78,11 +78,18 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             min_en = min(energies)
             max_energy = max(energies)
 
-            if max_energy - min_en < self.alpha:
+            if self.current_iteration > 10 and self.stuck_in_minima(10):
+                print("Big step")
+                temp = self.utility.temp
+                self.utility.temp = 100
                 self.utility.random_step(clus)
+                self.utility.temp = temp
             else:
-                self.angular_moves += 1
-                self.utility.angular_movement(clus)
+                if max_energy - min_en < self.alpha:
+                    self.utility.random_step(clus)
+                else:
+                    self.angular_moves += 1
+                    self.utility.angular_movement(clus)
 
             if self.current_iteration != 0:
                 fraction = self.angular_moves / self.current_iteration
@@ -91,6 +98,23 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.alphas = np.append(self.alphas, self.alpha)
             self.optimizers[index].run(fmax=0.2)
             self.history[index].append(clus.copy())
+
+    def stuck_in_minima(self, depth: int):
+        curr_energy = self.cluster_list[0].get_potential_energy()
+        not_stuck = True
+        for i in reversed(range(depth)):
+            index = len(self.history[0]) - i - 1
+
+            clus = self.history[0][index]
+            clus.calc = self.calculator()
+            diff = clus.get_potential_energy() - curr_energy
+
+            not_stuck &= diff < 0.00001
+
+        return not_stuck
+
+
+
 
     def is_converged(self) -> bool:
         """

@@ -95,16 +95,17 @@ class Benchmark:
 
 
 bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="C")
-mh = MinimaHoppingOptimizer(
-    num_clusters=1,
-    atoms=13,
-    atom_type="C",
-    temperature=300,
-)
+# mh = MinimaHoppingOptimizer(
+#     num_clusters=1,
+#     atoms=13,
+#     atom_type="C",
+#     temperature=300,
+# )
 ga = GeneticAlgorithm(num_clusters=4, atoms=13)
 
 b = Benchmark(bh)
 
-b.benchmark_run([38], 1000)
+b.benchmark_run([37], 500)
+b.plot_energies()
 
 print("---------------")

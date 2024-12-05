@@ -110,26 +110,26 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
     def is_converged(self) -> bool:
         return False
 
-
-mh = MinimaHoppingOptimizer(
-    num_clusters=1,
-    atoms=13,
-    atom_type="Fe",
-    temperature=300,
-)
-mh.run(500)
-best_cluster = mh.get_best_cluster_found()
-mh.write_trajectory("../clusters/minima_progress.traj")
-print("Best energy found: ")
-print(best_cluster.get_potential_energy())
-write("../clusters/minima_optimized.xyz", best_cluster)
-
-traj = TrajectoryReader("../clusters/minima_progress.traj")  # type: ignore
-BEST_INDEX = 0
-for i, _ in enumerate(traj):
-    if mh.utility.compare_clusters(traj[i], best_cluster):
-        print("Found best cluster at iteration: ")
-        print(i)
-        BEST_INDEX = i
-        break
-view(traj[: BEST_INDEX + 1])  # type: ignore
+#
+# mh = MinimaHoppingOptimizer(
+#     num_clusters=1,
+#     atoms=13,
+#     atom_type="Fe",
+#     temperature=300,
+# )
+# mh.run(500)
+# best_cluster = mh.get_best_cluster_found()
+# mh.write_trajectory("../clusters/minima_progress.traj")
+# print("Best energy found: ")
+# print(best_cluster.get_potential_energy())
+# write("../clusters/minima_optimized.xyz", best_cluster)
+#
+# traj = TrajectoryReader("../clusters/minima_progress.traj")  # type: ignore
+# BEST_INDEX = 0
+# for i, _ in enumerate(traj):
+#     if mh.utility.compare_clusters(traj[i], best_cluster):
+#         print("Found best cluster at iteration: ")
+#         print(i)
+#         BEST_INDEX = i
+#         break
+# view(traj[: BEST_INDEX + 1])  # type: ignore
