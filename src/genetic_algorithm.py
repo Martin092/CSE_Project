@@ -207,7 +207,6 @@ class GeneticAlgorithm(GlobalOptimizer):
     def potentials_history(self, index: int = 0):
         return self.best_potentials
 
-
     def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
         """
         TODO: Write this.

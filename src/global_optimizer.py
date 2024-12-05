@@ -133,7 +133,7 @@ class GlobalOptimizer(ABC):
 
     def best_energy_cluster(self) -> Tuple[float, Atoms]:
         """
-        Gets the best energy from the history
+        Gets the best energy and the best cluster from the history
         @param index which cluster from the history to pick from
         """
         min_energy = float("inf")
@@ -149,12 +149,22 @@ class GlobalOptimizer(ABC):
         return min_energy, best_cluster
 
     def best_energy(self) -> float:
+        """
+        Returns the best energy found so far
+        """
         return self.best_energy_cluster()[0]
 
     def best_cluster(self) -> Atoms:
+        """
+        Returns the cluster with the best energy found so far
+        """
         return self.best_energy_cluster()[1]
 
     def potentials_history(self, index: int = 0):
+        """
+        Returns an array of all the energies found at a
+        particular cluster index in the history
+        """
         energies = np.array([])
         for cluster in self.history[index]:
             cluster.calc = self.calculator()
@@ -162,7 +172,6 @@ class GlobalOptimizer(ABC):
             energies = np.append(energies, curr_energy)
 
         return energies
-
 
     @deprecated(reason="Get deprecated Moham, now switch to my method")
     def get_best_cluster_found(self, cluster_index: int = 0) -> Any:

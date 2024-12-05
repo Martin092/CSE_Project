@@ -78,7 +78,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             min_en = min(energies)
             max_energy = max(energies)
 
-
             if max_energy - min_en < self.alpha:
                 self.utility.random_step(clus)
             else:

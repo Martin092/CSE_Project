@@ -1,4 +1,7 @@
-import time
+"""
+A class that provides utility methods for easily
+comparing the performance of two global optimization algorithms
+"""
 from typing import List
 
 import numpy as np
@@ -12,16 +15,22 @@ from src.basin_hopping_optimizer import BasinHoppingOptimizer
 from src.minima_hopping_optimizer import MinimaHoppingOptimizer
 from src.oxford_database import get_cluster_energy
 
+
 class Benchmark:
+    """
+    Class that provides utility methods for easily comparing
+    the performance of global optimization algorithms
+    """
     def __init__(self, optimizer: GlobalOptimizer):
         self.optimizer = optimizer
 
     def compare_to_oxford(self):
+        """
+        Returns the difference between the actual global minima and the one found
+        by the algorithm
+        """
         actual = get_cluster_energy(bh.atoms, bh.atom_type)
-        energy, cluster = self.optimizer.best_energy(0)
-
-        print(actual)
-        print(energy)
+        energy = self.optimizer.best_energy()
         return actual - energy
 
     def plot_energies(self) -> None:
@@ -40,6 +49,9 @@ class Benchmark:
         plt.show()
 
     def get_time(self):
+        """
+        Returns the time for the last run of the algorithm
+        """
         return self.optimizer.execution_time
 
     def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
@@ -54,13 +66,16 @@ class Benchmark:
 
             best_cluster = self.optimizer.best_cluster()
             print(f"Best energy found: {self.optimizer.best_energy()}")
-            print(f"Actual best energy is {get_cluster_energy(self.optimizer.atoms, self.optimizer.atom_type)}")
+            print(
+                f"Actual best energy is {get_cluster_energy(self.optimizer.atoms, self.optimizer.atom_type)}"
+            )
             write("clusters/minima_optimized.xyz", best_cluster)
 
             times.append(self.optimizer.execution_time)
             convergence.append(self.optimizer.current_iteration)
             print(
-                f"Time taken: {int(np.floor_divide(self.optimizer.execution_time, 60))} min {int(self.optimizer.execution_time)%60} sec"
+                f"Time taken: {int(np.floor_divide(self.optimizer.execution_time, 60))} "
+                f"min {int(self.optimizer.execution_time)%60} sec"
             )
             print(f"Stopped at {self.optimizer.current_iteration}")
             best_potentials = self.optimizer.potentials_history()

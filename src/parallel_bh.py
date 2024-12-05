@@ -24,7 +24,7 @@ bh.run(200)
 
 runtime = time.time() - start
 
-energy, cluster = bh.best_energy(0)
+energy, cluster = bh.best_energy()
 
 print(f"Energy is {energy} in process {rank} found in {runtime}")
 
