@@ -198,6 +198,16 @@ class GeneticAlgorithm(GlobalOptimizer):
         if np.random.rand() <= self.mutation_probability:
             self.utility.twist(cluster)  # Perform twist mutation
 
+    def best_energy(self) -> float:
+        return self.best_potential
+
+    def best_cluster(self) -> Atoms:
+        return self.best_config
+
+    def potentials_history(self, index: int = 0):
+        return self.best_potentials
+
+
     def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
         """
         TODO: Write this.

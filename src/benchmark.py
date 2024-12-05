@@ -1,26 +1,20 @@
 import time
+from typing import List
 
 import numpy as np
+from ase.io import write
 from ase.optimize import BFGS
 from matplotlib import pyplot as plt
 
+from src.genetic_algorithm import GeneticAlgorithm
 from src.global_optimizer import GlobalOptimizer
 from src.basin_hopping_optimizer import BasinHoppingOptimizer
+from src.minima_hopping_optimizer import MinimaHoppingOptimizer
 from src.oxford_database import get_cluster_energy
 
 class Benchmark:
-    def __init__(self, optimizer: GlobalOptimizer, max_iterations: int):
+    def __init__(self, optimizer: GlobalOptimizer):
         self.optimizer = optimizer
-        self.max_iterations = max_iterations
-        self.run()
-
-    def set_max_iterations(self, max_iterations: int):
-        self.max_iterations = max_iterations
-        self.run()
-
-    def run(self):
-        print(f"Running with {self.max_iterations} max iterations")
-        self.optimizer.run(self.max_iterations)
 
     def compare_to_oxford(self):
         actual = get_cluster_energy(bh.atoms, bh.atom_type)
@@ -45,10 +39,55 @@ class Benchmark:
         plt.ylabel("Energy")
         plt.show()
 
+    def get_time(self):
+        return self.optimizer.execution_time
 
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
+    def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
+        """
+        TODO: Write this.
+        """
+        times = []
+        convergence = []
+        for lj in indices:
+            self.optimizer.atoms = lj
+            self.optimizer.run(num_iterations)
 
-benchmarker = Benchmark(bh, 600)
+            best_cluster = self.optimizer.best_cluster()
+            print(f"Best energy found: {self.optimizer.best_energy()}")
+            print(f"Actual best energy is {get_cluster_energy(self.optimizer.atoms, self.optimizer.atom_type)}")
+            write("clusters/minima_optimized.xyz", best_cluster)
 
-print(benchmarker.compare_to_oxford())
-benchmarker.plot_energies()
+            times.append(self.optimizer.execution_time)
+            convergence.append(self.optimizer.current_iteration)
+            print(
+                f"Time taken: {int(np.floor_divide(self.optimizer.execution_time, 60))} min {int(self.optimizer.execution_time)%60} sec"
+            )
+            print(f"Stopped at {self.optimizer.current_iteration}")
+            best_potentials = self.optimizer.potentials_history()
+            plt.plot(best_potentials)
+            plt.title(f"Execution on LJ{lj}")
+            plt.xlabel("Iteration")
+            plt.ylabel("Potential Energy")
+            plt.show()
+
+        for k in enumerate(indices):
+            print(
+                f"LJ {k[1]}: {convergence[k[0]]} iterations for "
+                f"{int(np.floor_divide(times[k[0]], 60))} min {int(times[k[0]])%60} sec"
+            )
+
+
+bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="C")
+mh = MinimaHoppingOptimizer(
+    num_clusters=1,
+    atoms=13,
+    atom_type="C",
+    temperature=300,
+)
+ga = GeneticAlgorithm(num_clusters=4, atoms=13)
+
+b = Benchmark(bh)
+
+b.benchmark_run([38], 1000)
+
+print("---------------")

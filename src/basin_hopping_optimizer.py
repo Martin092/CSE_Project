@@ -64,10 +64,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         TODO: Write this.
         :return:
         """
-        # if self.comm:
-        #     print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
-        # else:
-        #     print(f"Iteration {self.current_iteration}")
+        if self.comm:
+            print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
+        else:
+            print(f"Iteration {self.current_iteration} alpha: {self.alpha}")
         if self.current_iteration == 0:
             self.last_energy = self.cluster_list[0].get_potential_energy()
 
@@ -78,7 +78,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             min_en = min(energies)
             max_energy = max(energies)
 
-            # self.disturber.random_step(cluster)
+
             if max_energy - min_en < self.alpha:
                 self.utility.random_step(clus)
             else:
@@ -181,10 +181,10 @@ if __name__ == "__main__":
     print(bh.box_length)
 
     start = time.time()
-    bh.run(100)
+    bh.run(500)
     print(f"Algorithm finished for {time.time() - start}")
 
-    energy, cluster = bh.best_energy(0)
+    energy, cluster = bh.best_energy_cluster()
     print(f"Result: {energy}")
     print(f"Actual: {get_cluster_energy(bh.atoms, bh.atom_type)}")
 
