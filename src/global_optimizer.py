@@ -122,7 +122,7 @@ class GlobalOptimizer(ABC):
     def write_trajectory(self, filename: str, cluster_index: int = 0) -> None:
         """
         Writes all clusters in the history to a trajectory file
-        :param filename: File name of the trajectory file
+        :param filename: Name of the trajectory file
         :param cluster_index: Which cluster history to write to the trajectory file
         :return: None, writes to file
         """

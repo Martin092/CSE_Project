@@ -13,7 +13,7 @@ def create_xyz_file(atoms: int, atom_type: str) -> str:
     """
     Makes a request to the oxford database and creates a .xyz file from it
     """
-    name = f"../oxford_minimas/LJ{atoms}.xyz"
+    name = f"../oxford_minima/LJ{atoms}.xyz"
     if not os.path.exists(name):
         response = requests.get(
             f"http://doye.chem.ox.ac.uk/jon/structures/LJ/points/{atoms}", timeout=2
@@ -27,8 +27,8 @@ def create_xyz_file(atoms: int, atom_type: str) -> str:
         for line in iter(values.splitlines()):
             result += atom_type + line + "\n"
 
-        if not os.path.exists("../oxford_minimas"):
-            os.mkdir("../oxford_minimas")
+        if not os.path.exists("../oxford_minima"):
+            os.mkdir("../oxford_minima")
 
         with open(name, "w", encoding="UTF-8") as file:
             file.write(result)
