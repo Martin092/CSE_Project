@@ -11,7 +11,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from src.global_optimizer import GlobalOptimizer
-from src.oxford_database import get_cluster_energy
+from auxilary.oxford_database import get_cluster_energy
 
 
 class GeneticAlgorithm(GlobalOptimizer):
@@ -65,11 +65,11 @@ class GeneticAlgorithm(GlobalOptimizer):
         print(f"Iteration {self.current_iteration}")
         self.potentials = []
         for index, cluster in enumerate(self.cluster_list):
-            print(f"Cluster {index}/{self.num_clusters} begins local optimization.")
+            print(f"Cluster {index+1}/{self.num_clusters} begins local optimization.")
             t = time.time()
             self.optimizers[index].run()  # Local optimization
             print(
-                f"Cluster {index}/{self.num_clusters} successfully optimized for {time.time()-t} s."
+                f"Cluster {index+1}/{self.num_clusters} successfully optimized for {time.time()-t} s."
             )
             self.history[self.current_iteration].append(cluster)  # Save local minima
             self.potentials.append(
@@ -261,7 +261,7 @@ class GeneticAlgorithm(GlobalOptimizer):
 
             best_cluster = self.best_config
             print(f"Best energy found: {self.best_potential}")
-            write("clusters/minima_optimized.xyz", best_cluster)
+            write(f"../data/GA_clusters/LJ{lj}.xyz", best_cluster)
 
             best = get_cluster_energy(lj, self.atom_type)
 
@@ -272,7 +272,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             else:
                 print(f"Best energy in database is {best}.")
 
-            traj = Trajectory("clusters/minima_progress.traj", mode="w")  # type: ignore
+            traj = Trajectory(f"../data/GA_clusters/LJ{lj}.traj", mode="w")  # type: ignore
             for cluster in self.best_configs:
                 traj.write(cluster)
 

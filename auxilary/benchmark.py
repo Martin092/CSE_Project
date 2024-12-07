@@ -14,7 +14,7 @@ from src.genetic_algorithm import GeneticAlgorithm
 from src.global_optimizer import GlobalOptimizer
 from src.basin_hopping_optimizer import BasinHoppingOptimizer
 from src.minima_hopping_optimizer import MinimaHoppingOptimizer
-from src.oxford_database import get_cluster_energy
+from auxilary.oxford_database import get_cluster_energy
 
 
 class Benchmark:

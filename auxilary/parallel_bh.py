@@ -9,7 +9,7 @@ from ase.io import write
 import numpy as np
 from mpi4py import MPI
 from src.basin_hopping_optimizer import BasinHoppingOptimizer
-from src.oxford_database import get_cluster_energy
+from auxilary.oxford_database import get_cluster_energy
 
 
 comm = MPI.COMM_WORLD
