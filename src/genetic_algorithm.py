@@ -2,6 +2,7 @@
 
 import time
 from typing import List, Tuple, Literal, Any
+from collections import OrderedDict
 from ase import Atoms, Atom
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
@@ -15,9 +16,11 @@ class GeneticAlgorithm(GlobalOptimizer):
     Class Structure for Genetic Algorithms
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=W0102
         self,
-        mutation_probability: float = 0.2,
+        mutation: OrderedDict[str, float] = OrderedDict(
+            [("twist", 0.2), ("angular", 0.2), ("random step", 0.2), ("etching", 0.2)]
+        ),
         num_clusters: int = 16,
         num_selection: int = 0,
         preserve: bool = True,
@@ -28,7 +31,8 @@ class GeneticAlgorithm(GlobalOptimizer):
     ) -> None:
         """
         Genetic Algorithm Class constructor
-        :param mutation_probability: probability to perform mutation
+        :param mutation: dictionary specifying the order of different mutations
+                         as well as probabilities for each type of mutation
         :param num_clusters: number of clusters/configurations per generation
         :param num_selection: number of parents to be selected from each generation
         :param preserve: whether to preserve parents in new generation or not
@@ -44,7 +48,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             atom_type=atom_type,
             calculator=calculator,
         )
-        self.mutation_probability = mutation_probability
+        self.mutation_probability = mutation
         if num_selection == 0:
             num_selection = max(int(num_clusters / 2), 2)
         self.num_selection = num_selection
@@ -216,25 +220,32 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param cluster: Cluster to be mutated.
         :return: None, since clusters are dynamically binding object in the scope of the program.
         """
-        if np.random.rand() <= self.mutation_probability:
-            print("Twist")
-            self.utility.twist(cluster)  # Perform twist mutation
-        if np.random.rand() <= self.mutation_probability:
-            print("Angular")
-            self.utility.angular_movement(cluster)  # Perform angular mutation
-        if np.random.rand() <= self.mutation_probability:
-            print("Random Step")
-            self.utility.random_step(cluster)
-        etching = np.random.rand()
-        if etching <= self.mutation_probability:
-            if etching < self.mutation_probability / 2:
-                print("Etching (-)")
-                self.utility.etching_subtraction(
-                    cluster
-                )  # Perform etching mutation (-)
-            else:
-                print("Etching (+)")
-                self.utility.etching_addition(cluster)  # Perform etching mutation (+)
+        for i in self.mutation_probability:
+            if i == "twist":
+                if np.random.rand() <= self.mutation_probability[i]:
+                    print("Twist")
+                    self.utility.twist(cluster)  # Perform twist mutation
+            elif i == "angular":
+                if np.random.rand() <= self.mutation_probability[i]:
+                    print("Angular")
+                    self.utility.angular_movement(cluster)  # Perform angular mutation
+            elif i == "random step":
+                if np.random.rand() <= self.mutation_probability[i]:
+                    print("Random Step")
+                    self.utility.random_step(cluster)
+            elif i == "etching":
+                etching = np.random.rand()
+                if etching <= self.mutation_probability[i]:
+                    if etching < self.mutation_probability[i] / 2:
+                        print("Etching (-)")
+                        self.utility.etching_subtraction(
+                            cluster
+                        )  # Perform etching mutation (-)
+                    else:
+                        print("Etching (+)")
+                        self.utility.etching_addition(
+                            cluster
+                        )  # Perform etching mutation (+)
 
     def best_energy(self) -> float:
         """
