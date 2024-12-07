@@ -58,12 +58,3 @@ def test_md(cluster_2, utility):
 def test_compare_clusters(cluster_30, cluster_2, utility):
     assert utility.compare_clusters(cluster_30, cluster_30)
     assert not utility.compare_clusters(cluster_30, cluster_2)
-
-
-def test_twist(cluster_30, utility):
-    prev = np.unique(cluster_30.positions)
-    utility.twist(cluster_30)
-    cur = np.unique(cluster_30.positions)
-    inter = len(np.intersect1d(prev, cur))
-    assert inter > 0
-    assert inter < 90

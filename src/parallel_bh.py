@@ -33,7 +33,7 @@ if rank == 0:
     best_energy = energy
     for i in range(size - 1):
         data = np.empty((bh.atoms, 3))
-        print("Recieving...")
+        print("Receiving...")
         comm.Recv([data, MPI.DOUBLE], tag=1)
 
         if data.shape != (bh.atoms, 3):
@@ -47,10 +47,10 @@ if rank == 0:
             best_cluster = new_cluster
             best_energy = new_energy
 
-    print(f"Bestest energy is {best_energy}")
+    print(f"Best energy is {best_energy}")
     print(f"Actual best is    {get_cluster_energy(bh.atoms, bh.atom_type)}")
 
-    write("clusters/LJmin.xyz", cluster)
+    write("clusters/LJ_min.xyz", cluster)
 else:
     data = cluster.positions
     comm.Send([data, MPI.DOUBLE], dest=0, tag=1)
