@@ -4,7 +4,7 @@ from typing import Any, List, Literal, Tuple
 import time
 import sys
 
-from mpi4py import MPI
+from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
 from scipy.spatial.distance import pdist  # type: ignore
@@ -165,7 +165,8 @@ class Utility:
         :param cluster: Cluster to be twist mutated.
         :return: Cluster configuration after twist mutation.
         """
-        while True:
+        i = 0
+        while i <= 1000:
             group1, group2, normal = self.split_cluster(cluster)
             choice = np.random.choice([0, 1])
             if choice == 0:
@@ -189,7 +190,13 @@ class Utility:
             if self.configuration_validity(np.array(positions)):
                 for atom in rotate:
                     atom.position = np.dot(matrix, atom.position)
+                print("Twist mutation successfully performed.")
                 break
+
+            i += 1
+
+        if i > 1000:
+            print("Twist mutation unsuccessful.")
 
         return cluster
 
@@ -202,7 +209,7 @@ class Utility:
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
 
-        opt = BFGS(cluster, logfile="log.txt")
+        opt = BFGS(cluster, logfile="../log.txt")
         opt.run()  # type: ignore
 
         self.append_atom(cluster)
@@ -214,7 +221,7 @@ class Utility:
         """
         self.append_atom(cluster)
 
-        opt = BFGS(cluster, logfile="log.txt")
+        opt = BFGS(cluster, logfile="../log.txt")
         opt.run()  # type: ignore
 
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
