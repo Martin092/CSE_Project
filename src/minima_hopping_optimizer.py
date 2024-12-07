@@ -118,7 +118,7 @@ mh = MinimaHoppingOptimizer(
     temperature=300,
 )
 mh.run(500)
-best_cluster = mh.best_energy()
+best_cluster = mh.best_energy_cluster()
 mh.write_trajectory("../clusters/minima_progress.traj")
 print("Best energy found: ")
 print(best_cluster[0])

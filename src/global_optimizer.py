@@ -3,7 +3,7 @@
 import time
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
-from deprecated import deprecated
+from deprecated import deprecated  # type: ignore
 from mpi4py import MPI
 from ase import Atoms
 from ase.io import write, Trajectory
@@ -174,7 +174,7 @@ class GlobalOptimizer(ABC):
 
         return energies
 
-    @deprecated(reason="Get deprecated Moham, now switch to my method")
+    @deprecated(reason="Get deprecated Moham, now switch to my method")  # type: ignore
     def get_best_cluster_found(self, cluster_index: int = 0) -> Any:
         """
         Finds the cluster with the lowest energy from the cluster history
