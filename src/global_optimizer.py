@@ -1,4 +1,4 @@
-"""TODO: Write this."""
+"""Global Optimizer module"""
 
 import time
 from abc import ABC, abstractmethod
@@ -14,7 +14,7 @@ from src.utility import Utility
 
 class GlobalOptimizer(ABC):
     """
-    TODO: Write this.
+    Class Interface for Global Optimizers
     """
 
     def __init__(
@@ -48,15 +48,16 @@ class GlobalOptimizer(ABC):
     @abstractmethod
     def iteration(self) -> None:
         """
-        TODO: Write this.
-        :return:
+        Performs single iteration of the Global Optimizer algorithm.
+        :return: None
         """
 
     @abstractmethod
-    def is_converged(self) -> bool:
+    def is_converged(self, conv_iters: int = 10) -> bool:
         """
-        TODO: Write this.
-        :return:
+        Checks if convergence criteria is satisfied.
+        :param conv_iters: Number of iterations to be considered.
+        :return: True if convergence criteria is met, otherwise False.
         """
 
     def setup(self, seed: Atoms | None = None) -> None:
@@ -87,7 +88,9 @@ class GlobalOptimizer(ABC):
             self.optimizers.append(opt)
             self.history.append([])
 
-    def run(self, max_iterations: int, seed: Atoms | None = None) -> None:
+    def run(
+        self, max_iterations: int, conv_iter: int = 10, seed: Atoms | None = None
+    ) -> None:
         """
         TODO: Write this.
         :param max_iterations:
@@ -97,7 +100,9 @@ class GlobalOptimizer(ABC):
         start_time = time.time()
         self.setup(seed)
 
-        while self.current_iteration < max_iterations and not self.is_converged():
+        while self.current_iteration < max_iterations and not self.is_converged(
+            conv_iter
+        ):
             self.history.append([])
             self.iteration()
             self.current_iteration += 1

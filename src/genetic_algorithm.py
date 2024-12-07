@@ -1,5 +1,6 @@
 """Genetic Algorithms module"""
 
+import time
 from typing import List, Tuple, Literal, Any
 from ase import Atoms, Atom
 from ase.io import write
@@ -21,11 +22,11 @@ class GeneticAlgorithm(GlobalOptimizer):
     def __init__(
         self,
         mutation_probability: float = 0.2,
+        num_clusters: int = 16,
         local_optimizer: Any = BFGS,
         atoms: int = 30,
         atom_type: str = "C",
         calculator: Any = LennardJones,
-        num_clusters: int = 16,
     ) -> None:
         """
         Genetic Algorithm Class constructor
@@ -64,7 +65,12 @@ class GeneticAlgorithm(GlobalOptimizer):
         print(f"Iteration {self.current_iteration}")
         self.potentials = []
         for index, cluster in enumerate(self.cluster_list):
-            self.optimizers[index].run(fmax=0.02)  # Local optimization
+            print(f"Cluster {index}/{self.num_clusters} begins local optimization.")
+            t = time.time()
+            self.optimizers[index].run()  # Local optimization
+            print(
+                f"Cluster {index}/{self.num_clusters} successfully optimized for {time.time()-t} s."
+            )
             self.history[self.current_iteration].append(cluster)  # Save local minima
             self.potentials.append(
                 cluster.get_potential_energy()
@@ -88,17 +94,18 @@ class GeneticAlgorithm(GlobalOptimizer):
         for cluster in self.cluster_list:
             self.mutation(cluster)  # Perform mutation
 
-    def is_converged(self) -> bool:
+    def is_converged(self, conv_iters: int = 10) -> bool:
         """
-        Checks if convergence criteria is satisfied
-        :return: True if convergence criteria is met, otherwise False
+        Checks if convergence criteria is satisfied.
+        :param conv_iters: Number of iterations to be considered.
+        :return: True if convergence criteria is met, otherwise False.
         """
-        if self.current_iteration < 50:  # 10
+        if self.current_iteration < conv_iters:
             return False
         ret = True
         cur = self.best_potentials[self.current_iteration - 1]
-        for i in range(self.current_iteration - 10, self.current_iteration - 1):
-            ret &= bool(abs(cur - self.best_potentials[i]) <= 10**-15)
+        for i in range(self.current_iteration - conv_iters, self.current_iteration - 1):
+            ret &= bool(abs(cur - self.best_potentials[i]) <= 10**-6)
         return ret
 
     def selection(self) -> None:
@@ -189,7 +196,7 @@ class GeneticAlgorithm(GlobalOptimizer):
 
             child_1 = group11 + group22
             child_2 = group12 + group21
-        return (child_1, child_2)  # Return crossed parts of parent clusters
+        return child_1, child_2  # Return crossed parts of parent clusters
 
     def mutation(self, cluster: Atoms) -> None:
         """
@@ -201,33 +208,56 @@ class GeneticAlgorithm(GlobalOptimizer):
             print("Twist")
             self.utility.twist(cluster)  # Perform twist mutation
         if np.random.rand() <= self.mutation_probability:
-            self.utility.angular_movement(cluster)  # Perform angular mutation
             print("Angular")
-        if np.random.rand() <= self.mutation_probability:
-            print("Etching (-)")
-            self.utility.etching_subtraction(cluster)  # Perform etching mutation (-)
-        if np.random.rand() <= self.mutation_probability:
-            print("Etching (+)")
-            self.utility.etching_addition(cluster)  # Perform etching mutation (+)
+            self.utility.angular_movement(cluster)  # Perform angular mutation
+        etching = np.random.rand()
+        if etching <= self.mutation_probability:
+            if etching < self.mutation_probability / 2:
+                print("Etching (-)")
+                self.utility.etching_subtraction(
+                    cluster
+                )  # Perform etching mutation (-)
+            else:
+                print("Etching (+)")
+                self.utility.etching_addition(cluster)  # Perform etching mutation (+)
 
     def best_energy(self) -> float:
+        """
+        Get the best energy found by the algorithm.
+        :return: The minimal energy found by the algorithm.
+        """
         return self.best_potential
 
     def best_cluster(self) -> Atoms:
+        """
+        Get the best cluster configuration found by the algorithm.
+        :return: The minimal energy configuration found by the algorithm.
+        """
         return self.best_config
 
     def potentials_history(self, index: int = 0) -> List[float]:
+        """
+        Get history of the best potentials per iteration.
+        :return: List of the best potential energies per iteration.
+        """
         return self.best_potentials
 
-    def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
+    def benchmark_run(
+        self, indices: List[int], num_iterations: int, conv_iters: int = 10
+    ) -> None:
         """
-        TODO: Write this.
+        Benchmark execution of Genetic Algorithm.
+        Measures the execution times, saves the best configurations history and plots the best potentials.
+        :param indices: Cluster indices for LJ tests.
+        :param num_iterations: Max number of iterations per execution.
+        :param conv_iters: Number of iterations to conclude convergence.
+        :return: None.
         """
         times = []
         convergence = []
         for lj in indices:
             self.atoms = lj
-            self.run(num_iterations)
+            self.run(num_iterations, conv_iters)
 
             best_cluster = self.best_config
             print(f"Best energy found: {self.best_potential}")
@@ -257,18 +287,6 @@ class GeneticAlgorithm(GlobalOptimizer):
             plt.xlabel("Iteration")
             plt.ylabel("Potential Energy")
             plt.show()
-
-            for j in enumerate(self.best_potentials):
-                if self.best_potentials[j[0]] - self.best_potential < 0.01:
-                    plt.plot(
-                        range(j[0], self.current_iteration),
-                        self.best_potentials[j[0] :],
-                    )
-                    plt.title(f"Execution on LJ{lj}")
-                    plt.xlabel("Iteration")
-                    plt.ylabel("Potential Energy")
-                    plt.show()
-                    break
 
         for k in enumerate(indices):
             print(

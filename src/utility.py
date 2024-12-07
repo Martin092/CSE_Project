@@ -160,9 +160,10 @@ class Utility:
 
     def twist(self, cluster: Atoms) -> Atoms:
         """
-        TODO: Write this.
-        :param cluster:
-        :return:
+        Performs twist mutation by splitting the cluster in two by generating a random geometric plane,
+        and rotates one of the two parts around the normal of the generated geometric plane.
+        :param cluster: Cluster to be twist mutated.
+        :return: Cluster configuration after twist mutation.
         """
         while True:
             group1, group2, normal = self.split_cluster(cluster)
@@ -198,73 +199,51 @@ class Utility:
         then adds a new atom to maintain the same number of atoms.
         :param cluster: The atomic cluster to modify
         """
-        atom_index = np.random.randint(len(cluster))
-
+        atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
+
         opt = BFGS(cluster, logfile="log.txt")
-        opt.run(fmax=0.02)  # type: ignore
+        opt.run()  # type: ignore
 
-        val = False
-        i = 0
-
-        while not val:
-            i += 1
-            new_atom = Atom(
-                self.global_optimizer.atom_type,
-                position=np.random.uniform(
-                    -self.global_optimizer.box_length,
-                    self.global_optimizer.box_length,
-                    size=3,
-                ),
-            )  # type: ignore
-            initial_energy = cluster.get_potential_energy()  # type: ignore
-            cluster.append(new_atom)  # type: ignore
-            new_energy = cluster.get_potential_energy()  # type: ignore
-
-            if self.metropolis_criterion(initial_energy, new_energy):
-                val = True
-                break
-            cluster.pop(-1)  # type: ignore
-
-            if i > 100:
-                print("Unable to find a valid etching move.")
+        self.append_atom(cluster)
 
     def etching_addition(self, cluster: Atoms) -> None:
         """
         Adds a new atom to the cluster, optimizes the cluster, and then deletes the highest energy atom.
         :param cluster: The atomic cluster to modify
         """
-        val = False
-        i = 0
-
-        while not val:
-            i += 1
-            new_atom = Atom(
-                self.global_optimizer.atom_type,
-                position=np.random.uniform(
-                    -self.global_optimizer.box_length,
-                    self.global_optimizer.box_length,
-                    size=3,
-                ),
-            )  # type: ignore
-            initial_energy = cluster.get_potential_energy()  # type: ignore
-            cluster.append(new_atom)  # type: ignore
-            new_energy = cluster.get_potential_energy()  # type: ignore
-
-            if self.metropolis_criterion(initial_energy, new_energy):
-                val = True
-                break
-
-            cluster.pop(-1)  # type: ignore
-
-            if i > 100:
-                print("Unable to find a valid etching move.")
+        self.append_atom(cluster)
 
         opt = BFGS(cluster, logfile="log.txt")
-        opt.run(fmax=0.02)  # type: ignore
+        opt.run()  # type: ignore
 
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
+
+    def append_atom(self, cluster: Atoms) -> None:
+        """
+        Appends an atom at a random position in the cluster.
+        :param cluster: Cluster to which an atom to be appended.
+        :return: None, since cluster object is dynamically updated.
+        """
+        position = np.random.uniform(
+            -self.global_optimizer.box_length,
+            self.global_optimizer.box_length,
+            size=3,
+        )
+        while not self.configuration_validity(
+            np.append(cluster.positions, [position], axis=0)
+        ):
+            position = np.random.uniform(
+                -self.global_optimizer.box_length,
+                self.global_optimizer.box_length,
+                size=3,
+            )
+        new_atom = Atom(
+            self.global_optimizer.atom_type,
+            position=position,
+        )  # type: ignore
+        cluster.append(new_atom)  # type: ignore
 
     def split_cluster(
         self,
@@ -332,7 +311,9 @@ class Utility:
         self, positions: np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]]
     ) -> bool:
         """
-        TODO: Write this.
+        Checks if a potential configuration doesn't invalidate the physical laws.
+        :param positions: numpy array of the potential atomic configuration.
+        :return: Boolean indicating stability of configuration.
         """
         distances = pdist(positions)
-        return bool(float(np.min(distances)) >= 0.1)
+        return bool(float(np.min(distances)) >= 0.15)

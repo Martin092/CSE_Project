@@ -107,7 +107,7 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         self.minima_history[-1].calc = self.calculator()
         self.temperature *= self.beta_n
 
-    def is_converged(self) -> bool:
+    def is_converged(self, conv_iters: int = 10) -> bool:
         return False
 
 

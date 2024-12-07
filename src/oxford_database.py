@@ -1,5 +1,5 @@
 """
-TODO: Write this
+Global minima Database module
 """
 
 import os
