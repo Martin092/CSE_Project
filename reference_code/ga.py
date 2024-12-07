@@ -8,7 +8,7 @@ from ase.visualize import view
 
 # Define the Lennard-Jones potential for carbon atoms
 def lj_potential(positions):
-    atoms = Atoms('C' * len(positions), positions=positions)
+    atoms = Atoms("C" * len(positions), positions=positions)
     calc = LennardJones()
     atoms.calc = calc  # Update to avoid deprecation warning
     return atoms.get_potential_energy()
@@ -16,7 +16,9 @@ def lj_potential(positions):
 
 # Create an initial population of structures
 def initialize_population(size, num_atoms, bounds):
-    return [np.random.uniform(bounds[0], bounds[1], (num_atoms, 3)) for _ in range(size)]
+    return [
+        np.random.uniform(bounds[0], bounds[1], (num_atoms, 3)) for _ in range(size)
+    ]
 
 
 # Select parents based on fitness (lower energy is better)
@@ -28,8 +30,9 @@ def select_parents(population, fitness):
     if total_fitness == 0:
         fitness += 1e-10  # Avoid division by zero
 
-    selected_indices = np.random.choice(np.arange(len(population)), size=len(population) // 2,
-                                        p=fitness / total_fitness)
+    selected_indices = np.random.choice(
+        np.arange(len(population)), size=len(population) // 2, p=fitness / total_fitness
+    )
     return [population[i] for i in selected_indices]
 
 
@@ -54,7 +57,7 @@ def genetic_algorithm(pop_size, num_atoms, generations, bounds, mutation_rate):
     # Initialize population
     population = initialize_population(pop_size, num_atoms, bounds)
 
-    best_overall_energy = float('inf')
+    best_overall_energy = float("inf")
     best_overall_structure = None
 
     for gen in range(generations):
@@ -78,17 +81,27 @@ def genetic_algorithm(pop_size, num_atoms, generations, bounds, mutation_rate):
         for i in range(0, len(parents), 2):
             if i + 1 < len(parents):
                 child1, child2 = crossover(parents[i], parents[i + 1])
-                new_population.extend([mutate(child1, mutation_rate, bounds), mutate(child2, mutation_rate, bounds)])
+                new_population.extend(
+                    [
+                        mutate(child1, mutation_rate, bounds),
+                        mutate(child2, mutation_rate, bounds),
+                    ]
+                )
 
         # Fill the population if necessary
         while len(new_population) < pop_size:
             new_population.append(
-                mutate(np.random.uniform(bounds[0], bounds[1], (num_atoms, 3)), mutation_rate, bounds))
+                mutate(
+                    np.random.uniform(bounds[0], bounds[1], (num_atoms, 3)),
+                    mutation_rate,
+                    bounds,
+                )
+            )
 
         population = new_population
 
     # Final optimization with BFGS on the best solution
-    atoms = Atoms('C' * num_atoms, positions=best_overall_structure)
+    atoms = Atoms("C" * num_atoms, positions=best_overall_structure)
     calc = LennardJones()
     atoms.calc = calc
 
@@ -98,7 +111,8 @@ def genetic_algorithm(pop_size, num_atoms, generations, bounds, mutation_rate):
 
     return atoms.get_positions(), atoms.get_potential_energy()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     # Parameters
     population_size = 50
@@ -118,8 +132,8 @@ if __name__ == '__main__':
     print("Optimized Energy:", optimized_energy)
 
     # Save the overall best structure
-    write('ga.xyz', Atoms('C' + str(number_of_atoms), positions=optimized_positions))
+    write("ga.xyz", Atoms("C" + str(number_of_atoms), positions=optimized_positions))
 
     # Visualize the final optimized structure
-    final_atoms = read('ga.xyz')
+    final_atoms = read("ga.xyz")
     view(final_atoms)

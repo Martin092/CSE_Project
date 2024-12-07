@@ -11,7 +11,7 @@ from ase.io import write
 from matplotlib import pyplot as plt
 
 from src.global_optimizer import GlobalOptimizer
-from auxilary.oxford_database import get_cluster_energy
+from auxiliary.oxford_database import get_cluster_energy
 
 
 class Benchmark:
@@ -23,37 +23,9 @@ class Benchmark:
     def __init__(self, optimizer: GlobalOptimizer):
         self.optimizer = optimizer
 
-    def compare_to_oxford(self) -> float:
-        """
-        Returns the difference between the actual global minima and the one found
-        by the algorithm
-        """
-        actual = get_cluster_energy(bh.atoms, bh.atom_type)
-        energy = self.optimizer.best_energy()
-        return actual - energy
-
-    def plot_energies(self) -> None:
-        """
-        Plots the energy values over the course of the entire run
-        """
-        energies = np.array([])
-        for clus in self.optimizer.history[0]:
-            clus.calc = self.optimizer.calculator()
-            energies = np.append(energies, clus.get_potential_energy())
-
-        plt.plot(energies)
-        plt.title(f"Energy levels discovered for LJ{self.optimizer.atoms}")
-        plt.xlabel("Iteration")
-        plt.ylabel("Energy")
-        plt.show()
-
-    def get_time(self) -> float:
-        """
-        Returns the time for the last run of the algorithm
-        """
-        return self.optimizer.execution_time
-
-    def benchmark_run(self, indices: List[int], num_iterations: int, conv_iters: int = 10) -> None:
+    def benchmark_run(
+        self, indices: List[int], num_iterations: int, conv_iters: int = 10
+    ) -> None:
         """
         Benchmark execution of Genetic Algorithm.
         Measures the execution times, saves the best configurations history and plots the best potentials.
@@ -77,7 +49,10 @@ class Benchmark:
 
             best = get_cluster_energy(lj, self.optimizer.atom_type)
 
-            if self.optimizer.best_energy() > best and self.optimizer.best_energy() - best < 0.001:
+            if (
+                self.optimizer.best_energy() > best
+                and self.optimizer.best_energy() - best < 0.001
+            ):
                 print("Best energy matches the database")
             elif self.optimizer.best_energy() < best:
                 print("GROUNDBREAKING!!!")
