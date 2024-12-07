@@ -92,10 +92,11 @@ class GlobalOptimizer(ABC):
         self, max_iterations: int, conv_iter: int = 10, seed: Atoms | None = None
     ) -> None:
         """
-        TODO: Write this.
-        :param max_iterations:
-        :param seed:
-        :return:
+        Executes the Global Optimizer algorithm.
+        :param max_iterations: Number of maximum iterations to perform.
+        :param conv_iter: Number of iterations to be considered for evaluating convergence.
+        :param seed: Seeding for reproducibility.
+        :return: None.
         """
         start_time = time.time()
         self.setup(seed)
