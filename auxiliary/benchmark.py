@@ -41,6 +41,9 @@ class Benchmark:
             os.mkdir("../data/optimizer")
         for lj in indices:
             self.optimizer.atoms = lj
+            self.optimizer.box_length = (2
+                                         * self.optimizer.covalent_radius
+                                         * (0.5 + ((3.0 * self.optimizer.atoms) / (4 * np.pi * np.sqrt(2))) ** (1 / 3)))
             self.optimizer.run(num_iterations, conv_iters)
 
             best_cluster = self.optimizer.best_cluster()
@@ -53,11 +56,11 @@ class Benchmark:
                 self.optimizer.best_energy() > best
                 and self.optimizer.best_energy() - best < 0.001
             ):
-                print("Best energy matches the database")
+                print("Best energy matches the database!")
             elif self.optimizer.best_energy() < best:
                 print("GROUNDBREAKING!!!")
             else:
-                print(f"Best energy in database is {best}.")
+                print(f"Suboptimal. Best energy in database is {best}.")
 
             self.optimizer.write_trajectory(f"../data/optimizer/LJ{lj}.traj")
 
