@@ -1,4 +1,4 @@
-"""TODO: Write this."""
+"""Basin Hopping Optimizer module"""
 
 import sys
 import time
@@ -11,7 +11,6 @@ from ase.calculators.lj import LennardJones
 from ase.io import write
 import numpy as np
 from mpi4py import MPI
-
 from src.global_optimizer import GlobalOptimizer
 from src.oxford_database import get_cluster_energy
 
@@ -61,8 +60,8 @@ class BasinHoppingOptimizer(GlobalOptimizer):
     def iteration(self) -> None:
         # TODO: make sure the algorithm doesnt stay for too long on the same energy levels
         """
-        TODO: Write this.
-        :return:
+        Performs single iteration of the Basin Hopping Optimizer.
+        :return: None.
         """
         if self.comm:
             print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
@@ -115,11 +114,11 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
 
 
-
-    def is_converged(self) -> bool:
+    def is_converged(self, conv_iters: int = 10) -> bool:
         """
-        TODO: Write this.
-        :return:
+        Checks if convergence criteria is satisfied.
+        :param conv_iters: Number of iterations to be considered.
+        :return: True if convergence criteria is met, otherwise False.
         """
         if self.current_iteration < 10:
             return False

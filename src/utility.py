@@ -1,4 +1,4 @@
-"""TODO: Write this."""
+"""Utility methods module"""
 
 from typing import Any, List, Literal, Tuple
 import time
@@ -7,8 +7,10 @@ import sys
 from mpi4py import MPI
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
+from scipy.spatial.distance import pdist  # type: ignore
 from ase import Atoms, Atom
 from ase.units import fs
+from ase.optimize import BFGS
 from ase.md.langevin import Langevin
 from ase.optimize.minimahopping import PassedMinimum
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
@@ -39,11 +41,11 @@ class Utility:
 
         while True:
             step = (np.random.rand(3) - 0.5) * 2 * self.step
-            energy_before = self.global_optimizer.cluster_list[0].get_potential_energy()
+            energy_before = cluster.get_potential_energy()  # type: ignore
 
             cluster.positions[index] += step
 
-            energy_after = self.global_optimizer.cluster_list[0].get_potential_energy()
+            energy_after = cluster.get_potential_energy()  # type: ignore
 
             # Metropolis criterion gives an acceptance probability based on temperature for each move
             accept = self.metropolis_criterion(energy_before, energy_after)
@@ -59,7 +61,6 @@ class Utility:
         Metropolis acceptance criterion for accepting a new move based on temperature
         :param initial_energy: The energy of the cluster before the move
         :param new_energy: The energy of the cluster after the move
-        :param temp: temperature at which we want the move to occur
         :return: probability of accepting the move
         """
         if new_energy - initial_energy > 50:  # Energy is way too high, bad move
@@ -74,40 +75,6 @@ class Utility:
             return float(min(1, np.exp(-(new_energy - initial_energy) / self.temp)))
 
         return float(1)
-
-    def check_atom_position(self, cluster: Atoms, atom: Atom) -> bool:
-        """
-        TODO: Write this.
-        :param cluster:
-        :param atom:
-        :return:
-        """
-        if np.linalg.norm(atom.position) > self.global_optimizer.box_length:
-            return False
-        for other_atom in cluster:
-            if (
-                np.linalg.norm(atom.position - other_atom.position)
-                < 0.5 * self.global_optimizer.covalent_radius
-            ):
-                return False
-        return True
-
-    def check_group_position(
-        self, group_static: List[Atom], group_moved: List[Atom]
-    ) -> bool:
-        """
-        TODO: Write this.
-        """
-        for atom in group_moved:
-            if np.linalg.norm(atom.position) > self.global_optimizer.box_length:
-                return False
-            for other_atom in group_static:
-                if (
-                    np.linalg.norm(atom.position - other_atom.position)
-                    < 0.5 * self.global_optimizer.covalent_radius
-                ):
-                    return False
-        return True
 
     def angular_movement(self, cluster: Atoms) -> None:
         """
@@ -188,46 +155,111 @@ class Utility:
 
     def twist(self, cluster: Atoms) -> Atoms:
         """
-        TODO: Write this.
-        :param cluster:
-        :return:
+        Performs twist mutation by splitting the cluster in two by generating a random geometric plane,
+        and rotates one of the two parts around the normal of the generated geometric plane.
+        :param cluster: Cluster to be twist mutated.
+        :return: Cluster configuration after twist mutation.
         """
-        # Twist doesn't have a check since it is a rotation, and it wouldn't collide with already existing atoms.
-        group1, group2, normal = self.split_cluster(cluster)
-        choice = np.random.choice([0, 1])
-        chosen_group = group1 if choice == 0 else group2
+        while True:
+            group1, group2, normal = self.split_cluster(cluster)
+            choice = np.random.choice([0, 1])
+            if choice == 0:
+                rotate = group1
+                still = group2
+            else:
+                rotate = group2
+                still = group1
 
-        angle = np.random.uniform(0, 2 * np.pi)
-        matrix = rotation_matrix(normal, angle)
+            angle = np.random.uniform(0, 2 * np.pi)
+            matrix = rotation_matrix(normal, angle)
 
-        for atom in chosen_group:
-            atom.position = np.dot(matrix, atom.position)
+            positions = []
+
+            for atom in still:
+                positions.append(atom.position)
+
+            for atom in rotate:
+                positions.append(np.dot(matrix, atom.position))
+
+            if self.configuration_validity(np.array(positions)):
+                for atom in rotate:
+                    atom.position = np.dot(matrix, atom.position)
+                break
 
         return cluster
 
-    def etching(self, cluster: Atoms) -> None:
+    def etching_subtraction(self, cluster: Atoms) -> None:
         """
-        TODO: Write this.
-        :param cluster:
-        :return:
+        Deletes a random atom from the cluster, optimizes the cluster, and
+        then adds a new atom to maintain the same number of atoms.
+        :param cluster: The atomic cluster to modify
         """
+        atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
+        del cluster[atom_index]  # type: ignore
+
+        opt = BFGS(cluster, logfile="log.txt")
+        opt.run()  # type: ignore
+
+        self.append_atom(cluster)
+
+    def etching_addition(self, cluster: Atoms) -> None:
+        """
+        Adds a new atom to the cluster, optimizes the cluster, and then deletes the highest energy atom.
+        :param cluster: The atomic cluster to modify
+        """
+        self.append_atom(cluster)
+
+        opt = BFGS(cluster, logfile="log.txt")
+        opt.run()  # type: ignore
+
+        atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
+        del cluster[atom_index]  # type: ignore
+
+    def append_atom(self, cluster: Atoms) -> None:
+        """
+        Appends an atom at a random position in the cluster.
+        :param cluster: Cluster to which an atom to be appended.
+        :return: None, since cluster object is dynamically updated.
+        """
+        position = np.random.uniform(
+            -self.global_optimizer.box_length,
+            self.global_optimizer.box_length,
+            size=3,
+        )
+        while not self.configuration_validity(
+            np.append(cluster.positions, [position], axis=0)
+        ):
+            position = np.random.uniform(
+                -self.global_optimizer.box_length,
+                self.global_optimizer.box_length,
+                size=3,
+            )
+        new_atom = Atom(
+            self.global_optimizer.atom_type,
+            position=position,
+        )  # type: ignore
+        cluster.append(new_atom)  # type: ignore
 
     def split_cluster(
         self,
         cluster: Atoms,
-        p1: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
-        p2: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
-        p3: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3),
+        p1: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3)
+        - 0.5,
+        p2: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3)
+        - 0.5,
+        p3: np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]] = np.random.rand(3)
+        - 0.5,
     ) -> Tuple[
         List[Atom], List[Atom], np.ndarray[Tuple[Literal[3]], np.dtype[np.float64]]
     ]:
         """
-        TODO: Write this.
-        :param cluster:
-        :param p1:
-        :param p2:
-        :param p3:
-        :return:
+        Takes a geometric plane defined by three points (if points are not specified,
+        randomly generated points are taken) and splits the cluster atoms into two groups based on that plane.
+        :param cluster: Cluster object to be split
+        :param p1: 3D coordinates of the first point
+        :param p2: 3D coordinates of the second point
+        :param p3: 3D coordinates of the third point
+        :return: List of the two atom groups as well as the normal of the geometric plane.
         """
         v1 = p2 - p1
         v2 = p3 - p1
@@ -245,13 +277,13 @@ class Utility:
 
     def align_cluster(self, cluster: Atoms) -> Atoms:
         """
-        TODO: Write this.
-        :param cluster:
-        :return:
+        Aligns a cluster such that the center of mass is the origin and
+        the highest variance lies in the x-axis, while the smallest one in the z-axis.
+        :param cluster: Cluster to be aligned.
+        :return: Cluster object with the new atom coordinates.
         """
-        cl = np.array(cluster.positions)
-        center_of_mass = np.mean(cl, axis=0)
-        cluster_centered = cl - center_of_mass
+        center_of_mass = cluster.get_center_of_mass()  # type: ignore
+        cluster_centered = cluster.get_positions() - center_of_mass  # type: ignore
         pca = PCA(n_components=3)
         pca.fit(cluster_centered)
         principal_axes = pca.components_
@@ -269,3 +301,14 @@ class Utility:
         :return: boolean
         """
         return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore
+
+    def configuration_validity(
+        self, positions: np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]]
+    ) -> bool:
+        """
+        Checks if a potential configuration doesn't invalidate the physical laws.
+        :param positions: numpy array of the potential atomic configuration.
+        :return: Boolean indicating stability of configuration.
+        """
+        distances = pdist(positions)
+        return bool(float(np.min(distances)) >= 0.15)

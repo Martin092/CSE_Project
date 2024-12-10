@@ -1,4 +1,4 @@
-"""TODO: Write this."""
+"""Atom Parameters module"""
 
 # Extracted from https://doi.org/10.1002/pssa.2210780226
 

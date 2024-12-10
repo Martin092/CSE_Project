@@ -1,4 +1,4 @@
-"""TODO: Write this."""
+"""Global Optimizer module"""
 
 import time
 from abc import ABC, abstractmethod
@@ -14,7 +14,7 @@ from src.utility import Utility
 
 class GlobalOptimizer(ABC):
     """
-    TODO: Write this.
+    Class Interface for Global Optimizers
     """
 
     def __init__(
@@ -37,7 +37,7 @@ class GlobalOptimizer(ABC):
         self.box_length = (
             2
             * self.covalent_radius
-            * (1 / 2 + ((3.0 * self.atoms) / (4 * np.pi * np.sqrt(2))) ** (1 / 3))
+            * (0.5 + ((3.0 * self.atoms) / (4 * np.pi * np.sqrt(2))) ** (1 / 3))
         )
         self.atom_type = atom_type
         self.calculator = calculator
@@ -48,22 +48,23 @@ class GlobalOptimizer(ABC):
     @abstractmethod
     def iteration(self) -> None:
         """
-        TODO: Write this.
-        :return:
+        Performs single iteration of the Global Optimizer algorithm.
+        :return: None
         """
 
     @abstractmethod
-    def is_converged(self) -> bool:
+    def is_converged(self, conv_iters: int = 10) -> bool:
         """
-        TODO: Write this.
-        :return:
+        Checks if convergence criteria is satisfied.
+        :param conv_iters: Number of iterations to be considered.
+        :return: True if convergence criteria is met, otherwise False.
         """
 
     def setup(self, seed: Atoms | None = None) -> None:
         """
         Sets up the clusters by either initializing random clusters or using the seed provided
         :param seed: A cluster that is used as initial point of the optimization
-        :return:
+        :return: None.
         """
         self.current_iteration = 0
         self.history = []
@@ -74,11 +75,12 @@ class GlobalOptimizer(ABC):
             if seed:
                 clus = seed.copy()  # type: ignore
             else:
-                positions = (
-                    (np.random.rand(self.atoms, 3) - 0.5) * self.box_length * 1.5
-                )  # 1.5 is a magic number
-                # In the future, instead of number of atoms,
-                # we ask the user to choose how many atoms they want for each atom type.
+                while True:
+                    positions = (
+                        (np.random.rand(self.atoms, 3) - 0.5) * self.box_length * 1.5
+                    )
+                    if self.utility.configuration_validity(positions):
+                        break
                 clus = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
                 clus.set_cell([(self.box_length, 0, 0), (0, self.box_length, 0), (0, 0, self.box_length)])
             clus.calc = self.calculator()
@@ -87,17 +89,22 @@ class GlobalOptimizer(ABC):
             self.optimizers.append(opt)
             self.history.append([])
 
-    def run(self, max_iterations: int, seed: Atoms | None = None) -> None:
+    def run(
+        self, max_iterations: int, conv_iter: int = 10, seed: Atoms | None = None
+    ) -> None:
         """
-        TODO: Write this.
-        :param max_iterations:
-        :param seed:
-        :return:
+        Executes the Global Optimizer algorithm.
+        :param max_iterations: Number of maximum iterations to perform.
+        :param conv_iter: Number of iterations to be considered for evaluating convergence.
+        :param seed: Seeding for reproducibility.
+        :return: None.
         """
         start_time = time.time()
         self.setup(seed)
 
-        while self.current_iteration < max_iterations and not self.is_converged():
+        while self.current_iteration < max_iterations and not self.is_converged(
+            conv_iter
+        ):
             self.history.append([])
             self.iteration()
             self.current_iteration += 1
@@ -116,7 +123,7 @@ class GlobalOptimizer(ABC):
     def write_trajectory(self, filename: str, cluster_index: int = 0) -> None:
         """
         Writes all clusters in the history to a trajectory file
-        :param filename: File name of the trajectory file
+        :param filename: Name of the trajectory file
         :param cluster_index: Which cluster history to write to the trajectory file
         :return: None, writes to file
         """
@@ -136,7 +143,6 @@ class GlobalOptimizer(ABC):
     def best_energy_cluster(self) -> Tuple[float, Atoms]:
         """
         Gets the best energy and the best cluster from the history
-        @param index which cluster from the history to pick from
         """
         min_energy = float("inf")
         best_cluster: Atoms = self.cluster_list[0][0]
