@@ -80,6 +80,7 @@ class GlobalOptimizer(ABC):
                 # In the future, instead of number of atoms,
                 # we ask the user to choose how many atoms they want for each atom type.
                 clus = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
+                clus.set_cell([(self.box_length, 0, 0), (0, self.box_length, 0), (0, 0, self.box_length)])
             clus.calc = self.calculator()
             self.cluster_list.append(clus)
             opt = self.local_optimizer(clus, logfile="log.txt")

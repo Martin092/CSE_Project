@@ -105,7 +105,7 @@ ga = GeneticAlgorithm(num_clusters=4, atoms=13)
 
 b = Benchmark(bh)
 
-b.benchmark_run([13], 300)
+b.benchmark_run([38], 400)
 b.plot_energies()
 
 print("---------------")

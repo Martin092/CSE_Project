@@ -42,11 +42,6 @@ class Utility:
             energy_before = self.global_optimizer.cluster_list[0].get_potential_energy()
 
             cluster.positions[index] += step
-            cluster.positions = np.clip(
-                cluster.positions,
-                -self.global_optimizer.box_length,
-                self.global_optimizer.box_length,
-            )
 
             energy_after = self.global_optimizer.cluster_list[0].get_potential_energy()
 
