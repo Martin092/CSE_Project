@@ -10,9 +10,9 @@ from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
 import numpy as np
-from mpi4py import MPI
+from mpi4py import MPI  # pylint: disable=E0611
 from src.global_optimizer import GlobalOptimizer
-from src.oxford_database import get_cluster_energy
+from auxiliary.oxford_database import get_cluster_energy
 
 
 class BasinHoppingOptimizer(GlobalOptimizer):
