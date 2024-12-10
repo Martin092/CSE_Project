@@ -4,7 +4,7 @@ Parallel implementation of the basin hopping algorithm
 
 import time
 from ase import Atoms
-from ase.optimize import BFGS
+from ase.optimize import FIRE
 from ase.io import write
 import numpy as np
 from mpi4py import MPI
@@ -17,7 +17,7 @@ size = comm.Get_size()
 rank = comm.Get_rank()
 
 print(rank)
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=16, atom_type="Fe", comm=comm)
+bh = BasinHoppingOptimizer(local_optimizer=FIRE, atoms=16, atom_type="Fe", comm=comm)
 
 start = time.time()
 bh.run(200)
@@ -50,7 +50,7 @@ if rank == 0:
     print(f"Best energy is {best_energy}")
     print(f"Actual best is    {get_cluster_energy(bh.atoms, bh.atom_type)}")
 
-    write("clusters/LJ_min.xyz", cluster)
+    write("src/clusters/LJ_min.xyz", cluster)
 else:
     data = cluster.positions
     comm.Send([data, MPI.DOUBLE], dest=0, tag=1)

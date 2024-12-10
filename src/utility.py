@@ -43,28 +43,26 @@ class Utility:
         rejected = 0
         while True:
             step = (np.random.rand(3) - 0.5) * 2 * self.step
-            energy_before = cluster.get_potential_energy()  # type: ignore
 
             cluster.positions[index] += step
 
-            # self.global_optimizer.optimizers[0].run(fmax=0.2)
+            self.global_optimizer.optimizers[0].run(fmax=0.2)
             energy_after = cluster.get_potential_energy()  # type: ignore
 
             accept: float
             if rejected > 5:
                 print('MAKING BIG MOVES')
-                accept = 1
                 self.big_jumps.append(self.global_optimizer.current_iteration)
+                break
             else:
                 # Metropolis criterion gives an acceptance probability based on temperature for each move
                 accept = self.metropolis_criterion(energy_before, energy_after)
                 self.step = self.step * (1 - 0.01 * (0.5 - accept))
 
-            if np.random.rand() > accept:
+            if np.random.uniform() > accept:
                 rejected += 1
                 cluster.positions[index] -= step
                 continue
-            print(f'rejected {rejected}')
             break
 
     def metropolis_criterion(self, initial_energy: float, new_energy: float) -> float:
@@ -114,7 +112,7 @@ class Utility:
             new_energy = cluster.get_potential_energy()  # type: ignore
 
             accept = self.metropolis_criterion(initial_energy, new_energy)
-            if np.random.rand() < accept:
+            if np.random.uniform() < accept:
                 break
             cluster.positions = initial_positions
         else:

@@ -7,7 +7,7 @@ from typing import List
 
 import numpy as np
 from ase.io import write
-from ase.optimize import BFGS
+from ase.optimize import FIRE
 from matplotlib import pyplot as plt
 import matplotlib
 matplotlib.use('tkagg')
@@ -68,6 +68,11 @@ class Benchmark:
         convergence = []
         for lj in indices:
             self.optimizer.atoms = lj
+            self.optimizer.box_length = (
+                    2
+                    * self.optimizer.covalent_radius
+                    * (0.5 + ((3.0 * lj) / (4 * np.pi * np.sqrt(2))) ** (1 / 3))
+            )
             self.optimizer.run(num_iterations)
 
             best_cluster = self.optimizer.best_cluster()
@@ -93,7 +98,7 @@ class Benchmark:
             )
 
 
-bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="C")
+bh = BasinHoppingOptimizer(local_optimizer=FIRE, atoms=13, atom_type="C")
 # mh = MinimaHoppingOptimizer(
 #     num_clusters=1,
 #     atoms=13,
@@ -104,8 +109,9 @@ ga = GeneticAlgorithm(num_clusters=4, atoms=13)
 
 b = Benchmark(bh)
 
-b.benchmark_run([38], 500)
+b.benchmark_run([38], 1000)
 print(bh.utility.big_jumps)
-
+print(bh.box_length)
+print(bh.cluster_list[0].cell.lengths())
 
 print("---------------")
