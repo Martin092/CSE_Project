@@ -9,6 +9,8 @@ import numpy as np
 from ase.io import write
 from ase.optimize import BFGS
 from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('tkagg')
 
 from src.genetic_algorithm import GeneticAlgorithm
 from src.global_optimizer import GlobalOptimizer
@@ -44,10 +46,12 @@ class Benchmark:
             clus.calc = self.optimizer.calculator()
             energies = np.append(energies, clus.get_potential_energy())
 
+        energies = self.optimizer.potentials_history()
         plt.plot(energies)
-        plt.title(f"Energy levels discovered for LJ{self.optimizer.atoms}")
+        plt.scatter(bh.utility.big_jumps, [energies[i] for i in self.optimizer.utility.big_jumps], c='red')
+        plt.title(f"Execution on LJ{self.optimizer.atoms}")
         plt.xlabel("Iteration")
-        plt.ylabel("Energy")
+        plt.ylabel("Potential Energy")
         plt.show()
 
     def get_time(self) -> float:
@@ -80,12 +84,7 @@ class Benchmark:
                 f"min {int(self.optimizer.execution_time)%60} sec"
             )
             print(f"Stopped at {self.optimizer.current_iteration}")
-            best_potentials = self.optimizer.potentials_history()
-            plt.plot(best_potentials)
-            plt.title(f"Execution on LJ{lj}")
-            plt.xlabel("Iteration")
-            plt.ylabel("Potential Energy")
-            plt.show()
+            self.plot_energies()
 
         for k in enumerate(indices):
             print(
@@ -105,7 +104,8 @@ ga = GeneticAlgorithm(num_clusters=4, atoms=13)
 
 b = Benchmark(bh)
 
-b.benchmark_run([38], 400)
-b.plot_energies()
+b.benchmark_run([38], 500)
+print(bh.utility.big_jumps)
+
 
 print("---------------")

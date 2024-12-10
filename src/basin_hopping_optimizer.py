@@ -66,7 +66,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         if self.comm:
             print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
         else:
-            print(f"Iteration {self.current_iteration} alpha: {self.alpha}")
+            print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
             self.last_energy = self.cluster_list[0].get_potential_energy()
 
@@ -77,18 +77,12 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             min_en = min(energies)
             max_energy = max(energies)
 
-            if self.current_iteration > 10 and self.stuck_in_minima(10):
-                print("Big step")
-                temp = self.utility.temp
-                self.utility.temp = 100
+
+            if max_energy - min_en < self.alpha:
                 self.utility.random_step(clus)
-                self.utility.temp = temp
             else:
-                if max_energy - min_en < self.alpha:
-                    self.utility.random_step(clus)
-                else:
-                    self.angular_moves += 1
-                    self.utility.angular_movement(clus)
+                self.angular_moves += 1
+                self.utility.angular_movement(clus)
 
             if self.current_iteration != 0:
                 fraction = self.angular_moves / self.current_iteration
@@ -98,7 +92,11 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.optimizers[index].run(fmax=0.2)
             self.history[index].append(clus.copy())
 
-    def stuck_in_minima(self, depth: int):
+    def stuck_in_minima(self, depth: int) -> bool:
+        if self.current_iteration < 20:
+            return False
+
+        print('stuck in minima')
         curr_energy = self.cluster_list[0].get_potential_energy()
         not_stuck = True
         for i in reversed(range(depth)):
