@@ -4,7 +4,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 from deprecated import deprecated
-from mpi4py import MPI
+from mpi4py import MPI  # pylint: disable=E0611
 from ase import Atoms
 from ase.io import write, Trajectory
 import numpy as np
@@ -84,7 +84,7 @@ class GlobalOptimizer(ABC):
                 clus = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
             clus.calc = self.calculator()
             self.cluster_list.append(clus)
-            opt = self.local_optimizer(clus, logfile="log.txt")
+            opt = self.local_optimizer(clus, logfile="../log.txt")
             self.optimizers.append(opt)
             self.history.append([])
 
@@ -117,7 +117,7 @@ class GlobalOptimizer(ABC):
         :param cluster_index: which cluster will be written
         """
         filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
-        write(f"clusters/{filename}", self.cluster_list[cluster_index])
+        write(f"../data/optimizer/{filename}", self.cluster_list[cluster_index])
 
     def write_trajectory(self, filename: str, cluster_index: int = 0) -> None:
         """

@@ -21,18 +21,23 @@ jobs:
           pip install -r requirements.txt
           pip install lxml
       - name: Format Check
-        run: black --check src/
+        run: |
+          black --check src/
+          black --check auxiliary/
       - name: Type Check
         run: |
           mkdir -p reports/mypy
           mypy src --html-report ../reports/mypy
+          mypy auxiliary --html-report ../reports/mypy
       - name: Upload mypy report
         uses: actions/upload-artifact@v3
         with:
           name: mypy-report
           path: reports/mypy
       - name: Code Style Check
-        run: pylint src
+        run: |
+          pylint src
+          pylint auxiliary
       - name: Test
         run: |
           mkdir -p reports/pytest/html reports/pytest/xml
