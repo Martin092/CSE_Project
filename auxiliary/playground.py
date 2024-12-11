@@ -1,14 +1,10 @@
 """GA playground"""
 
-import sys
-
-sys.path.append('./')
-
+from ase import Atoms
 from ase.io import read
 from ase.visualize import view
 from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
-from ase import Atoms
 
 from src.genetic_algorithm import GeneticAlgorithm
 from auxiliary.benchmark import Benchmark
@@ -40,21 +36,22 @@ if rank == 0:
 
 else:
     while True:
-        print(f"Rank {ga.comm.Get_rank()}")
+        print(f"Rank {ga.comm.Get_rank()}")  # type: ignore
         pos = np.empty((ga.atoms, 3))
-        print(f"Rank {ga.comm.Get_rank()} receiving.")
+        print(f"Rank {ga.comm.Get_rank()} receiving.")  # type: ignore
         status = MPI.Status()
-        ga.comm.Recv([pos, MPI.DOUBLE], source=0, tag=MPI.ANY_TAG, status=status)
+        ga.comm.Recv([pos, MPI.DOUBLE], source=0, tag=MPI.ANY_TAG, status=status)  # type: ignore
         if status.tag == 0:
             break
         clus = Atoms(  # type: ignore
-            ga.atom_type + str(ga.atoms), positions=pos,
-            cell=np.array([[ga.box_length, 0, 0],
-                           [0, ga.box_length, 0],
-                           [0, 0, ga.box_length]])
+            ga.atom_type + str(ga.atoms),
+            positions=pos,
+            cell=np.array(
+                [[ga.box_length, 0, 0], [0, ga.box_length, 0], [0, 0, ga.box_length]]
+            ),
         )
         clus.calc = ga.calculator()
         opt = ga.local_optimizer(clus)
         opt.run(steps=20000)
-        print(f"Rank {ga.comm.Get_rank()} sending.")
-        ga.comm.Send([clus.positions, MPI.DOUBLE], dest=0, tag=2)
+        print(f"Rank {ga.comm.Get_rank()} sending.")  # type: ignore
+        ga.comm.Send([clus.positions, MPI.DOUBLE], dest=0, tag=2)  # type: ignore

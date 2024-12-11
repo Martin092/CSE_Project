@@ -41,9 +41,15 @@ class Benchmark:
             os.mkdir("../data/optimizer")
         for lj in indices:
             self.optimizer.atoms = lj
-            self.optimizer.box_length = (2
-                                         * self.optimizer.covalent_radius
-                                         * (0.5 + ((3.0 * self.optimizer.atoms) / (4 * np.pi * np.sqrt(2))) ** (1 / 3)))
+            self.optimizer.box_length = (
+                2
+                * self.optimizer.covalent_radius
+                * (
+                    0.5
+                    + ((3.0 * self.optimizer.atoms) / (4 * np.pi * np.sqrt(2)))
+                    ** (1 / 3)
+                )
+            )
             self.optimizer.run(num_iterations, conv_iters)
 
             best_cluster = self.optimizer.best_cluster()

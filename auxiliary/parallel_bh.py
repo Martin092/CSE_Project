@@ -1,9 +1,6 @@
 """
 Parallel implementation of the basin hopping algorithm
 """
-import sys
-
-sys.path.append('./')
 
 import time
 from ase import Atoms

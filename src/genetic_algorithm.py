@@ -43,8 +43,8 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param atoms: number of atoms per configuration
         :param atom_type: the chemical element of atoms
         :param calculator: calculator used to derive energies and potentials
-        :param comm: TODO
-        :param parallel: TODO
+        :param comm: global parallel execution communicator
+        :param parallel: whether to execute in parallel or sequentially
         """
         super().__init__(
             num_clusters=num_clusters,
