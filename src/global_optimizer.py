@@ -82,6 +82,13 @@ class GlobalOptimizer(ABC):
                     if self.utility.configuration_validity(positions):
                         break
                 clus = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
+                clus.set_cell(
+                    [
+                        (self.box_length, 0, 0),
+                        (0, self.box_length, 0),
+                        (0, 0, self.box_length),
+                    ]
+                )  # type: ignore
             clus.calc = self.calculator()
             self.cluster_list.append(clus)
             opt = self.local_optimizer(clus, logfile="../log.txt")

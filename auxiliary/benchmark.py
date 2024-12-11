@@ -23,6 +23,42 @@ class Benchmark:
     def __init__(self, optimizer: GlobalOptimizer):
         self.optimizer = optimizer
 
+    def compare_to_oxford(self) -> float:
+        """
+        Returns the difference between the actual global minima and the one found
+        by the algorithm
+        """
+        actual = get_cluster_energy(self.optimizer.atoms, self.optimizer.atom_type)
+        energy = self.optimizer.best_energy()
+        return actual - energy
+
+    def plot_energies(self) -> None:
+        """
+        Plots the energy values over the course of the entire run
+        """
+        energies: list[float] = []
+        for clus in self.optimizer.history[0]:
+            clus.calc = self.optimizer.calculator()
+            energies.append(clus.get_potential_energy())
+
+        energies = self.optimizer.potentials_history()
+        plt.plot(energies)
+        plt.scatter(
+            self.optimizer.utility.big_jumps,
+            [energies[i] for i in self.optimizer.utility.big_jumps],
+            c="red",
+        )
+        plt.title(f"Execution on LJ{self.optimizer.atoms}")
+        plt.xlabel("Iteration")
+        plt.ylabel("Potential Energy")
+        plt.show()
+
+    def get_time(self) -> float:
+        """
+        Returns the time for the last run of the algorithm
+        """
+        return self.optimizer.execution_time
+
     def benchmark_run(
         self, indices: List[int], num_iterations: int, conv_iters: int = 10
     ) -> None:
@@ -68,12 +104,10 @@ class Benchmark:
                 f"min {int(self.optimizer.execution_time)%60} sec"
             )
             print(f"Stopped at {self.optimizer.current_iteration}")
-            best_potentials = self.optimizer.potentials_history()
-            plt.plot(best_potentials)
-            plt.title(f"Execution on LJ{lj}")
-            plt.xlabel("Iteration")
-            plt.ylabel("Potential Energy")
-            plt.show()
+            if len(self.optimizer.utility.big_jumps) != 0:
+                print(f"Big jumps were made at {self.optimizer.utility.big_jumps}")
+
+            self.plot_energies()
 
         for k in enumerate(indices):
             print(
