@@ -2,14 +2,18 @@
 Parallel implementation of the basin hopping algorithm
 """
 
+import sys
 import time
 from ase import Atoms
 from ase.optimize import FIRE
 from ase.io import write
 import numpy as np
 from mpi4py import MPI  # pylint: disable=E0611
-from src.basin_hopping_optimizer import BasinHoppingOptimizer
-from auxiliary.oxford_database import get_cluster_energy
+
+sys.path.append("./")
+
+from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable=C0413
+from auxiliary.oxford_database import get_cluster_energy  # pylint: disable=C0413
 
 
 comm = MPI.COMM_WORLD

@@ -7,6 +7,7 @@ from ase import Atoms, Atom
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 import numpy as np
+from mpi4py import MPI  # pylint: disable=E0611
 
 from src.global_optimizer import GlobalOptimizer
 
@@ -28,6 +29,8 @@ class GeneticAlgorithm(GlobalOptimizer):
         atoms: int = 30,
         atom_type: str = "C",
         calculator: Any = LennardJones,
+        comm: MPI.Intracomm | None = None,
+        parallel: bool = False,
     ) -> None:
         """
         Genetic Algorithm Class constructor
@@ -40,6 +43,8 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param atoms: number of atoms per configuration
         :param atom_type: the chemical element of atoms
         :param calculator: calculator used to derive energies and potentials
+        :param comm: global parallel execution communicator
+        :param parallel: whether to execute in parallel or sequentially
         """
         super().__init__(
             num_clusters=num_clusters,
@@ -47,6 +52,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             atoms=atoms,
             atom_type=atom_type,
             calculator=calculator,
+            comm=comm,
         )
         self.mutation_probability = mutation
         if num_selection == 0:
@@ -62,6 +68,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         self.potentials: List[float] = (
             []
         )  # Generate list for storing potentials of current generation
+        self.parallel = parallel
 
     def iteration(self) -> None:
         """
@@ -72,13 +79,42 @@ class GeneticAlgorithm(GlobalOptimizer):
         """
         print(f"Iteration {self.current_iteration}")
         self.potentials = []
-        for index, cluster in enumerate(self.cluster_list):
-            print(f"Cluster {index+1}/{self.num_clusters} begins local optimization.")
-            t = time.time()
-            self.optimizers[index].run()  # Local optimization
-            print(
-                f"Cluster {index+1}/{self.num_clusters} successfully optimized for {time.time()-t} s."
-            )
+        if self.parallel:
+            for index, cluster in enumerate(self.cluster_list):
+                receiver = index % (self.comm.Get_size() - 1) + 1  # type: ignore
+                print(f"Sending to {receiver} from {self.comm.Get_rank()}.", flush=True)  # type: ignore
+                self.comm.Send([cluster.positions, MPI.DOUBLE], dest=receiver, tag=1)  # type: ignore
+            self.cluster_list = []
+            for _ in range(self.num_clusters):
+                pos = np.empty((self.atoms, 3), dtype=np.float64)
+                print(f"{self.comm.Get_rank()} receiving.", flush=True)  # type: ignore
+                self.comm.Recv([pos, MPI.DOUBLE], tag=2, source=MPI.ANY_SOURCE)  # type: ignore
+                clus = Atoms(  # type: ignore
+                    self.atom_type + str(self.atoms),
+                    positions=pos,
+                    cell=np.array(
+                        [
+                            [self.box_length, 0, 0],
+                            [0, self.box_length, 0],
+                            [0, 0, self.box_length],
+                        ]
+                    ),
+                )
+                clus.calc = self.calculator()
+                self.cluster_list.append(clus)
+
+        if not self.parallel:
+            for index, cluster in enumerate(self.cluster_list):
+                print(
+                    f"Cluster {index+1}/{self.num_clusters} begins local optimization."
+                )
+                opt = self.local_optimizer(cluster, logfile="../log.txt")
+                t = time.time()
+                opt.run(steps=20000)  # Local optimization
+                print(
+                    f"Cluster {index+1}/{self.num_clusters} successfully optimized for {time.time()-t} s."
+                )
+        for cluster in self.cluster_list:
             self.potentials.append(
                 cluster.get_potential_energy()
             )  # Compute potential energy
@@ -87,18 +123,20 @@ class GeneticAlgorithm(GlobalOptimizer):
         children = self.generate_children(parents)  # Generate children configurations
         for child in children:  # Add children to current generation
             clus = Atoms(  # type: ignore
-                self.atom_type + str(self.atoms), positions=child
+                self.atom_type + str(self.atoms),
+                positions=child,
+                cell=np.array(
+                    [
+                        [self.box_length, 0, 0],
+                        [0, self.box_length, 0],
+                        [0, 0, self.box_length],
+                    ]
+                ),
             )  # Create a child object
             clus.calc = self.calculator()  # Assign energy calculator
             self.cluster_list.append(
                 clus
             )  # Add child to current list of configurations
-            opt = self.local_optimizer(
-                clus, logfile="../log.txt"
-            )  # Create a local optimizer object
-            self.optimizers.append(
-                opt
-            )  # Add local optimizer object to current list of optimizers
         for cluster in enumerate(self.cluster_list):
             print(f"Mutating cluster {cluster[0]+1}/{self.num_clusters}")
             self.mutation(cluster[1])  # Perform mutation
@@ -116,6 +154,8 @@ class GeneticAlgorithm(GlobalOptimizer):
         for i in range(self.current_iteration - conv_iters, self.current_iteration - 1):
             ret &= bool(abs(cur - self.best_potentials[i]) <= 10**-6)
         if ret:
+            for cluster in self.best_configs:
+                cluster.center()  # type: ignore
             self.history[0] = self.best_configs
         return ret
 

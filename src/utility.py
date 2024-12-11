@@ -10,7 +10,6 @@ from sklearn.decomposition import PCA  # type: ignore
 from scipy.spatial.distance import pdist  # type: ignore
 from ase import Atoms, Atom
 from ase.units import fs
-from ase.optimize import BFGS
 from ase.md.langevin import Langevin
 from ase.optimize.minimahopping import PassedMinimum
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
@@ -164,38 +163,29 @@ class Utility:
         :param cluster: Cluster to be twist mutated.
         :return: Cluster configuration after twist mutation.
         """
-        i = 0
-        while i <= 1000:
-            group1, group2, normal = self.split_cluster(cluster)
-            choice = np.random.choice([0, 1])
-            if choice == 0:
-                rotate = group1
-                still = group2
-            else:
-                rotate = group2
-                still = group1
+        group1, group2, normal = self.split_cluster(cluster)
+        choice = np.random.choice([0, 1])
+        if choice == 0:
+            rotate = group1
+            still = group2
+        else:
+            rotate = group2
+            still = group1
 
-            angle = np.random.uniform(0, 2 * np.pi)
-            matrix = rotation_matrix(normal, angle)
+        angle = np.random.uniform(0, 2 * np.pi)
+        matrix = rotation_matrix(normal, angle)
 
-            positions = []
+        positions = []
 
-            for atom in still:
-                positions.append(atom.position)
+        for atom in still:
+            positions.append(atom.position)
 
+        for atom in rotate:
+            positions.append(np.dot(matrix, atom.position))
+
+        if self.configuration_validity(np.array(positions)):
             for atom in rotate:
-                positions.append(np.dot(matrix, atom.position))
-
-            if self.configuration_validity(np.array(positions)):
-                for atom in rotate:
-                    atom.position = np.dot(matrix, atom.position)
-                print("Twist mutation successfully performed.")
-                break
-
-            i += 1
-
-        if i > 1000:
-            print("Twist mutation unsuccessful.")
+                atom.position = np.dot(matrix, atom.position)
 
         return cluster
 
@@ -208,8 +198,8 @@ class Utility:
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
 
-        opt = BFGS(cluster, logfile="../log.txt")
-        opt.run()  # type: ignore
+        opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
+        opt.run(steps=20000)
 
         self.append_atom(cluster)
 
@@ -220,8 +210,8 @@ class Utility:
         """
         self.append_atom(cluster)
 
-        opt = BFGS(cluster, logfile="../log.txt")
-        opt.run()  # type: ignore
+        opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
+        opt.run(steps=20000)
 
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
@@ -293,13 +283,11 @@ class Utility:
         :param cluster: Cluster to be aligned.
         :return: Cluster object with the new atom coordinates.
         """
-        center_of_mass = cluster.get_center_of_mass()  # type: ignore
-        cluster_centered = cluster.get_positions() - center_of_mass  # type: ignore
+        cluster.set_center_of_mass((0, 0, 0))  # type: ignore
         pca = PCA(n_components=3)
-        pca.fit(cluster_centered)
+        pca.fit(cluster.positions)
         principal_axes = pca.components_
-        rotated_cluster = np.dot(cluster_centered, principal_axes.T)
-        cluster.positions = rotated_cluster
+        cluster.positions = np.dot(cluster.positions, principal_axes.T)
         return cluster
 
     def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> np.bool:

@@ -59,7 +59,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         self.sensitivity = sensitivity
 
     def iteration(self) -> None:
-        # TODO: make sure the algorithm doesnt stay for too long on the same energy levels
         """
         Performs single iteration of the Basin Hopping Optimizer.
         :return: None.
