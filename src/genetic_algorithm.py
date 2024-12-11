@@ -82,12 +82,12 @@ class GeneticAlgorithm(GlobalOptimizer):
         if self.parallel:
             for index, cluster in enumerate(self.cluster_list):
                 receiver = index % (self.comm.Get_size() - 1) + 1  # type: ignore
-                print(f"Sending to {receiver} from {self.comm.Get_rank()}.")  # type: ignore
+                print(f"Sending to {receiver} from {self.comm.Get_rank()}.", flush=True)  # type: ignore
                 self.comm.Send([cluster.positions, MPI.DOUBLE], dest=receiver, tag=1)  # type: ignore
             self.cluster_list = []
             for _ in range(self.num_clusters):
-                pos = np.empty((self.atoms, 3))
-                print(f"{self.comm.Get_rank()} receiving.")  # type: ignore
+                pos = np.empty((self.atoms, 3), dtype=np.float64)
+                print(f"{self.comm.Get_rank()} receiving.", flush=True)  # type: ignore
                 self.comm.Recv([pos, MPI.DOUBLE], tag=2, source=MPI.ANY_SOURCE)  # type: ignore
                 clus = Atoms(  # type: ignore
                     self.atom_type + str(self.atoms),

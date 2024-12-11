@@ -1,27 +1,31 @@
 """GA playground"""
 
+import sys
+
 from ase import Atoms
 from ase.io import read
 from ase.visualize import view
 from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
 
-from src.genetic_algorithm import GeneticAlgorithm
-from auxiliary.benchmark import Benchmark
+sys.path.append("./")
+
+from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
+from auxiliary.benchmark import Benchmark  # pylint: disable=C0413
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-lj = [13]
+lj = [30]
 
-print(f"Hello from {rank}")
+print(f"Hello from {rank}", flush=True)
 
-ga = GeneticAlgorithm(num_clusters=8, preserve=True, comm=comm, parallel=True)
+ga = GeneticAlgorithm(num_clusters=8, atoms=30, preserve=True, comm=comm)
 
 if rank == 0:
 
     b = Benchmark(ga)
-    b.benchmark_run(lj, 2)
+    b.benchmark_run(lj, 100)
 
     for i in range(1, comm.Get_size()):
         comm.Send(np.zeros((ga.atoms, 3), dtype=float), tag=0, dest=i)
@@ -36,9 +40,9 @@ if rank == 0:
 
 else:
     while True:
-        print(f"Rank {ga.comm.Get_rank()}")  # type: ignore
-        pos = np.empty((ga.atoms, 3))
-        print(f"Rank {ga.comm.Get_rank()} receiving.")  # type: ignore
+        print(f"Rank {ga.comm.Get_rank()}", flush=True)  # type: ignore
+        pos = np.empty((ga.atoms, 3), dtype=np.float64)
+        print(f"Rank {ga.comm.Get_rank()} receiving.", flush=True)  # type: ignore
         status = MPI.Status()
         ga.comm.Recv([pos, MPI.DOUBLE], source=0, tag=MPI.ANY_TAG, status=status)  # type: ignore
         if status.tag == 0:
@@ -53,5 +57,5 @@ else:
         clus.calc = ga.calculator()
         opt = ga.local_optimizer(clus)
         opt.run(steps=20000)
-        print(f"Rank {ga.comm.Get_rank()} sending.")  # type: ignore
+        print(f"Rank {ga.comm.Get_rank()} sending.", flush=True)  # type: ignore
         ga.comm.Send([clus.positions, MPI.DOUBLE], dest=0, tag=2)  # type: ignore
