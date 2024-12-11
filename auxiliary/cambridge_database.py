@@ -11,9 +11,12 @@ from ase.calculators.lj import LennardJones
 
 def create_xyz_file(atoms: int, atom_type: str) -> str:
     """
-    Makes a request to the oxford database and creates a .xyz file from it
+    Makes a request to the Cambridge database and creates a .xyz file from it.
+    :param atoms: Number of atoms in cluster.
+    :param atom_type: Atomic type of cluster.
+    :return: The file path.
     """
-    name = f"../data/oxford_minima/LJ{atoms}.xyz"
+    name = f"../data/database/LJ{atoms}.xyz"
     if not os.path.exists(name):
         response = requests.get(
             f"http://doye.chem.ox.ac.uk/jon/structures/LJ/points/{atoms}", timeout=2
@@ -27,8 +30,8 @@ def create_xyz_file(atoms: int, atom_type: str) -> str:
         for line in iter(values.splitlines()):
             result += atom_type + line + "\n"
 
-        if not os.path.exists("../data/oxford_minima"):
-            os.mkdir("../data/oxford_minima")
+        if not os.path.exists("../data/database"):
+            os.mkdir("../data/database")
 
         with open(name, "w", encoding="UTF-8") as file:
             file.write(result)
@@ -38,6 +41,9 @@ def create_xyz_file(atoms: int, atom_type: str) -> str:
 def get_cluster_energy(atoms: int, atom_type: str) -> float:
     """
     Creates a file from the database and prints its energy
+    :param atoms: Number of atoms in cluster.
+    :param atom_type: Atomic type of cluster.
+    :return: Database global minima potential energy.
     """
     filename = create_xyz_file(atoms, atom_type)
     cluster = read(filename)
