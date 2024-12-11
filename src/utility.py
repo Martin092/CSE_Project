@@ -22,12 +22,42 @@ class Utility:
     """
 
     def __init__(
-        self, global_optimizer: Any, temp: float = 0.8, step: float = 1
+        self, global_optimizer: Any, num_atoms: int, atom_type: str, temp: float = 0.8, step: float = 1
     ) -> None:
         self.global_optimizer = global_optimizer
+        self.num_atoms = num_atoms
+        self.atom_type = atom_type
         self.temp = temp
         self.step = step
         self.big_jumps: list[int] = []
+        self.covalent_radius: float = 1.0
+        self.box_length: float = (2 * self.covalent_radius
+                                  * (0.5 + ((3.0 * self.num_atoms) / (4 * np.pi * np.sqrt(2))) ** (1/3)))
+
+    def generate_cluster(self, positions: np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] = None) -> Atoms:
+        """
+        TODO: Write this.
+        """
+        if positions is None:
+            while True:
+                positions = (
+                        (np.random.rand(self.num_atoms, 3) - 0.5) * self.box_length * 1.5
+                )
+                if self.configuration_validity(positions):
+                    break
+        clus = Atoms(
+            self.atom_type + str(self.num_atoms),
+            positions=positions,
+            cell=np.array(
+                [
+                    [self.box_length, 0, 0],
+                    [0, self.box_length, 0],
+                    [0, 0, self.box_length],
+                ]
+            ),
+        )  # type: ignore
+        clus.calc = self.global_optimizer.calculator()
+        return clus
 
     def random_step(self, cluster: Atoms) -> None:
         """
