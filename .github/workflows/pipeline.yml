@@ -8,42 +8,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       - name: Install dependencies
         run: |
           sudo apt install libopenmpi-dev
-          python3 -m pip install types-requests
-          python3 -m pip install types-Deprecated
           pip install -r requirements.txt
-          pip install lxml
       - name: Format Check
         run: |
           black --check src/
           black --check auxiliary/
       - name: Type Check
         run: |
-          mkdir -p reports/mypy
-          mypy src --html-report ../reports/mypy
-          mypy auxiliary --html-report ../reports/mypy
-      - name: Upload mypy report
-        uses: actions/upload-artifact@v3
-        with:
-          name: mypy-report
-          path: reports/mypy
+          mypy src/
+          mypy auxiliary/
       - name: Code Style Check
         run: |
-          pylint src
-          pylint auxiliary
+          pylint src/
+          pylint auxiliary/
       - name: Test
         run: |
-          mkdir -p reports/pytest/html reports/pytest/xml
-          pytest --cov=src --cov-config=setup.cfg --cov-branch --cov-report=html:reports/pytest/html --cov-report=xml:reports/pytest/xml/coverage.xml --cov-report=term test | tee pytest_output.txt
+          mkdir -p reports/pytest/html
+          pytest --cov=src --cov-config=setup.cfg --cov-branch --cov-report=html:reports/pytest/html --cov-report=term test
       - name: Upload pytest reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pytest-reports
           path: reports/pytest

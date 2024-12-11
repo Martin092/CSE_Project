@@ -26,3 +26,4 @@ requests==2.32.3
 types-requests==2.31.0
 mpi4py==4.0.1
 Deprecated==1.2.15
+types-Deprecated==1.2.9
