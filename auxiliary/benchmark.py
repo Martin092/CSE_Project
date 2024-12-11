@@ -36,14 +36,18 @@ class Benchmark:
         """
         Plots the energy values over the course of the entire run
         """
-        energies = np.array([])
+        energies: list[float] = []
         for clus in self.optimizer.history[0]:
             clus.calc = self.optimizer.calculator()
-            energies = np.append(energies, clus.get_potential_energy())
+            energies.append(clus.get_potential_energy())
 
         energies = self.optimizer.potentials_history()
         plt.plot(energies)
-        plt.scatter(self.optimizer.utility.big_jumps, [energies[i] for i in self.optimizer.utility.big_jumps], c='red')
+        plt.scatter(
+            self.optimizer.utility.big_jumps,
+            [energies[i] for i in self.optimizer.utility.big_jumps],
+            c="red",
+        )
         plt.title(f"Execution on LJ{self.optimizer.atoms}")
         plt.xlabel("Iteration")
         plt.ylabel("Potential Energy")
@@ -100,12 +104,10 @@ class Benchmark:
                 f"min {int(self.optimizer.execution_time)%60} sec"
             )
             print(f"Stopped at {self.optimizer.current_iteration}")
-            best_potentials = self.optimizer.potentials_history()
-            plt.plot(best_potentials)
-            plt.title(f"Execution on LJ{lj}")
-            plt.xlabel("Iteration")
-            plt.ylabel("Potential Energy")
-            plt.show()
+            if len(self.optimizer.utility.big_jumps) != 0:
+                print(f"Big jumps were made at {self.optimizer.utility.big_jumps}")
+
+            self.plot_energies()
 
         for k in enumerate(indices):
             print(

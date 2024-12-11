@@ -28,9 +28,9 @@ class Utility:
         self.global_optimizer = global_optimizer
         self.temp = temp
         self.step = step
-        self.big_jumps = []
+        self.big_jumps: list[int] = []
 
-    def random_step(self, cluster: Atoms, infinte_temp=False) -> None:
+    def random_step(self, cluster: Atoms) -> None:
         """
         Moves the highest energy atom in a random direction
         :param cluster: the cluster we want to disturb
@@ -51,13 +51,13 @@ class Utility:
 
             accept: float
             if rejected > 5:
-                print('MAKING BIG MOVES')
+                print("MAKING BIG MOVES")
                 self.big_jumps.append(self.global_optimizer.current_iteration)
                 break
-            else:
-                # Metropolis criterion gives an acceptance probability based on temperature for each move
-                accept = self.metropolis_criterion(energy_before, energy_after)
-                self.step = self.step * (1 - 0.01 * (0.5 - accept))
+
+            # Metropolis criterion gives an acceptance probability based on temperature for each move
+            accept = self.metropolis_criterion(energy_before, energy_after)
+            self.step = self.step * (1 - 0.01 * (0.5 - accept))
 
             if np.random.uniform() > accept:
                 rejected += 1
@@ -156,7 +156,6 @@ class Utility:
             i += 1
         print("Number of MD steps: " + str(i))
         cluster.positions = oldpositions[passedmin[0]]
-
 
     def twist(self, cluster: Atoms) -> Atoms:
         """

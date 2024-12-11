@@ -9,6 +9,7 @@ from ase import Atoms
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
+from ase.optimize import FIRE
 import numpy as np
 from mpi4py import MPI  # pylint: disable=E0611
 from src.global_optimizer import GlobalOptimizer
@@ -34,9 +35,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
     def __init__(
         self,
-        local_optimizer: Any,
         atoms: int,
         atom_type: str,
+        local_optimizer: Any = FIRE,
         calculator: Any = LennardJones,
         num_clusters: int = 1,
         alpha: float = 2,
@@ -77,7 +78,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             min_en = min(energies)
             max_energy = max(energies)
 
-
             if max_energy - min_en < self.alpha:
                 self.utility.random_step(clus)
             else:
@@ -91,26 +91,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.alphas = np.append(self.alphas, self.alpha)
             self.optimizers[index].run(fmax=0.2)
             self.history[index].append(clus.copy())
-
-    def stuck_in_minima(self, depth: int) -> bool:
-        if self.current_iteration < 20:
-            return False
-
-        print('stuck in minima')
-        curr_energy = self.cluster_list[0].get_potential_energy()
-        not_stuck = True
-        for i in reversed(range(depth)):
-            index = len(self.history[0]) - i - 1
-
-            clus = self.history[0][index]
-            clus.calc = self.calculator()
-            diff = clus.get_potential_energy() - curr_energy
-
-            not_stuck &= diff < 0.00001
-
-        return not_stuck
-
-
 
     def is_converged(self, conv_iters: int = 10) -> bool:
         """
