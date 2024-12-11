@@ -9,6 +9,7 @@ from ase import Atoms
 from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
+from ase.optimize import FIRE
 import numpy as np
 from mpi4py import MPI  # pylint: disable=E0611
 from src.global_optimizer import GlobalOptimizer
@@ -34,9 +35,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
     def __init__(
         self,
-        local_optimizer: Any,
         atoms: int,
         atom_type: str,
+        local_optimizer: Any = FIRE,
         calculator: Any = LennardJones,
         num_clusters: int = 1,
         alpha: float = 2,
@@ -65,7 +66,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         if self.comm:
             print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
         else:
-            print(f"Iteration {self.current_iteration} alpha: {self.alpha}")
+            print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
             self.last_energy = self.cluster_list[0].get_potential_energy()
 
