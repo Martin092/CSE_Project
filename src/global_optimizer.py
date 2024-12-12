@@ -22,6 +22,12 @@ class GlobalOptimizer(ABC):
         calculator: Any,
         comm: MPI.Intracomm | None = None,
     ) -> None:
+        """
+        Global Optimizer Class Constructor
+        :param local_optimizer: ASE Optimizer.
+        :param calculator: ASE Calculator.
+        :param comm: MPI global communicator object.
+        """
         self.local_optimizer: Any = local_optimizer
         self.current_iteration: int = 0
         self.calculator: Any = calculator
@@ -31,8 +37,10 @@ class GlobalOptimizer(ABC):
         self.current_cluster: Atoms | None = None
         self.best_potential: float = float("inf")
         self.best_config: Atoms | None = None
-        self.best_potentials: List[float] = []
-        self.best_configs: List[Atoms] = []
+        self.potentials: List[float] = []
+        self.configs: List[Atoms] = []
+        self.num_atoms: int = 0
+        self.atom_type: str = ""
 
     @abstractmethod
     def iteration(self) -> None:
@@ -48,28 +56,44 @@ class GlobalOptimizer(ABC):
         :return: True if convergence criteria is met, otherwise False.
         """
 
-    def setup(self, num_atoms: int, atom_type: str,
-              initial_configuration: np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None = None) -> None:
+    def setup(
+        self,
+        num_atoms: int,
+        atom_type: str,
+        initial_configuration: (
+            np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
+        ) = None,
+    ) -> None:
         """
-        Sets up the clusters by either initializing random clusters or using the seed provided
+        Sets up the clusters by either initializing random clusters or using the seed provided.
+        :param num_atoms: Number of atoms in cluster.
+        :param atom_type: Atomic type of cluster.
+        :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
         :return: None.
         """
         self.current_iteration = 0
+        self.num_atoms = num_atoms
+        self.atom_type = atom_type
         self.utility = Utility(self, num_atoms, atom_type)
         self.current_cluster = self.utility.generate_cluster(initial_configuration)
 
-
     def run(
-        self, num_atoms: int, atom_type: str, max_iterations: int, seed: int | None = None,
-            initial_configuration: np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None = None
+        self,
+        num_atoms: int,
+        atom_type: str,
+        max_iterations: int,
+        seed: int | None = None,
+        initial_configuration: (
+            np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
+        ) = None,
     ) -> None:
         """
         Executes the Global Optimizer algorithm.
-        :param num_atoms: TODO
-        :param atom_type: TODO
+        :param num_atoms: Number of atoms in cluster to optimize for.
+        :param atom_type: Atomic type of cluster.
         :param max_iterations: Number of maximum iterations to perform.
         :param seed: Seeding for reproducibility.
-        :param initial_configuration: TODO
+        :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
         :return: None.
         """
         np.random.seed(seed)
@@ -82,21 +106,13 @@ class GlobalOptimizer(ABC):
 
         self.execution_time = time.time() - start_time
 
-    def write_configuration(self, filename: str) -> None:
-        """
-        Writes the cluster to a .xyz file.
-        :param filename: the name of the file, without .xyz extension
-        :return: None, writes to file
-        """
-        filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
-        write(f"../data/optimizer/{filename}.xyz", self.best_config)
-
     def write_trajectory(self, filename: str) -> None:
         """
         Writes all clusters in the history to a trajectory file
-        :param filename: Name of the trajectory file, without .traj extension
+        :param filename: Path of the trajectory file, with .traj extension
         :return: None, writes to file
         """
         with Trajectory(filename, mode="w") as traj:  # type: ignore
-            for cluster in self.best_configs:
+            for cluster in self.configs:
+                cluster.center()  # type: ignore
                 traj.write(cluster)  # pylint: disable=E1101

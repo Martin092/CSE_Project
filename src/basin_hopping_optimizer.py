@@ -13,7 +13,7 @@ from ase.optimize import FIRE
 import numpy as np
 from mpi4py import MPI  # pylint: disable=E0611
 from src.global_optimizer import GlobalOptimizer
-from auxiliary.oxford_database import get_cluster_energy
+from auxiliary.cambridge_database import get_cluster_energy
 
 
 class BasinHoppingOptimizer(GlobalOptimizer):
