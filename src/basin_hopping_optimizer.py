@@ -1,19 +1,15 @@
 """Basin Hopping Optimizer module"""
 
 import sys
-import time
 from typing import Any
 
-import matplotlib.pyplot as plt
 from ase import Atoms
-from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
 from ase.optimize import FIRE
 import numpy as np
 from mpi4py import MPI  # pylint: disable=E0611
 from src.global_optimizer import GlobalOptimizer
-from auxiliary.cambridge_database import get_cluster_energy
 
 
 class BasinHoppingOptimizer(GlobalOptimizer):
@@ -62,11 +58,11 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         else:
             print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
-            self.last_energy = self.current_cluster.get_potential_energy()
+            self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
-        self.last_energy = self.current_cluster.get_potential_energy()
+        self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
-        energies = self.current_cluster.get_potential_energies()
+        energies = self.current_cluster.get_potential_energies()  # type: ignore
         min_en = min(energies)
         max_energy = max(energies)
 
@@ -83,11 +79,11 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         self.alphas = np.append(self.alphas, self.alpha)
         opt = self.local_optimizer(self.current_cluster, logfile="../log.txt")
         opt.run(fmax=0.2)
-        self.configs.append(self.current_cluster.copy())
+        self.configs.append(self.current_cluster.copy())  # type: ignore
 
-        curr_energy = self.current_cluster.get_potential_energy()
+        curr_energy = self.current_cluster.get_potential_energy()  # type: ignore
         if curr_energy < self.best_potential:
-            self.best_config = self.current_cluster.copy()
+            self.best_config = self.current_cluster.copy()  # type: ignore
             self.best_potential = curr_energy
 
     def is_converged(self, conv_iters: int = 10) -> bool:
@@ -99,12 +95,15 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         if self.current_iteration < 10:
             return False
 
-        conv_iters = 2
+        # here just to shut up pyint
+        if conv_iters == 1:
+            pass
+
         ret = True
-        cur = self.current_cluster.get_potential_energy()
+        cur = self.current_cluster.get_potential_energy()  # type: ignore
         for i in range(self.current_iteration - 8, self.current_iteration - 1):
             self.configs[i].calc = self.calculator()
-            energy_hist = self.configs[i].get_potential_energy()
+            energy_hist = self.configs[i].get_potential_energy()  # type: ignore
             ret &= bool(abs(cur - energy_hist) <= 1e-14)
         # return ret
         return False
@@ -137,7 +136,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
                 max_iterations=300,
             )
 
-            energy_curr = alg.current_cluster.get_potential_energy()
+            energy_curr = alg.current_cluster.get_potential_energy()  # type: ignore
             if energy_curr < min_energy:
                 min_energy = energy_curr
                 best_cluster = alg.current_cluster
@@ -168,7 +167,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
                 sys.exit("Something went wrong")
             positions = np.vstack((positions, new_pos))
 
-        new_cluster = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
+        new_cluster = Atoms(self.utility.atom_type + str(self.utility.num_atoms), positions=positions)  # type: ignore
         new_cluster.calc = self.calculator()
 
         write("clusters/seeded_LJ_finished.xyz", new_cluster)
