@@ -1,7 +1,8 @@
 """
 Parallel implementation of the basin hopping algorithm
 On linux can be ran with
->> PYTHONPATH=$PYTHONPATH:/home/martin/Projects/PycharmProjects/CSE_Project mpiexec -n 10 python auxiliary/parallel_bh.py
+>> PYTHONPATH=$PYTHONPATH:/home/martin/Projects/PycharmProjects/CSE_Project
+mpiexec -n 10 python auxiliary/parallel_bh.py
 """
 
 import sys

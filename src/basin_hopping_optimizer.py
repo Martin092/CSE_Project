@@ -1,19 +1,15 @@
 """Basin Hopping Optimizer module"""
 
 import sys
-import time
 from typing import Any
 
-import matplotlib.pyplot as plt
 from ase import Atoms
-from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
 from ase.optimize import FIRE
 import numpy as np
 from mpi4py import MPI  # pylint: disable=E0611
 from src.global_optimizer import GlobalOptimizer
-from auxiliary.cambridge_database import get_cluster_energy
 
 
 class BasinHoppingOptimizer(GlobalOptimizer):
@@ -62,11 +58,11 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         else:
             print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
-            self.last_energy = self.current_cluster.get_potential_energy()
+            self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
-        self.last_energy = self.current_cluster.get_potential_energy()
+        self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
-        energies = self.current_cluster.get_potential_energies()
+        energies = self.current_cluster.get_potential_energies()  # type: ignore
         min_en = min(energies)
         max_energy = max(energies)
 
@@ -99,7 +95,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         if self.current_iteration < 10:
             return False
 
-        conv_iters = 2
+        # here just to shut up pyint
+        if conv_iters == 1:
+            pass
+
         ret = True
         cur = self.current_cluster.get_potential_energy()
         for i in range(self.current_iteration - 8, self.current_iteration - 1):
