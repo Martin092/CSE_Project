@@ -57,10 +57,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         Performs single iteration of the Basin Hopping Optimizer.
         :return: None.
         """
-        # if self.comm:
-        #     print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
-        # else:
-        #     print(f"Iteration {self.current_iteration}")
+        if self.comm:
+            print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
+        else:
+            print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
             self.last_energy = self.current_cluster.get_potential_energy()
 
@@ -99,6 +99,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         if self.current_iteration < 10:
             return False
 
+        conv_iters = 2
         ret = True
         cur = self.current_cluster.get_potential_energy()
         for i in range(self.current_iteration - 8, self.current_iteration - 1):
