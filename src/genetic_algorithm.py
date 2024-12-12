@@ -65,9 +65,9 @@ class GeneticAlgorithm(GlobalOptimizer):
             self.atom_type + str(self.atoms), positions=np.random.rand(self.atoms, 3)
         )  # type: ignore
         self.best_potential: float = float("inf")
-        self.potentials: List[float] = (
-            []
-        )  # Generate list for storing potentials of current generation
+        self.potentials: List[
+            float
+        ] = []  # Generate list for storing potentials of current generation
         self.parallel = parallel
 
     def iteration(self) -> None:
@@ -152,7 +152,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         ret = True
         cur = self.best_potentials[self.current_iteration - 1]
         for i in range(self.current_iteration - conv_iters, self.current_iteration - 1):
-            ret &= bool(abs(cur - self.best_potentials[i]) <= 10**-6)
+            ret &= bool(abs(cur - self.best_potentials[i]) <= 10 ** -6)
         if ret:
             for cluster in self.best_configs:
                 cluster.center()  # type: ignore
