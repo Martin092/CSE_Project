@@ -364,6 +364,8 @@ class Utility:
         :param positions: Numpy array of the potential atomic configuration.
         :return: Boolean indicating stability of configuration.
         """
+        if positions.shape[0] == 0:
+            return True
         distances = pdist(positions)
         return bool(float(np.min(distances)) >= 0.15)
 

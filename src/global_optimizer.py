@@ -31,12 +31,12 @@ class GlobalOptimizer(ABC):
         self.local_optimizer: Any = local_optimizer
         self.current_iteration: int = 0
         self.calculator: Any = calculator
-        self.utility: Utility | None = None
+        self.utility: Utility = Utility(self, 0, "C")
         self.execution_time: float = 0.0
         self.comm: MPI.Intracomm | None = comm
-        self.current_cluster: Atoms | None = None
+        self.current_cluster: Atoms = self.utility.generate_cluster()
         self.best_potential: float = float("inf")
-        self.best_config: Atoms | None = None
+        self.best_config: Atoms = self.utility.generate_cluster()
         self.potentials: List[float] = []
         self.configs: List[Atoms] = []
         self.conv_iters: int = 0
