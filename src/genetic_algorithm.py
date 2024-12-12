@@ -144,7 +144,9 @@ class GeneticAlgorithm(GlobalOptimizer):
             return False
         ret = True
         cur = self.potentials[self.current_iteration - 1]
-        for i in range(self.current_iteration - self.conv_iters, self.current_iteration - 1):
+        for i in range(
+            self.current_iteration - self.conv_iters, self.current_iteration - 1
+        ):
             ret &= bool(abs(cur - self.potentials[i]) <= 10**-6)
         return ret
 

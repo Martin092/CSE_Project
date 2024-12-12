@@ -81,7 +81,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
 
         self.alphas = np.append(self.alphas, self.alpha)
-        opt = self.local_optimizer(self.current_cluster, logfile='../log.txt')
+        opt = self.local_optimizer(self.current_cluster, logfile="../log.txt")
         opt.run(fmax=0.2)
         self.configs.append(self.current_cluster.copy())
 
@@ -128,10 +128,13 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         best_cluster: Atoms
         for i in range(10):
             alg = BasinHoppingOptimizer(
-                local_optimizer=self.local_optimizer,
-                calculator=self.calculator
+                local_optimizer=self.local_optimizer, calculator=self.calculator
             )
-            alg.run(num_atoms=self.utility.num_atoms, atom_type=self.utility.atom_type,max_iterations=300)
+            alg.run(
+                num_atoms=self.utility.num_atoms,
+                atom_type=self.utility.atom_type,
+                max_iterations=300,
+            )
 
             energy_curr = alg.current_cluster.get_potential_energy()
             if energy_curr < min_energy:
