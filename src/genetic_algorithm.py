@@ -74,6 +74,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         :return: None.
         """
         self.current_iteration = 0
+        self.energies = []
         self.num_atoms = num_atoms
         self.atom_type = atom_type
         self.utility = Utility(self, num_atoms, atom_type)
@@ -134,17 +135,16 @@ class GeneticAlgorithm(GlobalOptimizer):
             print(f"Mutating cluster {cluster[0]+1}/{self.num_clusters}", flush=True)
             self.mutation(cluster[1])  # Perform mutation
 
-    def is_converged(self, conv_iters: int = 10) -> bool:
+    def is_converged(self) -> bool:
         """
         Checks if convergence criteria is satisfied.
-        :param conv_iters: Number of iterations to be considered.
         :return: True if convergence criteria is met, otherwise False.
         """
-        if self.current_iteration < conv_iters:
+        if self.current_iteration < self.conv_iters:
             return False
         ret = True
         cur = self.potentials[self.current_iteration - 1]
-        for i in range(self.current_iteration - conv_iters, self.current_iteration - 1):
+        for i in range(self.current_iteration - self.conv_iters, self.current_iteration - 1):
             ret &= bool(abs(cur - self.potentials[i]) <= 10**-6)
         return ret
 
