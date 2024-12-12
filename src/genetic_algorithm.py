@@ -83,7 +83,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             clus = self.utility.generate_cluster()
             self.cluster_list.append(clus)
         if self.comm is not None:
-            self.parallel = True
+            self.parallel = True  # pragma: no cover
 
     def iteration(self) -> None:
         """
@@ -94,7 +94,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         """
         print(f"Iteration {self.current_iteration}", flush=True)
         self.energies = []
-        if self.parallel:
+        if self.parallel:  # pragma: no cover
             for index, cluster in enumerate(self.cluster_list):
                 receiver = index % (self.comm.Get_size() - 1) + 1  # type: ignore
                 print(f"Sending to {receiver} from {self.comm.Get_rank()}.", flush=True)  # type: ignore

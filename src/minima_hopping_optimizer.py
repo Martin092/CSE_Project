@@ -113,11 +113,3 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
 
     def is_converged(self) -> bool:
         return False
-
-
-if __name__ == "__main__":
-    from auxiliary.benchmark import Benchmark
-
-    benchmark = Benchmark(MinimaHoppingOptimizer())
-
-    benchmark.benchmark_run([13], 1000)

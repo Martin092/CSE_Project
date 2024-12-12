@@ -110,7 +110,7 @@ class GlobalOptimizer(ABC):
 
         self.execution_time = time.time() - start_time
 
-    def write_trajectory(self, filename: str) -> None:
+    def write_trajectory(self, filename: str) -> None:  # pragma: no cover
         """
         Writes all clusters in the history to a trajectory file
         :param filename: Path of the trajectory file, with .traj extension

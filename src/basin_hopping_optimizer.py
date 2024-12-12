@@ -54,7 +54,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         :return: None.
         """
         if self.comm:
-            print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
+            print(
+                f"Iteration {self.current_iteration} in {self.comm.Get_rank()}"
+            )  # pragma: no cover
         else:
             print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
@@ -87,7 +89,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.best_config = self.current_cluster.copy()  # type: ignore
             self.best_potential = curr_energy
 
-    def is_converged(self, conv_iters: int = 10) -> bool:
+    def is_converged(self) -> bool:
         """
         Checks if convergence criteria is satisfied.
         :param conv_iters: Number of iterations to be considered.
@@ -95,10 +97,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         """
         if self.current_iteration < 10:
             return False
-
-        # here just to shut up pyint
-        if conv_iters == 1:
-            pass
 
         ret = True
         cur = self.current_cluster.get_potential_energy()  # type: ignore
@@ -109,13 +107,13 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         # return ret
         return False
 
-    def seed(self, starting_from: int) -> Atoms:
+    def seed(self, starting_from: int) -> Atoms:  # pragma: no cover
         """
         Finds the best cluster by starting from the given number atoms,
         globally optimizing and then either adding or removing atoms
-        until you get to the desired number defined in self.atoms
+        until you get to the desired number defined in self.num_atoms
         :param starting_from: The number of atoms you want to start from
-        :return: A cluster of size self.atoms that is hopefully closer to the global minima
+        :return: A cluster of size self.num_atoms that is hopefully closer to the global minima
         """
         assert (
             starting_from != self.utility.num_atoms

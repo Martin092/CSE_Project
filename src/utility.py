@@ -4,7 +4,6 @@ from typing import Any, List, Literal, Tuple
 import time
 import sys
 
-from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
 from scipy.spatial.distance import pdist  # type: ignore
@@ -128,12 +127,6 @@ class Utility:
         """
         if new_energy - initial_energy > 50:  # Energy is way too high, bad move
             return float(0)
-        if np.isnan(new_energy):
-            if self.global_optimizer.comm:
-                self.global_optimizer.comm.Send(
-                    [np.array([]), MPI.DOUBLE], dest=0, tag=1
-                )
-            sys.exit("NaN encountered, exiting")
         if new_energy > initial_energy:
             return float(min(1, np.exp(-(new_energy - initial_energy) / self.temp)))
 
@@ -277,19 +270,11 @@ class Utility:
         :param cluster: Cluster to which an atom to be appended.
         :return: None, since cluster object is dynamically updated.
         """
-        position = np.random.uniform(
-            -self.box_length,
-            self.box_length,
-            size=3,
-        )
+        position = (np.random.rand(3) - 0.5) * self.box_length * 1.5
         while not self.configuration_validity(
             np.append(cluster.positions, [position], axis=0)
         ):
-            position = np.random.uniform(
-                -self.box_length,
-                self.box_length,
-                size=3,
-            )
+            position = (np.random.rand(3) - 0.5) * self.box_length * 1.5
         new_atom = Atom(
             self.global_optimizer.atom_type,
             position=position,
