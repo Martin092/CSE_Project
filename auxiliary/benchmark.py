@@ -30,8 +30,8 @@ class Benchmark:
         energies = self.optimizer.potentials
         plt.plot(energies)
         plt.scatter(
-            self.optimizer.utility.big_jumps,  # type: ignore
-            [energies[i] for i in self.optimizer.utility.big_jumps],  # type: ignore
+            self.optimizer.utility.big_jumps,
+            [energies[i] for i in self.optimizer.utility.big_jumps],
             c="red",
         )
         plt.title(f"Execution on LJ{self.optimizer.num_atoms}")
@@ -61,7 +61,7 @@ class Benchmark:
             best_cluster = self.optimizer.best_config
             print(f"Best energy found: {self.optimizer.best_potential}")
             best_cluster.center()  # type: ignore
-            write(f"../data/optimizer/LJ{lj}.xyz", best_cluster)  # type: ignore
+            write(f"../data/optimizer/LJ{lj}.xyz", best_cluster)
 
             best = get_cluster_energy(lj, self.optimizer.atom_type)
 
@@ -84,8 +84,8 @@ class Benchmark:
                 f"min {int(self.optimizer.execution_time)%60} sec"
             )
             print(f"Stopped/Converged at iteration {self.optimizer.current_iteration}.")
-            if len(self.optimizer.utility.big_jumps) != 0:  # type: ignore
-                print(f"Big jumps were made at {self.optimizer.utility.big_jumps}")  # type: ignore
+            if len(self.optimizer.utility.big_jumps) != 0:
+                print(f"Big jumps were made at {self.optimizer.utility.big_jumps}")
 
             self.plot_energies()
 

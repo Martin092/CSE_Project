@@ -54,7 +54,7 @@ def parallel_ga(
             ga.comm.Recv([pos, MPI.DOUBLE], source=0, tag=MPI.ANY_TAG, status=status)  # type: ignore
             if status.tag == 0:
                 break
-            clus = ga.utility.generate_cluster(pos)  # type: ignore
+            clus = ga.utility.generate_cluster(pos)
             opt = ga.local_optimizer(clus)
             opt.run(steps=20000)
             print(f"Rank {ga.comm.Get_rank()} sending.", flush=True)  # type: ignore

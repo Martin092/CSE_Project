@@ -12,7 +12,7 @@ from auxiliary.benchmark import Benchmark  # pylint: disable=C0413
 # from auxiliary.parallel_ga import parallel_ga  # pylint: disable=C0413
 
 # Serial Execution
-lj = [38]
+lj = [13]
 ga = GeneticAlgorithm(num_clusters=8, preserve=True)
 b = Benchmark(ga)
 b.benchmark_run(lj, 100)
@@ -24,5 +24,5 @@ b.benchmark_run(lj, 100)
 for i in lj:
     final_atoms = read(f"../data/optimizer/LJ{i}.xyz")
     view(final_atoms)  # type: ignore
-    database = read(f"../data/oxford_minima/LJ{i}.xyz")
+    database = read(f"../data/database/LJ{i}.xyz")
     view(database)  # type: ignore
