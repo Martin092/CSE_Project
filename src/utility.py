@@ -97,7 +97,9 @@ class Utility:
 
             self.global_optimizer.current_cluster.positions[index] += step
 
-            opt = self.global_optimizer.local_optimizer(self.global_optimizer.current_cluster, logfile='../log.txt')
+            opt = self.global_optimizer.local_optimizer(
+                self.global_optimizer.current_cluster, logfile="../log.txt"
+            )
             opt.run(fmax=0.2)
             energy_after = self.global_optimizer.current_cluster.get_potential_energy()  # type: ignore
 
