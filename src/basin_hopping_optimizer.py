@@ -1,19 +1,15 @@
 """Basin Hopping Optimizer module"""
 
 import sys
-import time
 from typing import Any
 
-import matplotlib.pyplot as plt
 from ase import Atoms
-from ase.optimize import BFGS
 from ase.calculators.lj import LennardJones
 from ase.io import write
 from ase.optimize import FIRE
 import numpy as np
 from mpi4py import MPI  # pylint: disable=E0611
 from src.global_optimizer import GlobalOptimizer
-from auxiliary.oxford_database import get_cluster_energy
 
 
 class BasinHoppingOptimizer(GlobalOptimizer):
@@ -35,20 +31,14 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
     def __init__(
         self,
-        atoms: int,
-        atom_type: str,
         local_optimizer: Any = FIRE,
         calculator: Any = LennardJones,
-        num_clusters: int = 1,
         alpha: float = 2,
         sensitivity: float = 0.3,
         comm: MPI.Intracomm | None = None,
     ) -> None:
         super().__init__(
-            num_clusters=num_clusters,
             local_optimizer=local_optimizer,
-            atoms=atoms,
-            atom_type=atom_type,
             calculator=calculator,
             comm=comm,
         )
@@ -64,34 +54,42 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         :return: None.
         """
         if self.comm:
-            print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
+            print(
+                f"Iteration {self.current_iteration} in {self.comm.Get_rank()}"
+            )  # pragma: no cover
         else:
             print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
-            self.last_energy = self.cluster_list[0].get_potential_energy()
+            self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
-        for index, clus in enumerate(self.cluster_list):
-            self.last_energy = self.cluster_list[index].get_potential_energy()
+        self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
-            energies = self.cluster_list[index].get_potential_energies()
-            min_en = min(energies)
-            max_energy = max(energies)
+        energies = self.current_cluster.get_potential_energies()  # type: ignore
+        min_en = min(energies)
+        max_energy = max(energies)
 
-            if max_energy - min_en < self.alpha:
-                self.utility.random_step(clus)
-            else:
-                self.angular_moves += 1
-                self.utility.angular_movement(clus)
+        if max_energy - min_en < self.alpha:
+            self.utility.random_step()
+        else:
+            self.angular_moves += 1
+            self.utility.angular_movement(self.current_cluster)
 
-            if self.current_iteration != 0:
-                fraction = self.angular_moves / self.current_iteration
-                self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
+        if self.current_iteration != 0:
+            fraction = self.angular_moves / self.current_iteration
+            self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
 
-            self.alphas = np.append(self.alphas, self.alpha)
-            self.optimizers[index].run(fmax=0.2)
-            self.history[index].append(clus.copy())
+        self.alphas = np.append(self.alphas, self.alpha)
+        opt = self.local_optimizer(self.current_cluster, logfile="../log.txt")
+        opt.run(fmax=0.2)
+        self.configs.append(self.current_cluster.copy())  # type: ignore
 
-    def is_converged(self, conv_iters: int = 10) -> bool:
+        curr_energy = self.current_cluster.get_potential_energy()  # type: ignore
+        self.potentials.append(curr_energy)
+        if curr_energy < self.best_potential:
+            self.best_config = self.current_cluster.copy()  # type: ignore
+            self.best_potential = curr_energy
+
+    def is_converged(self) -> bool:
         """
         Checks if convergence criteria is satisfied.
         :param conv_iters: Number of iterations to be considered.
@@ -101,26 +99,26 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             return False
 
         ret = True
-        cur = self.cluster_list[0].get_potential_energy()
+        cur = self.current_cluster.get_potential_energy()  # type: ignore
         for i in range(self.current_iteration - 8, self.current_iteration - 1):
-            self.history[0][i].calc = self.calculator()
-            energy_hist = self.history[0][i].get_potential_energy()
+            self.configs[i].calc = self.calculator()
+            energy_hist = self.configs[i].get_potential_energy()  # type: ignore
             ret &= bool(abs(cur - energy_hist) <= 1e-14)
         # return ret
         return False
 
-    def seed(self, starting_from: int) -> Atoms:
+    def seed(self, starting_from: int) -> Atoms:  # pragma: no cover
         """
         Finds the best cluster by starting from the given number atoms,
         globally optimizing and then either adding or removing atoms
-        until you get to the desired number defined in self.atoms
+        until you get to the desired number defined in self.num_atoms
         :param starting_from: The number of atoms you want to start from
-        :return: A cluster of size self.atoms that is hopefully closer to the global minima
+        :return: A cluster of size self.num_atoms that is hopefully closer to the global minima
         """
         assert (
-            starting_from != self.atoms
+            starting_from != self.utility.num_atoms
         ), "You cant seed from the same cluster size as the one you are optimizing for"
-        assert self.atoms in {
+        assert self.utility.num_atoms in {
             starting_from + 1,
             starting_from - 1,
         }, "Seeding only works with one more or one less atoms"
@@ -129,23 +127,25 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         best_cluster: Atoms
         for i in range(10):
             alg = BasinHoppingOptimizer(
-                local_optimizer=self.local_optimizer,
-                atoms=starting_from,
-                atom_type=self.atom_type,
+                local_optimizer=self.local_optimizer, calculator=self.calculator
             )
-            alg.run(1000)
+            alg.run(
+                num_atoms=self.utility.num_atoms,
+                atom_type=self.utility.atom_type,
+                max_iterations=300,
+            )
 
-            energy_curr = alg.cluster_list[0].get_potential_energy()
+            energy_curr = alg.current_cluster.get_potential_energy()  # type: ignore
             if energy_curr < min_energy:
                 min_energy = energy_curr
-                best_cluster = alg.cluster_list[0]
+                best_cluster = alg.current_cluster
 
         write("clusters/seeded_LJ_before.xyz", best_cluster)
         print(f"seeding before {best_cluster.get_potential_energy()}")  # type: ignore
 
         # Add or remove atom from the found cluster
         positions = None
-        if starting_from > self.atoms:
+        if starting_from > self.utility.num_atoms:
             # if we started with more atoms just remove the highest energy one
             energies = best_cluster.get_potential_energies()  # type: ignore
             index = np.argmax(energies)
@@ -166,39 +166,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
                 sys.exit("Something went wrong")
             positions = np.vstack((positions, new_pos))
 
-        new_cluster = Atoms(self.atom_type + str(self.atoms), positions=positions)  # type: ignore
+        new_cluster = Atoms(self.utility.atom_type + str(self.utility.num_atoms), positions=positions)  # type: ignore
         new_cluster.calc = self.calculator()
 
         write("clusters/seeded_LJ_finished.xyz", new_cluster)
         print(f"seeded finished {new_cluster.get_potential_energy()}")  # type: ignore
 
         return new_cluster
-
-
-if __name__ == "__main__":
-    bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
-    print(bh.box_length)
-
-    start = time.time()
-    bh.run(500)
-    print(f"Algorithm finished for {time.time() - start}")
-
-    energy, cluster = bh.best_energy_cluster()
-    print(f"Result: {energy}")
-    print(f"Actual: {get_cluster_energy(bh.atoms, bh.atom_type)}")
-
-    print(bh.current_iteration)
-    print(bh.angular_moves)
-
-    print(f"alpha: {bh.alpha}")
-    print(f"step: {bh.utility.step}")
-
-    plt.plot(bh.alphas)
-    plt.title("Alpha values per iteration")
-    plt.xlabel("Iteration")
-    plt.ylabel("Alpha value")
-    plt.show()
-
-    # bh.plot_energies()
-
-    write("clusters/LJmin.xyz", cluster)

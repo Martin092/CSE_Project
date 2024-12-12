@@ -4,7 +4,6 @@ from typing import Any, List, Literal, Tuple
 import time
 import sys
 
-from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
 from scipy.spatial.distance import pdist  # type: ignore
@@ -13,7 +12,6 @@ from ase.units import fs
 from ase.md.langevin import Langevin
 from ase.optimize.minimahopping import PassedMinimum
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
-from reference_code.rotation_matrices import rotation_matrix
 
 
 class Utility:
@@ -22,31 +20,87 @@ class Utility:
     """
 
     def __init__(
-        self, global_optimizer: Any, temp: float = 0.8, step: float = 1
+        self,
+        global_optimizer: Any,
+        num_atoms: int,
+        atom_type: str,
+        temp: float = 0.8,
+        step: float = 1,
     ) -> None:
+        """
+        Utility Class Constructor
+        :param global_optimizer: Global optimizer object.
+        :param num_atoms: Number of atoms in cluster.
+        :param atom_type: Atomic type of cluster.
+        :param temp: Temperature.
+        :param step: Step length.
+        """
         self.global_optimizer = global_optimizer
+        self.num_atoms = num_atoms
+        self.atom_type = atom_type
         self.temp = temp
         self.step = step
         self.big_jumps: list[int] = []
+        self.covalent_radius: float = 1.0
+        self.box_length: float = (
+            2
+            * self.covalent_radius
+            * (0.5 + ((3.0 * self.num_atoms) / (4 * np.pi * np.sqrt(2))) ** (1 / 3))
+        )
 
-    def random_step(self, cluster: Atoms) -> None:
+    def generate_cluster(
+        self,
+        positions: (
+            np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
+        ) = None,
+    ) -> Atoms:
+        """
+        Generate Atoms object with given or randomly generated coordinates.
+        :param positions: Atomic coordinates, if None or Default, randomly generated.
+        :return: Atoms object with cell and calculator specified.
+        """
+        if positions is None:
+            while True:
+                positions = (
+                    (np.random.rand(self.num_atoms, 3) - 0.5) * self.box_length * 1.5
+                )
+                if self.configuration_validity(positions):
+                    break
+        clus = Atoms(
+            self.atom_type + str(self.num_atoms),
+            positions=positions,
+            cell=np.array(
+                [
+                    [self.box_length, 0, 0],
+                    [0, self.box_length, 0],
+                    [0, 0, self.box_length],
+                ]
+            ),
+            calculator=self.global_optimizer.calculator(),
+        )  # type: ignore
+        return clus
+
+    def random_step(self) -> None:
         """
         Moves the highest energy atom in a random direction
         :param cluster: the cluster we want to disturb
         :return: result is written directly to cluster, nothing is returned
         """
-        energies = cluster.get_potential_energies()  # type: ignore
+        energies = self.global_optimizer.current_cluster.get_potential_energies()
         index = np.argmax(energies)
-        energy_before = cluster.get_potential_energy()  # type: ignore
+        energy_before = self.global_optimizer.current_cluster.get_potential_energy()
 
         rejected = 0
         while True:
             step = (np.random.rand(3) - 0.5) * 2 * self.step
 
-            cluster.positions[index] += step
+            self.global_optimizer.current_cluster.positions[index] += step
 
-            self.global_optimizer.optimizers[0].run(fmax=0.2)
-            energy_after = cluster.get_potential_energy()  # type: ignore
+            opt = self.global_optimizer.local_optimizer(
+                self.global_optimizer.current_cluster, logfile="../log.txt"
+            )
+            opt.run(fmax=0.2)
+            energy_after = self.global_optimizer.current_cluster.get_potential_energy()
 
             accept: float
             if rejected > 5:
@@ -60,7 +114,7 @@ class Utility:
 
             if np.random.uniform() > accept:
                 rejected += 1
-                cluster.positions[index] -= step
+                self.global_optimizer.current_cluster.positions[index] -= step
                 continue
             break
 
@@ -73,12 +127,6 @@ class Utility:
         """
         if new_energy - initial_energy > 50:  # Energy is way too high, bad move
             return float(0)
-        if np.isnan(new_energy):
-            if self.global_optimizer.comm:
-                self.global_optimizer.comm.Send(
-                    [np.array([]), MPI.DOUBLE], dest=0, tag=1
-                )
-            sys.exit("NaN encountered, exiting")
         if new_energy > initial_energy:
             return float(min(1, np.exp(-(new_energy - initial_energy) / self.temp)))
 
@@ -103,7 +151,7 @@ class Utility:
             vector = np.random.rand(3) - 0.5
             angle = np.random.uniform(0, 2 * np.pi)
 
-            rotation = rotation_matrix(vector, angle)
+            rotation = self.rotation_matrix(vector, angle)
 
             rotated_position = np.dot(rotation, cluster.positions[index])
             cluster.positions[index] = rotated_position
@@ -173,7 +221,7 @@ class Utility:
             still = group1
 
         angle = np.random.uniform(0, 2 * np.pi)
-        matrix = rotation_matrix(normal, angle)
+        matrix = self.rotation_matrix(normal, angle)
 
         positions = []
 
@@ -222,19 +270,11 @@ class Utility:
         :param cluster: Cluster to which an atom to be appended.
         :return: None, since cluster object is dynamically updated.
         """
-        position = np.random.uniform(
-            -self.global_optimizer.box_length,
-            self.global_optimizer.box_length,
-            size=3,
-        )
+        position = (np.random.rand(3) - 0.5) * self.box_length * 1.5
         while not self.configuration_validity(
             np.append(cluster.positions, [position], axis=0)
         ):
-            position = np.random.uniform(
-                -self.global_optimizer.box_length,
-                self.global_optimizer.box_length,
-                size=3,
-            )
+            position = (np.random.rand(3) - 0.5) * self.box_length * 1.5
         new_atom = Atom(
             self.global_optimizer.atom_type,
             position=position,
@@ -290,7 +330,9 @@ class Utility:
         cluster.positions = np.dot(cluster.positions, principal_axes.T)
         return cluster
 
-    def compare_clusters(self, cluster1: Atoms, cluster2: Atoms) -> np.bool:
+    def compare_clusters(
+        self, cluster1: Atoms, cluster2: Atoms, atol: float
+    ) -> np.bool:
         """
         Checks whether two clusters are equal based on their potential energy.
         This method may be changed in the future to use more sophisticated methods,
@@ -299,15 +341,57 @@ class Utility:
         :param cluster2: Second cluster
         :return: boolean
         """
-        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy())  # type: ignore
+        return np.isclose(
+            cluster1.get_potential_energy(),  # type: ignore
+            cluster2.get_potential_energy(),  # type: ignore
+            atol=atol,
+            rtol=0,
+        )
 
     def configuration_validity(
         self, positions: np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]]
     ) -> bool:
         """
         Checks if a potential configuration doesn't invalidate the physical laws.
-        :param positions: numpy array of the potential atomic configuration.
+        :param positions: Numpy array of the potential atomic configuration.
         :return: Boolean indicating stability of configuration.
         """
+        if positions.shape[0] == 0:
+            return True
         distances = pdist(positions)
         return bool(float(np.min(distances)) >= 0.15)
+
+    def rotation_matrix(
+        self, normal: np.ndarray[Any, np.dtype[np.float64]], angle: float
+    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        """
+        Rotation matrix around a normal with an angle.
+        :param normal: Normal of the rotation direction vector.
+        :param angle: Angle of rotation.
+        :return: Rotation matrix.
+        """
+        normal = normal / np.linalg.norm(normal)
+        x, y, z = normal
+        cos = np.cos(angle)
+        sin = np.sin(angle)
+        one_minus_cos = 1 - cos
+
+        return np.array(
+            [
+                [
+                    cos + x * x * one_minus_cos,
+                    x * y * one_minus_cos - z * sin,
+                    x * z * one_minus_cos + y * sin,
+                ],
+                [
+                    y * x * one_minus_cos + z * sin,
+                    cos + y * y * one_minus_cos,
+                    y * z * one_minus_cos - x * sin,
+                ],
+                [
+                    z * x * one_minus_cos - y * sin,
+                    z * y * one_minus_cos + x * sin,
+                    cos + z * z * one_minus_cos,
+                ],
+            ]
+        )

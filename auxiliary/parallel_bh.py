@@ -1,5 +1,8 @@
 """
 Parallel implementation of the basin hopping algorithm
+On linux can be ran with
+>> PYTHONPATH=$PYTHONPATH:/home/martin/Projects/PycharmProjects/CSE_Project
+mpiexec -n 10 python auxiliary/parallel_bh.py
 """
 
 import sys
@@ -13,37 +16,34 @@ from mpi4py import MPI  # pylint: disable=E0611
 sys.path.append("./")
 
 from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable=C0413
-from auxiliary.oxford_database import get_cluster_energy  # pylint: disable=C0413
+from auxiliary.cambridge_database import get_cluster_energy  # pylint: disable=C0413
 
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-print(rank)
-bh = BasinHoppingOptimizer(local_optimizer=FIRE, atoms=16, atom_type="Fe", comm=comm)
+print(rank, flush=True)
+bh = BasinHoppingOptimizer(local_optimizer=FIRE, comm=comm)
 
 start = time.time()
-bh.run(200)
+bh.run(max_iterations=10, num_atoms=13, atom_type="Fe")
 
 runtime = time.time() - start
-
-energy, cluster = bh.best_energy_cluster()
-
-print(f"Energy is {energy} in process {rank} found in {runtime}")
+print(f"Energy is {bh.best_potential} in process {rank} found in {runtime}")
 
 if rank == 0:
-    best_cluster = cluster
-    best_energy = energy
+    best_cluster = bh.best_config
+    best_energy = bh.best_potential
     for i in range(size - 1):
-        data = np.empty((bh.atoms, 3))
+        data = np.empty((bh.utility.num_atoms, 3))
         print("Receiving...")
         comm.Recv([data, MPI.DOUBLE], tag=1)
 
-        if data.shape != (bh.atoms, 3):
+        if data.shape != (bh.utility.num_atoms, 3):
             continue
 
-        new_cluster = Atoms(bh.atom_type + str(bh.atoms), positions=data)  # type: ignore
+        new_cluster = Atoms(bh.utility.atom_type + str(bh.utility.num_atoms), positions=data)  # type: ignore
         new_cluster.calc = bh.calculator()
         new_energy = new_cluster.get_potential_energy()  # type: ignore
 
@@ -52,9 +52,9 @@ if rank == 0:
             best_energy = new_energy
 
     print(f"Best energy is {best_energy}")
-    print(f"Actual best is    {get_cluster_energy(bh.atoms, bh.atom_type)}")
+    print(f"Actual best is    {get_cluster_energy(bh.num_atoms, bh.atom_type)}")
 
-    write("src/clusters/LJ_min.xyz", cluster)
+    write("src/clusters/LJ_min.xyz", best_cluster)
 else:
-    data = cluster.positions
+    data = bh.current_cluster.positions
     comm.Send([data, MPI.DOUBLE], dest=0, tag=1)
