@@ -82,6 +82,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         self.configs.append(self.current_cluster.copy())  # type: ignore
 
         curr_energy = self.current_cluster.get_potential_energy()  # type: ignore
+        self.potentials.append(curr_energy)
         if curr_energy < self.best_potential:
             self.best_config = self.current_cluster.copy()  # type: ignore
             self.best_potential = curr_energy
