@@ -81,7 +81,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
 
         self.alphas = np.append(self.alphas, self.alpha)
-        opt = self.local_optimizer()
+        opt = self.local_optimizer(self.current_cluster, logfile='../log.txt')
         opt.run(fmax=0.2)
         self.best_configs.append(self.current_cluster.copy())
 
@@ -124,10 +124,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         for i in range(10):
             alg = BasinHoppingOptimizer(
                 local_optimizer=self.local_optimizer,
-                atoms=starting_from,
-                atom_type=self.atom_type,
+                calculator=self.calculator
             )
-            alg.run(1000)
+            alg.run(num_atoms=self.utility.num_atoms, atom_type=self.utility.atom_type,max_iterations=300)
 
             energy_curr = alg.current_cluster.get_potential_energy()
             if energy_curr < min_energy:
@@ -139,7 +138,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
         # Add or remove atom from the found cluster
         positions = None
-        if starting_from > self.atoms:
+        if starting_from > self.utility.num_atoms:
             # if we started with more atoms just remove the highest energy one
             energies = best_cluster.get_potential_energies()  # type: ignore
             index = np.argmax(energies)
@@ -167,32 +166,3 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         print(f"seeded finished {new_cluster.get_potential_energy()}")  # type: ignore
 
         return new_cluster
-
-
-if __name__ == "__main__":
-    bh = BasinHoppingOptimizer(local_optimizer=BFGS, atoms=13, atom_type="Fe")
-    print(bh.box_length)
-
-    start = time.time()
-    bh.run(500)
-    print(f"Algorithm finished for {time.time() - start}")
-
-    energy, cluster = bh.best_energy_cluster()
-    print(f"Result: {energy}")
-    print(f"Actual: {get_cluster_energy(bh.atoms, bh.atom_type)}")
-
-    print(bh.current_iteration)
-    print(bh.angular_moves)
-
-    print(f"alpha: {bh.alpha}")
-    print(f"step: {bh.utility.step}")
-
-    plt.plot(bh.alphas)
-    plt.title("Alpha values per iteration")
-    plt.xlabel("Iteration")
-    plt.ylabel("Alpha value")
-    plt.show()
-
-    # bh.plot_energies()
-
-    write("clusters/LJmin.xyz", cluster)
