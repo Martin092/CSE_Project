@@ -35,20 +35,14 @@ class BasinHoppingOptimizer(GlobalOptimizer):
 
     def __init__(
         self,
-        atoms: int,
-        atom_type: str,
         local_optimizer: Any = FIRE,
         calculator: Any = LennardJones,
-        num_clusters: int = 1,
         alpha: float = 2,
         sensitivity: float = 0.3,
         comm: MPI.Intracomm | None = None,
     ) -> None:
         super().__init__(
-            num_clusters=num_clusters,
             local_optimizer=local_optimizer,
-            atoms=atoms,
-            atom_type=atom_type,
             calculator=calculator,
             comm=comm,
         )
@@ -63,33 +57,33 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         Performs single iteration of the Basin Hopping Optimizer.
         :return: None.
         """
-        if self.comm:
-            print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
-        else:
-            print(f"Iteration {self.current_iteration}")
+        # if self.comm:
+        #     print(f"Iteration {self.current_iteration} in {self.comm.Get_rank()}")
+        # else:
+        #     print(f"Iteration {self.current_iteration}")
         if self.current_iteration == 0:
-            self.last_energy = self.cluster_list[0].get_potential_energy()
+            self.last_energy = self.current_cluster.get_potential_energy()
 
-        for index, clus in enumerate(self.cluster_list):
-            self.last_energy = self.cluster_list[index].get_potential_energy()
+        self.last_energy = self.current_cluster.get_potential_energy()
 
-            energies = self.cluster_list[index].get_potential_energies()
-            min_en = min(energies)
-            max_energy = max(energies)
+        energies = self.current_cluster.get_potential_energies()
+        min_en = min(energies)
+        max_energy = max(energies)
 
-            if max_energy - min_en < self.alpha:
-                self.utility.random_step(clus)
-            else:
-                self.angular_moves += 1
-                self.utility.angular_movement(clus)
+        if max_energy - min_en < self.alpha:
+            self.utility.random_step(self.current_cluster)
+        else:
+            self.angular_moves += 1
+            self.utility.angular_movement(self.current_cluster)
 
-            if self.current_iteration != 0:
-                fraction = self.angular_moves / self.current_iteration
-                self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
+        if self.current_iteration != 0:
+            fraction = self.angular_moves / self.current_iteration
+            self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
 
-            self.alphas = np.append(self.alphas, self.alpha)
-            self.optimizers[index].run(fmax=0.2)
-            self.history[index].append(clus.copy())
+        self.alphas = np.append(self.alphas, self.alpha)
+        opt = self.local_optimizer()
+        opt.run(fmax=0.2)
+        self.best_configs.append(self.current_cluster.copy())
 
     def is_converged(self, conv_iters: int = 10) -> bool:
         """
@@ -101,10 +95,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             return False
 
         ret = True
-        cur = self.cluster_list[0].get_potential_energy()
+        cur = self.current_cluster.get_potential_energy()
         for i in range(self.current_iteration - 8, self.current_iteration - 1):
-            self.history[0][i].calc = self.calculator()
-            energy_hist = self.history[0][i].get_potential_energy()
+            self.best_configs[i].calc = self.calculator()
+            energy_hist = self.best_configs[i].get_potential_energy()
             ret &= bool(abs(cur - energy_hist) <= 1e-14)
         # return ret
         return False
@@ -118,9 +112,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         :return: A cluster of size self.atoms that is hopefully closer to the global minima
         """
         assert (
-            starting_from != self.atoms
+            starting_from != self.utility.num_atoms
         ), "You cant seed from the same cluster size as the one you are optimizing for"
-        assert self.atoms in {
+        assert self.utility.num_atoms in {
             starting_from + 1,
             starting_from - 1,
         }, "Seeding only works with one more or one less atoms"
@@ -135,10 +129,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             )
             alg.run(1000)
 
-            energy_curr = alg.cluster_list[0].get_potential_energy()
+            energy_curr = alg.current_cluster.get_potential_energy()
             if energy_curr < min_energy:
                 min_energy = energy_curr
-                best_cluster = alg.cluster_list[0]
+                best_cluster = alg.current_cluster
 
         write("clusters/seeded_LJ_before.xyz", best_cluster)
         print(f"seeding before {best_cluster.get_potential_energy()}")  # type: ignore

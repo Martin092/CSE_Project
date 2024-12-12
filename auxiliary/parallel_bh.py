@@ -1,5 +1,7 @@
 """
 Parallel implementation of the basin hopping algorithm
+On linux can be ran with
+>> PYTHONPATH=$PYTHONPATH:/home/martin/Projects/PycharmProjects/CSE_Project mpiexec -n 10 python auxiliary/parallel_bh.py
 """
 
 import sys
@@ -20,11 +22,11 @@ comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-print(rank)
-bh = BasinHoppingOptimizer(local_optimizer=FIRE, atoms=16, atom_type="Fe", comm=comm)
+print(rank, flush=True)
+bh = BasinHoppingOptimizer(local_optimizer=FIRE, atoms=38, atom_type="Fe", comm=comm)
 
 start = time.time()
-bh.run(200)
+bh.run(500)
 
 runtime = time.time() - start
 
