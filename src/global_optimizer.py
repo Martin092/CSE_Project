@@ -106,19 +106,10 @@ class GlobalOptimizer(ABC):
 
         self.execution_time = time.time() - start_time
 
-    def write_configuration(self, filename: str) -> None:
-        """
-        Writes cluster to a .xyz file.
-        :param filename: Name of file, without .xyz extension.
-        :return: None, writes to file.
-        """
-        filename = filename if filename[-4:] == ".xyz" else filename + ".xyz"
-        write(f"../data/optimizer/{filename}.xyz", self.best_config)  # type: ignore
-
     def write_trajectory(self, filename: str) -> None:
         """
         Writes all clusters in the history to a trajectory file
-        :param filename: Name of the trajectory file, without .traj extension
+        :param filename: Path of the trajectory file, with .traj extension
         :return: None, writes to file
         """
         with Trajectory(filename, mode="w") as traj:  # type: ignore
