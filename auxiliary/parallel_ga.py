@@ -1,4 +1,4 @@
-"""GA playground"""
+"""GA parallel execution module"""
 
 import sys
 
@@ -14,6 +14,7 @@ from auxiliary.benchmark import Benchmark  # pylint: disable=C0413
 def parallel_ga(
     num_atoms: int,
     num_iterations: int,
+    conv_iters: int,
     num_clusters: int = 8,
     preserve: bool = True,
 ) -> None:
@@ -21,6 +22,7 @@ def parallel_ga(
     Execute GA in parallel using mpiexec.
     :param num_atoms: Number of atoms for which to optimize.
     :param num_iterations: Max number of iterations to execute.
+    :param conv_iters: Number of iterations to be considered in the convergence criteria.
     :param num_clusters: Number of clusters per generation/iteration.
     :param preserve: Whether to preserve selected parents in future generation or not.
     :return: None
@@ -36,7 +38,7 @@ def parallel_ga(
 
     if rank == 0:
         b = Benchmark(ga)
-        b.benchmark_run([num_atoms], num_iterations)
+        b.benchmark_run([num_atoms], num_iterations, conv_iters)
 
         for i in range(1, comm.Get_size()):
             comm.Send(np.zeros((num_atoms, 3), dtype=float), tag=0, dest=i)
