@@ -7,7 +7,7 @@ import numpy as np
 
 from ase import Atoms
 from ase.calculators.lj import LennardJones
-from ase.optimize import BFGS
+from ase.optimize import QuasiNewton
 from ase.io import write
 from ase.io.trajectory import TrajectoryReader
 from ase.visualize import view
@@ -21,15 +21,18 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
     """
 
     def __init__(
-        self,
-        num_clusters: int,
-        atoms: int,
-        atom_type: str,
-        temperature: float,
-        local_optimizer: Any = BFGS,
-        calculator: Any = LennardJones,
+            self,
+            num_clusters: int,
+            atoms: int,
+            atom_type: str,
+            temperature: float = 300,
+            e_diff: float = 1,
+            mdmin: int = 4,
+            atol: float = 5e-6,
+            local_optimizer: Any = QuasiNewton,
+            calculator: Any = LennardJones,
     ):
-        super().__init__(num_clusters, local_optimizer, atoms, atom_type, calculator)
+        super().__init__(local_optimizer, atom_type, calculator)
         self.alpha_r = 1.02
         self.alpha_a = 1 / 1.02
         self.beta_s = 1.05
@@ -117,7 +120,6 @@ if __name__ == "__main__":
         num_clusters=1,
         atoms=13,
         atom_type="Fe",
-        temperature=300,
     )
     mh.run(500)
     best_cluster = mh.best_energy_cluster()
