@@ -195,7 +195,7 @@ class Utility:
             rng=np.random.default_rng(seed),
         )
 
-        # MaxwellBoltzmannDistribution(cluster, temperature_K=temperature)
+        MaxwellBoltzmannDistribution(cluster, temperature_K=temperature)
         passed_minimum = PassedMinimum()  # type: ignore
         mincount = 0
         energies, oldpositions = [], []
@@ -345,7 +345,9 @@ class Utility:
         cluster.positions = np.dot(cluster.positions, principal_axes.T)
         return cluster
 
-    def compare_clusters(self, cluster1: Atoms, cluster2: Atoms, atol: float) -> np.bool:
+    def compare_clusters(
+        self, cluster1: Atoms, cluster2: Atoms, atol: float
+    ) -> np.bool:
         """
         Checks whether two clusters are equal based on their potential energy.
         This method may be changed in the future to use more sophisticated methods,
@@ -354,7 +356,12 @@ class Utility:
         :param cluster2: Second cluster
         :return: boolean
         """
-        return np.isclose(cluster1.get_potential_energy(), cluster2.get_potential_energy(), atol=atol, rtol=0)  # type: ignore
+        return np.isclose(
+            cluster1.get_potential_energy(),  # type: ignore
+            cluster2.get_potential_energy(),  # type: ignore
+            atol=atol,
+            rtol=0,
+        )
 
     def configuration_validity(
         self, positions: np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]]

@@ -18,8 +18,6 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
 
     def __init__(
         self,
-        atoms: int,
-        atom_type: str,
         temperature: float = 300,
         e_diff: float = 1,
         mdmin: int = 4,
@@ -46,19 +44,19 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         :return: None
         """
         self.utility.md(self.current_cluster, self.temperature, self.mdmin)
-        self.current_cluster.set_momenta(
-            np.zeros(self.current_cluster.get_momenta().shape)
+        self.current_cluster.set_momenta(  # type: ignore
+            np.zeros(self.current_cluster.get_momenta().shape)  # type: ignore
         )
 
         with self.local_optimizer(self.current_cluster, logfile="../log.txt") as opt:
             opt.run(fmax=0.2)
 
         self.check_results()
-        self.configs.append(self.current_cluster.copy())
-        self.potentials.append(self.current_cluster.get_potential_energy())
-        if self.current_cluster.get_potential_energy() < self.best_potential:
+        self.configs.append(self.current_cluster.copy())  # type: ignore
+        self.potentials.append(self.current_cluster.get_potential_energy())  # type: ignore
+        if self.current_cluster.get_potential_energy() < self.best_potential:  # type: ignore
             self.best_config = self.current_cluster
-            self.best_potential = self.current_cluster.get_potential_energy()
+            self.best_potential = self.current_cluster.get_potential_energy()  # type: ignore
         # self.append_history()
         # print("Temperature: " + str(self.temperature))
         # print("Energy: " + str(cluster.get_potential_energy()))
@@ -72,7 +70,9 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         :return: None
         """
         if self.m_cur is not None:
-            if self.utility.compare_clusters(self.m_cur, self.current_cluster, self.atol):  # type: ignore
+            if self.utility.compare_clusters(
+                self.m_cur, self.current_cluster, self.atol
+            ):
                 # print(self.m_cur[i].get_potential_energy())
                 # print(m.get_potential_energy())
                 # print("2 minima are the same")
@@ -80,13 +80,14 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
                 return
 
             if (
-                self.current_cluster.get_potential_energy() - self.m_cur.get_potential_energy()  # type: ignore
+                self.current_cluster.get_potential_energy()
+                - self.m_cur.get_potential_energy()
                 < self.e_diff
             ):  # Check if energy has decreased enough to be considered a new minimum
                 # print("Energy between 2 minima has decreased enough")
                 self.e_diff *= self.alpha_a
-                self.m_cur = self.current_cluster.copy()  # type: ignore
-                self.m_cur.calc = self.calculator()  # type: ignore
+                self.m_cur = self.current_cluster.copy()
+                self.m_cur.calc = self.calculator()
             else:
                 self.e_diff *= self.alpha_r
         else:
@@ -110,18 +111,13 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         self.minima_history[-1].calc = self.calculator()
         self.temperature *= self.beta_n
 
-    def is_converged(self, conv_iters: int = 10) -> bool:
+    def is_converged(self) -> bool:
         return False
 
 
 if __name__ == "__main__":
     from auxiliary.benchmark import Benchmark
 
-    mh = MinimaHoppingOptimizer(
-        atoms=13,
-        atom_type="Fe",
-    )
-
-    benchmark = Benchmark(mh)
+    benchmark = Benchmark(MinimaHoppingOptimizer())
 
     benchmark.benchmark_run([13], 1000)
