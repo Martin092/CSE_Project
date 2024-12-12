@@ -81,24 +81,27 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self, cluster: Atoms) -> None:
+    def random_step(self) -> None:
         """
         Moves the highest energy atom in a random direction
         :param cluster: the cluster we want to disturb
         :return: result is written directly to cluster, nothing is returned
         """
-        energies = cluster.get_potential_energies()  # type: ignore
+        energies = self.global_optimizer.current_cluster.get_potential_energies()
         index = np.argmax(energies)
-        energy_before = cluster.get_potential_energy()  # type: ignore
+        energy_before = self.global_optimizer.current_cluster.get_potential_energy()
 
         rejected = 0
         while True:
             step = (np.random.rand(3) - 0.5) * 2 * self.step
 
-            cluster.positions[index] += step
+            self.global_optimizer.current_cluster.positions[index] += step
 
-            self.global_optimizer.optimizers[0].run(fmax=0.2)
-            energy_after = cluster.get_potential_energy()  # type: ignore
+            opt = self.global_optimizer.local_optimizer(
+                self.global_optimizer.current_cluster, logfile="../log.txt"
+            )
+            opt.run(fmax=0.2)
+            energy_after = self.global_optimizer.current_cluster.get_potential_energy()
 
             accept: float
             if rejected > 5:
@@ -112,7 +115,7 @@ class Utility:
 
             if np.random.uniform() > accept:
                 rejected += 1
-                cluster.positions[index] -= step
+                self.global_optimizer.current_cluster.positions[index] -= step
                 continue
             break
 
@@ -361,6 +364,8 @@ class Utility:
         :param positions: Numpy array of the potential atomic configuration.
         :return: Boolean indicating stability of configuration.
         """
+        if positions.shape[0] == 0:
+            return True
         distances = pdist(positions)
         return bool(float(np.min(distances)) >= 0.15)
 

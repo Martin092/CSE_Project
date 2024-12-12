@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Literal
 from mpi4py import MPI  # pylint: disable=E0611
 from ase import Atoms
-from ase.io import write, Trajectory
+from ase.io import Trajectory
 import numpy as np
 
 from src.utility import Utility
@@ -31,14 +31,15 @@ class GlobalOptimizer(ABC):
         self.local_optimizer: Any = local_optimizer
         self.current_iteration: int = 0
         self.calculator: Any = calculator
-        self.utility: Utility | None = None
+        self.utility: Utility = Utility(self, 0, "C")
         self.execution_time: float = 0.0
         self.comm: MPI.Intracomm | None = comm
-        self.current_cluster: Atoms | None = None
+        self.current_cluster: Atoms = self.utility.generate_cluster()
         self.best_potential: float = float("inf")
-        self.best_config: Atoms | None = None
+        self.best_config: Atoms = self.utility.generate_cluster()
         self.potentials: List[float] = []
         self.configs: List[Atoms] = []
+        self.conv_iters: int = 0
         self.num_atoms: int = 0
         self.atom_type: str = ""
 
@@ -82,6 +83,7 @@ class GlobalOptimizer(ABC):
         num_atoms: int,
         atom_type: str,
         max_iterations: int,
+        conv_iters: int = 10,
         seed: int | None = None,
         initial_configuration: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
@@ -92,11 +94,13 @@ class GlobalOptimizer(ABC):
         :param num_atoms: Number of atoms in cluster to optimize for.
         :param atom_type: Atomic type of cluster.
         :param max_iterations: Number of maximum iterations to perform.
+        :param conv_iters: Number of iterations to be considered in the convergence criteria.
         :param seed: Seeding for reproducibility.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
         :return: None.
         """
         np.random.seed(seed)
+        self.conv_iters = conv_iters
         start_time = time.time()
         self.setup(num_atoms, atom_type, initial_configuration)
 

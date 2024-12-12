@@ -30,8 +30,8 @@ class Benchmark:
         energies = self.optimizer.potentials
         plt.plot(energies)
         plt.scatter(
-            self.optimizer.utility.big_jumps,  # type: ignore
-            [energies[i] for i in self.optimizer.utility.big_jumps],  # type: ignore
+            self.optimizer.utility.big_jumps,
+            [energies[i] for i in self.optimizer.utility.big_jumps],
             c="red",
         )
         plt.title(f"Execution on LJ{self.optimizer.num_atoms}")
@@ -39,12 +39,15 @@ class Benchmark:
         plt.ylabel("Potential Energy")
         plt.savefig(f"../data/optimizer/LJ{self.optimizer.num_atoms}.png")
 
-    def benchmark_run(self, indices: List[int], num_iterations: int) -> None:
+    def benchmark_run(
+        self, indices: List[int], num_iterations: int, conv_iters: int = 10
+    ) -> None:
         """
         Benchmark execution of Genetic Algorithm.
         Measures the execution times, saves the best configurations history and plots the best potentials.
         :param indices: Cluster indices for LJ tests.
         :param num_iterations: Max number of iterations per execution.
+        :param conv_iters: Number of iterations to be considered in the convergence criteria.
         :return: None.
         """
         times = []
@@ -53,12 +56,12 @@ class Benchmark:
             os.mkdir("../data")
             os.mkdir("../data/optimizer")
         for lj in indices:
-            self.optimizer.run(lj, "C", num_iterations)
+            self.optimizer.run(lj, "C", num_iterations, conv_iters)
 
             best_cluster = self.optimizer.best_config
             print(f"Best energy found: {self.optimizer.best_potential}")
             best_cluster.center()  # type: ignore
-            write(f"../data/optimizer/LJ{lj}.xyz", best_cluster)  # type: ignore
+            write(f"../data/optimizer/LJ{lj}.xyz", best_cluster)
 
             best = get_cluster_energy(lj, self.optimizer.atom_type)
 
@@ -81,8 +84,8 @@ class Benchmark:
                 f"min {int(self.optimizer.execution_time)%60} sec"
             )
             print(f"Stopped/Converged at iteration {self.optimizer.current_iteration}.")
-            if len(self.optimizer.utility.big_jumps) != 0:  # type: ignore
-                print(f"Big jumps were made at {self.optimizer.utility.big_jumps}")  # type: ignore
+            if len(self.optimizer.utility.big_jumps) != 0:
+                print(f"Big jumps were made at {self.optimizer.utility.big_jumps}")
 
             self.plot_energies()
 
