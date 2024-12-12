@@ -71,7 +71,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         max_energy = max(energies)
 
         if max_energy - min_en < self.alpha:
-            self.utility.random_step(self.current_cluster)
+            self.utility.random_step()
         else:
             self.angular_moves += 1
             self.utility.angular_movement(self.current_cluster)
@@ -83,7 +83,12 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         self.alphas = np.append(self.alphas, self.alpha)
         opt = self.local_optimizer(self.current_cluster, logfile='../log.txt')
         opt.run(fmax=0.2)
-        self.best_configs.append(self.current_cluster.copy())
+        self.configs.append(self.current_cluster.copy())
+
+        curr_energy = self.current_cluster.get_potential_energy()
+        if curr_energy < self.best_potential:
+            self.best_config = self.current_cluster.copy()
+            self.best_potential = curr_energy
 
     def is_converged(self, conv_iters: int = 10) -> bool:
         """
@@ -97,8 +102,8 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         ret = True
         cur = self.current_cluster.get_potential_energy()
         for i in range(self.current_iteration - 8, self.current_iteration - 1):
-            self.best_configs[i].calc = self.calculator()
-            energy_hist = self.best_configs[i].get_potential_energy()
+            self.configs[i].calc = self.calculator()
+            energy_hist = self.configs[i].get_potential_energy()
             ret &= bool(abs(cur - energy_hist) <= 1e-14)
         # return ret
         return False
