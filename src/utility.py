@@ -54,16 +54,23 @@ class Utility:
         positions: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
         ) = None,
+        seed: int | None = None
     ) -> Atoms:
         """
         Generate Atoms object with given or randomly generated coordinates.
         :param positions: Atomic coordinates, if None or Default, randomly generated.
         :return: Atoms object with cell and calculator specified.
         """
+        rng: np.random.Generator
+        if seed:
+            rng = np.random.default_rng(seed)
+        else:
+            rng = np.random.default_rng()
+
         if positions is None:
             while True:
                 positions = (
-                    (np.random.rand(self.num_atoms, 3) - 0.5) * self.box_length * 1.5
+                    (rng.random((self.num_atoms, 3)) - 0.5) * self.box_length * 1.5
                 )
                 if self.configuration_validity(positions):
                     break
