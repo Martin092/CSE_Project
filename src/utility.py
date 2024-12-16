@@ -104,7 +104,6 @@ class Utility:
 
             accept: float
             if rejected > 5:
-                print("MAKING BIG MOVES")
                 self.big_jumps.append(self.global_optimizer.current_iteration)
                 break
 

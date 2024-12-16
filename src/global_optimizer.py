@@ -21,6 +21,7 @@ class GlobalOptimizer(ABC):
         local_optimizer: Any,
         calculator: Any,
         comm: MPI.Intracomm | None = None,
+        log: bool = True
     ) -> None:
         """
         Global Optimizer Class Constructor
@@ -42,6 +43,7 @@ class GlobalOptimizer(ABC):
         self.conv_iters: int = 0
         self.num_atoms: int = 0
         self.atom_type: str = ""
+        self.log = log
 
     @abstractmethod
     def iteration(self) -> None:
@@ -97,6 +99,7 @@ class GlobalOptimizer(ABC):
         :param conv_iters: Number of iterations to be considered in the convergence criteria.
         :param seed: Seeding for reproducibility.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
+        :param log: Are logs printed to the terminal
         :return: None.
         """
         np.random.seed(seed)

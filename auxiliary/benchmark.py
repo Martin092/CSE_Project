@@ -38,6 +38,7 @@ class Benchmark:
         plt.xlabel("Iteration")
         plt.ylabel("Potential Energy")
         plt.savefig(f"../data/optimizer/LJ{self.optimizer.num_atoms}.png")
+        plt.show()
 
     def benchmark_run(
         self, indices: List[int], num_iterations: int, conv_iters: int = 10

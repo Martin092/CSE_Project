@@ -24,24 +24,25 @@ size = comm.Get_size()
 rank = comm.Get_rank()
 
 print(rank, flush=True)
-bh = BasinHoppingOptimizer(local_optimizer=FIRE, comm=comm)
+bh = BasinHoppingOptimizer(local_optimizer=FIRE, comm=comm, log=False)
 
 start = time.time()
-bh.run(max_iterations=10, num_atoms=13, atom_type="Fe")
+bh.run(max_iterations=10, num_atoms=13, atom_type="Fe", conv_iters=150)
 
 runtime = time.time() - start
-print(f"Energy is {bh.best_potential} in process {rank} found in {runtime}")
+print(f"Energy is {bh.best_potential} in process {rank} found in {runtime} for {bh.current_iteration} iterations")
 
+comm.barrier()
+print(f'After barrier {rank}')
 if rank == 0:
     best_cluster = bh.best_config
     best_energy = bh.best_potential
+    rank_best = 0
     for i in range(size - 1):
-        data = np.empty((bh.utility.num_atoms, 3))
+        data = np.ones((bh.utility.num_atoms, 3))
         print("Receiving...")
-        comm.Recv([data, MPI.DOUBLE], tag=1)
-
-        if data.shape != (bh.utility.num_atoms, 3):
-            continue
+        comm.Recv([data, MPI.DOUBLE], tag=MPI.ANY_TAG)
+        rank_curr = MPI.Status().tag
 
         new_cluster = Atoms(bh.utility.atom_type + str(bh.utility.num_atoms), positions=data)  # type: ignore
         new_cluster.calc = bh.calculator()
@@ -50,11 +51,12 @@ if rank == 0:
         if new_energy < best_energy:
             best_cluster = new_cluster
             best_energy = new_energy
+            rank_best = rank_curr
 
-    print(f"Best energy is {best_energy}")
+    print(f"Best energy is {best_energy} from {rank_best}")
     print(f"Actual best is    {get_cluster_energy(bh.num_atoms, bh.atom_type)}")
 
     write("src/clusters/LJ_min.xyz", best_cluster)
 else:
     data = bh.current_cluster.positions
-    comm.Send([data, MPI.DOUBLE], dest=0, tag=1)
+    comm.Send([data, MPI.DOUBLE], dest=0)

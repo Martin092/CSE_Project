@@ -36,11 +36,13 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         alpha: float = 2,
         sensitivity: float = 0.3,
         comm: MPI.Intracomm | None = None,
+        log: bool = True
     ) -> None:
         super().__init__(
             local_optimizer=local_optimizer,
             calculator=calculator,
             comm=comm,
+            log=log
         )
         self.last_energy = float("inf")
         self.alpha = alpha
@@ -53,12 +55,13 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         Performs single iteration of the Basin Hopping Optimizer.
         :return: None.
         """
-        if self.comm:
+        if self.comm and self.log:
             print(
                 f"Iteration {self.current_iteration} in {self.comm.Get_rank()}"
             )  # pragma: no cover
-        else:
+        elif self.log:
             print(f"Iteration {self.current_iteration}")
+
         if self.current_iteration == 0:
             self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
@@ -68,15 +71,19 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         min_en = min(energies)
         max_energy = max(energies)
 
-        if max_energy - min_en < self.alpha:
-            self.utility.random_step()
+        if np.random.rand() < 0:
+            self.utility.twist(self.current_cluster)
+            print('get twisted')
         else:
-            self.angular_moves += 1
-            self.utility.angular_movement(self.current_cluster)
+            if max_energy - min_en < self.alpha:
+                self.utility.random_step()
+            else:
+                self.angular_moves += 1
+                self.utility.angular_movement(self.current_cluster)
 
-        if self.current_iteration != 0:
-            fraction = self.angular_moves / self.current_iteration
-            self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
+            if self.current_iteration != 0:
+                fraction = self.angular_moves / self.current_iteration
+                self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
 
         self.alphas = np.append(self.alphas, self.alpha)
         opt = self.local_optimizer(self.current_cluster, logfile="../log.txt")
@@ -95,17 +102,21 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         :param conv_iters: Number of iterations to be considered.
         :return: True if convergence criteria is met, otherwise False.
         """
-        if self.current_iteration < 10:
+        if self.current_iteration < self.conv_iters:
             return False
 
-        ret = True
-        cur = self.current_cluster.get_potential_energy()  # type: ignore
-        for i in range(self.current_iteration - 8, self.current_iteration - 1):
+        decreased = False
+        biggest = self.current_cluster.get_potential_energy()
+        for i in reversed(range(self.current_iteration - self.conv_iters, self.current_iteration - 1)):
             self.configs[i].calc = self.calculator()
-            energy_hist = self.configs[i].get_potential_energy()  # type: ignore
-            ret &= bool(abs(cur - energy_hist) <= 1e-14)
-        # return ret
-        return False
+            energy = self.configs[i].get_potential_energy()
+
+            decreased |= energy > biggest
+
+        # if not decreased:
+        #     print(f"Converged at {self.current_iteration}")
+
+        return not decreased
 
     def seed(self, starting_from: int) -> Atoms:  # pragma: no cover
         """
