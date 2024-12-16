@@ -91,7 +91,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         if self.comm is None:
             self.logfile = "../log.txt"
         else:
-            self.logfile = "./log.txt"
+            self.logfile = "./log.txt"  # pragma: no cover
 
     def iteration(self) -> None:
         """

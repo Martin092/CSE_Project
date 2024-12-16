@@ -36,11 +36,13 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         alpha: float = 2,
         sensitivity: float = 0.3,
         comm: MPI.Intracomm | None = None,
+        debug: bool = False,
     ) -> None:
         super().__init__(
             local_optimizer=local_optimizer,
             calculator=calculator,
             comm=comm,
+            debug=debug,
         )
         self.last_energy = float("inf")
         self.alpha = alpha
