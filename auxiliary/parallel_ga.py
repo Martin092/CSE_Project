@@ -6,11 +6,11 @@ import os
 from ase.io import write
 from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
+from matplotlib import pyplot as plt
 
 sys.path.append("./")
 
 from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
-from auxiliary.benchmark import Benchmark  # pylint: disable=C0413
 from auxiliary.cambridge_database import get_cluster_energy  # pylint: disable=C0413
 
 
@@ -58,8 +58,12 @@ def parallel_ga(
 
         ga.utility.write_trajectory(f"./data/optimizer/LJ{num_atoms}.traj")
 
-        b = Benchmark(ga)
-        b.plot_energies()
+        plt.plot(ga.potentials)
+        plt.title(f"Execution on LJ{num_atoms}")
+        plt.xlabel("Iteration")
+        plt.ylabel("Potential Energy")
+        plt.savefig(f"./data/optimizer/LJ{num_atoms}.png")
+        plt.close()
 
         print(
             f"LJ {num_atoms}: {ga.current_iteration} iterations for "

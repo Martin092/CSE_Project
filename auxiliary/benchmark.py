@@ -11,6 +11,7 @@ from ase.io import write
 from matplotlib import pyplot as plt
 
 from src.global_optimizer import GlobalOptimizer
+from src.basin_hopping_optimizer import BasinHoppingOptimizer
 from auxiliary.cambridge_database import get_cluster_energy
 
 
@@ -29,11 +30,12 @@ class Benchmark:
         """
         energies = self.optimizer.potentials
         plt.plot(energies)
-        plt.scatter(
-            self.optimizer.utility.big_jumps,
-            [energies[i] for i in self.optimizer.utility.big_jumps],
-            c="red",
-        )
+        if isinstance(self.optimizer, BasinHoppingOptimizer):
+            plt.scatter(
+                self.optimizer.utility.big_jumps,
+                [energies[i] for i in self.optimizer.utility.big_jumps],
+                c="red",
+            )
         plt.title(f"Execution on LJ{self.optimizer.num_atoms}")
         plt.xlabel("Iteration")
         plt.ylabel("Potential Energy")
