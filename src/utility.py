@@ -163,7 +163,7 @@ class Utility:
             if np.random.uniform() < accept:
                 break
             cluster.positions = initial_positions
-        else:
+        else:  # pragma: no cover
             print("WARNING: Unable to find a valid rotational move.", file=sys.stderr)
 
     def md(
@@ -334,6 +334,41 @@ class Utility:
         principal_axes = pca.components_
         cluster.positions = np.dot(cluster.positions, principal_axes.T)
         return cluster
+
+    def vector(self, length: float = 0.1) -> np.ndarray:
+        """
+        Generates a 3D vector in random direction, given its length.
+        :param length: Length of the vector.
+        :return: 3D vector in random direction, of specified length.
+        """
+        azimuthal_angle = np.random.uniform(0, 2 * np.pi)
+        polar_angle = np.random.uniform(0, np.pi)
+
+        x = length * np.sin(polar_angle) * np.cos(azimuthal_angle)
+        y = length * np.sin(polar_angle) * np.sin(azimuthal_angle)
+        z = length * np.cos(polar_angle)
+
+        return np.array([x, y, z])
+
+    def random_displacement(self, cluster: Atoms, prob: float) -> None:
+        """
+        Performs random displacement of length 0.1 on atoms in cluster by given probability.
+        :param cluster: Cluster object to be mutated by random displacement.
+        :param prob: Probability of random displacement per atom.
+        :return: None, since cluster object is dynamically updated.
+        """
+        for i in range(self.global_optimizer.num_atoms):
+            if np.random.rand() < prob:
+                if self.global_optimizer.debug:
+                    print("Random displacement", flush=True)
+                positions = cluster.positions.copy()
+                vector = self.vector()
+                positions[i] += vector
+                while not self.configuration_validity(positions):
+                    positions = cluster.positions.copy()
+                    vector = self.vector()
+                    positions[i] += vector
+                cluster[i].position += vector
 
     def compare_clusters(
         self, cluster1: Atoms, cluster2: Atoms, atol: float
