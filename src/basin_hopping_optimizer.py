@@ -97,12 +97,12 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         Checks if convergence criteria is satisfied.
         :return: True if convergence criteria is met, otherwise False.
         """
-        if self.current_iteration < self.conv_iters:
+        if self.current_iteration < self.conv_iterations:
             return False
 
         decreased = False
         biggest = self.current_cluster.get_potential_energy()
-        for i in reversed(range(self.current_iteration - self.conv_iters, self.current_iteration - 1)):
+        for i in reversed(range(self.current_iteration - self.conv_iterations, self.current_iteration - 1)):
             self.configs[i].calc = self.calculator()
             energy = self.configs[i].get_potential_energy()
 

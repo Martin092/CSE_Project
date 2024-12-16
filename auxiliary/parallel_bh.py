@@ -20,23 +20,21 @@ from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable
 from auxiliary.cambridge_database import get_cluster_energy  # pylint: disable=C0413
 
 
-lj = 13  # pylint: disable=C0103
+lj = 38  # pylint: disable=C0103
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
 print(rank, flush=True)
-bh = BasinHoppingOptimizer(local_optimizer=FIRE, comm=comm, log=False)
+bh = BasinHoppingOptimizer(local_optimizer=FIRE, comm=comm, debug=False)
 
 start = time.time()
-bh.run(max_iterations=10, num_atoms=lj, atom_type="C")
+bh.run(max_iterations=1000, num_atoms=lj, atom_type="C", conv_iterations=150)
 
 runtime = time.time() - start
 print(f"Energy is {bh.best_potential} in process {rank} found in {runtime} for {bh.current_iteration} iterations")
 
-comm.barrier()
-print(f'After barrier {rank}')
 if rank == 0:
     best_cluster = bh.best_config
     best_energy = bh.best_potential
@@ -44,8 +42,9 @@ if rank == 0:
     for i in range(size - 1):
         data = np.ones((bh.utility.num_atoms, 3))
         print("Receiving...")
-        comm.Recv([data, MPI.DOUBLE], tag=MPI.ANY_TAG)
-        rank_curr = MPI.Status().tag
+        status = MPI.Status()
+        comm.Recv([data, MPI.DOUBLE], tag=MPI.ANY_TAG, status=status)
+        rank_curr = status.Get_source()
 
         new_cluster = Atoms(bh.utility.atom_type + str(bh.utility.num_atoms), positions=data)  # type: ignore
         new_cluster.calc = bh.calculator()
@@ -56,7 +55,7 @@ if rank == 0:
             best_energy = new_energy
             rank_best = rank_curr
 
-    print(f"Best energy is {best_energy}")
+    print(f"Best energy is {best_energy} from {rank_best}")
     best = get_cluster_energy(bh.num_atoms, "./")
     print(f"Actual best is {best}")
     if not os.path.exists("./data/optimizer"):
