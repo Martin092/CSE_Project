@@ -6,6 +6,7 @@ mpiexec -n 10 python auxiliary/parallel_bh.py
 """
 
 import sys
+import os
 import time
 from ase import Atoms
 from ase.optimize import FIRE
@@ -19,6 +20,8 @@ from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable
 from auxiliary.cambridge_database import get_cluster_energy  # pylint: disable=C0413
 
 
+lj = 13  # pylint: disable=C0103
+
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
@@ -27,7 +30,7 @@ print(rank, flush=True)
 bh = BasinHoppingOptimizer(local_optimizer=FIRE, comm=comm, log=False)
 
 start = time.time()
-bh.run(max_iterations=10, num_atoms=13, atom_type="Fe", conv_iters=150)
+bh.run(max_iterations=10, num_atoms=lj, atom_type="C")
 
 runtime = time.time() - start
 print(f"Energy is {bh.best_potential} in process {rank} found in {runtime} for {bh.current_iteration} iterations")
@@ -53,10 +56,13 @@ if rank == 0:
             best_energy = new_energy
             rank_best = rank_curr
 
-    print(f"Best energy is {best_energy} from {rank_best}")
-    print(f"Actual best is    {get_cluster_energy(bh.num_atoms, bh.atom_type)}")
+    print(f"Best energy is {best_energy}")
+    best = get_cluster_energy(bh.num_atoms, "./")
+    print(f"Actual best is {best}")
+    if not os.path.exists("./data/optimizer"):
+        os.mkdir("./data/optimizer")
+    write(f"data/optimizer/LJ{lj}.xyz", best_cluster)
 
-    write("src/clusters/LJ_min.xyz", best_cluster)
 else:
     data = bh.current_cluster.positions
-    comm.Send([data, MPI.DOUBLE], dest=0)
+    comm.Send([data, MPI.DOUBLE], dest=0, tag=1)

@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Literal
 from mpi4py import MPI  # pylint: disable=E0611
 from ase import Atoms
-from ase.io import Trajectory
 import numpy as np
 
 from src.utility import Utility
@@ -21,13 +20,14 @@ class GlobalOptimizer(ABC):
         local_optimizer: Any,
         calculator: Any,
         comm: MPI.Intracomm | None = None,
-        log: bool = True
+        debug: bool = False,
     ) -> None:
         """
         Global Optimizer Class Constructor
         :param local_optimizer: ASE Optimizer.
         :param calculator: ASE Calculator.
         :param comm: MPI global communicator object.
+        :param debug: Whether to print every operation for debugging purposes.
         """
         self.local_optimizer: Any = local_optimizer
         self.current_iteration: int = 0
@@ -40,10 +40,11 @@ class GlobalOptimizer(ABC):
         self.best_config: Atoms = self.utility.generate_cluster()
         self.potentials: List[float] = []
         self.configs: List[Atoms] = []
-        self.conv_iters: int = 0
+        self.conv_iterations: int = 0
         self.num_atoms: int = 0
         self.atom_type: str = ""
-        self.log = log
+        self.debug = debug
+        self.logfile = "../log.txt"
 
     @abstractmethod
     def iteration(self) -> None:
@@ -79,13 +80,17 @@ class GlobalOptimizer(ABC):
         self.atom_type = atom_type
         self.utility = Utility(self, num_atoms, atom_type)
         self.current_cluster = self.utility.generate_cluster(initial_configuration)
+        if self.comm is None:
+            self.logfile = "../log.txt"
+        else:
+            self.logfile = "./log.txt"  # pragma: no cover
 
     def run(
         self,
         num_atoms: int,
         atom_type: str,
         max_iterations: int,
-        conv_iters: int = 10,
+        conv_iterations: int = 0,
         seed: int | None = None,
         initial_configuration: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
@@ -96,14 +101,16 @@ class GlobalOptimizer(ABC):
         :param num_atoms: Number of atoms in cluster to optimize for.
         :param atom_type: Atomic type of cluster.
         :param max_iterations: Number of maximum iterations to perform.
-        :param conv_iters: Number of iterations to be considered in the convergence criteria.
+        :param conv_iterations: Number of iterations to be considered in the convergence criteria.
         :param seed: Seeding for reproducibility.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
         :param log: Are logs printed to the terminal
         :return: None.
         """
         np.random.seed(seed)
-        self.conv_iters = conv_iters
+        if conv_iterations == 0:
+            conv_iterations = max_iterations
+        self.conv_iterations = conv_iterations
         start_time = time.time()
         self.setup(num_atoms, atom_type, initial_configuration)
 
@@ -113,13 +120,5 @@ class GlobalOptimizer(ABC):
 
         self.execution_time = time.time() - start_time
 
-    def write_trajectory(self, filename: str) -> None:  # pragma: no cover
-        """
-        Writes all clusters in the history to a trajectory file
-        :param filename: Path of the trajectory file, with .traj extension
-        :return: None, writes to file
-        """
-        with Trajectory(filename, mode="w") as traj:  # type: ignore
-            for cluster in self.configs:
-                cluster.center()  # type: ignore
-                traj.write(cluster)  # pylint: disable=E1101
+        if self.debug and self.current_iteration == max_iterations:
+            print("Maximum number of iterations reached", flush=True)

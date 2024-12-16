@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
 from scipy.spatial.distance import pdist  # type: ignore
 from ase import Atoms, Atom
+from ase.io import Trajectory
 from ase.units import fs
 from ase.md.langevin import Langevin
 from ase.optimize.minimahopping import PassedMinimum
@@ -80,27 +81,27 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self) -> None:
+    def random_step(self, cluster: Atoms) -> None:
         """
-        Moves the highest energy atom in a random direction
-        :param cluster: the cluster we want to disturb
-        :return: result is written directly to cluster, nothing is returned
+        Moves the highest energy atom in a random direction.
+        :param cluster: The cluster to perform the random step for.
+        :return: Result is written directly to cluster, nothing is returned.
         """
-        energies = self.global_optimizer.current_cluster.get_potential_energies()
+        energies = cluster.get_potential_energies()  # type: ignore
         index = np.argmax(energies)
-        energy_before = self.global_optimizer.current_cluster.get_potential_energy()
+        energy_before = cluster.get_potential_energy()  # type: ignore
 
         rejected = 0
         while True:
             step = (np.random.rand(3) - 0.5) * 2 * self.step
 
-            self.global_optimizer.current_cluster.positions[index] += step
+            cluster.positions[index] += step
 
             opt = self.global_optimizer.local_optimizer(
-                self.global_optimizer.current_cluster, logfile="../log.txt"
+                cluster, logfile=self.global_optimizer.logfile
             )
-            opt.run(fmax=0.2)
-            energy_after = self.global_optimizer.current_cluster.get_potential_energy()
+            opt.run()
+            energy_after = cluster.get_potential_energy()  # type: ignore
 
             accept: float
             if rejected > 5:
@@ -113,7 +114,7 @@ class Utility:
 
             if np.random.uniform() > accept:
                 rejected += 1
-                self.global_optimizer.current_cluster.positions[index] -= step
+                cluster.positions[index] -= step
                 continue
             break
 
@@ -245,7 +246,9 @@ class Utility:
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
 
-        opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
+        opt = self.global_optimizer.local_optimizer(
+            cluster, logfile=self.global_optimizer.logfile
+        )
         opt.run(steps=20000)
 
         self.append_atom(cluster)
@@ -257,7 +260,9 @@ class Utility:
         """
         self.append_atom(cluster)
 
-        opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
+        opt = self.global_optimizer.local_optimizer(
+            cluster, logfile=self.global_optimizer.logfile
+        )
         opt.run(steps=20000)
 
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
@@ -394,3 +399,14 @@ class Utility:
                 ],
             ]
         )
+
+    def write_trajectory(self, filename: str) -> None:  # pragma: no cover
+        """
+        Writes all clusters in the history to a trajectory file
+        :param filename: Path of the trajectory file, with .traj extension
+        :return: None, writes to file
+        """
+        with Trajectory(filename, mode="w") as traj:  # type: ignore
+            for cluster in self.global_optimizer.configs:
+                cluster.center()
+                traj.write(cluster)  # pylint: disable=E1101
