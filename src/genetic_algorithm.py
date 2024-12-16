@@ -21,7 +21,7 @@ class GeneticAlgorithm(GlobalOptimizer):
     def __init__(  # pylint: disable=W0102
         self,
         mutation: OrderedDict[str, float] = OrderedDict(
-            [("twist", 0.2), ("angular", 0.2), ("etching", 0.2)]
+            [("twist", 0.2), ("angular", 0.2), ("random step", 0.2), ("etching", 0.2)]
         ),
         num_clusters: int = 16,
         num_selection: int = 0,
@@ -29,6 +29,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         local_optimizer: Any = BFGS,
         calculator: Any = LennardJones,
         comm: MPI.Intracomm | None = None,
+        debug: bool = False,
     ) -> None:
         """
         Genetic Algorithm Class constructor
@@ -40,12 +41,14 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param local_optimizer: optimizer used to find local minima
         :param calculator: calculator used to derive energies and potentials
         :param comm: global parallel execution communicator
+        :param debug: Whether to print every operation for debugging purposes.
         """
         self.parallel: bool = False
         super().__init__(
             local_optimizer=local_optimizer,
             calculator=calculator,
             comm=comm,
+            debug=debug,
         )
         self.mutation_probability = mutation
         if num_selection == 0:
@@ -74,11 +77,15 @@ class GeneticAlgorithm(GlobalOptimizer):
         :return: None.
         """
         self.current_iteration = 0
+        self.configs = []
+        self.best_potential: float = float("inf")
         self.energies = []
         self.num_atoms = num_atoms
         self.atom_type = atom_type
         self.utility = Utility(self, num_atoms, atom_type)
+        self.best_config: Atoms = self.utility.generate_cluster()
         self.current_cluster = self.utility.generate_cluster(initial_configuration)
+        self.cluster_list = []
         for _ in range(self.num_clusters):
             clus = self.utility.generate_cluster()
             self.cluster_list.append(clus)
@@ -92,34 +99,39 @@ class GeneticAlgorithm(GlobalOptimizer):
         to create a new generation.
         :return: None, since everything is store in class fields.
         """
-        print(f"Iteration {self.current_iteration}", flush=True)
+        if self.debug:
+            print(f"Iteration {self.current_iteration}", flush=True)
         self.energies = []
         if self.parallel:  # pragma: no cover
             for index, cluster in enumerate(self.cluster_list):
                 receiver = index % (self.comm.Get_size() - 1) + 1  # type: ignore
-                print(f"Sending to {receiver} from {self.comm.Get_rank()}.", flush=True)  # type: ignore
+                if self.debug:
+                    print(f"Sending to {receiver} from {self.comm.Get_rank()}.", flush=True)  # type: ignore
                 self.comm.Send([cluster.positions, MPI.DOUBLE], dest=receiver, tag=1)  # type: ignore
             self.cluster_list = []
             for _ in range(self.num_clusters):
                 pos = np.empty((self.num_atoms, 3), dtype=np.float64)
-                print(f"{self.comm.Get_rank()} receiving.", flush=True)  # type: ignore
+                if self.debug:
+                    print(f"{self.comm.Get_rank()} receiving.", flush=True)  # type: ignore
                 self.comm.Recv([pos, MPI.DOUBLE], tag=2, source=MPI.ANY_SOURCE)  # type: ignore
                 clus = self.utility.generate_cluster(pos)
                 self.cluster_list.append(clus)
 
         if not self.parallel:
             for index, cluster in enumerate(self.cluster_list):
-                print(
-                    f"Cluster {index+1}/{self.num_clusters} begins local optimization.",
-                    flush=True,
-                )
+                if self.debug:
+                    print(
+                        f"Cluster {index+1}/{self.num_clusters} begins local optimization.",
+                        flush=True,
+                    )
                 opt = self.local_optimizer(cluster, logfile="../log.txt")
                 t = time.time()
                 opt.run(steps=20000)  # Local optimization
-                print(
-                    f"Cluster {index+1}/{self.num_clusters} successfully optimized for {time.time()-t} s.",
-                    flush=True,
-                )
+                if self.debug:
+                    print(
+                        f"Cluster {index+1}/{self.num_clusters} successfully optimized for {time.time()-t} s.",
+                        flush=True,
+                    )
         for cluster in self.cluster_list:
             self.energies.append(
                 cluster.get_potential_energy()  # type: ignore
@@ -132,7 +144,10 @@ class GeneticAlgorithm(GlobalOptimizer):
                 clus
             )  # Add child to current list of configurations
         for cluster in enumerate(self.cluster_list):  # type: ignore
-            print(f"Mutating cluster {cluster[0]+1}/{self.num_clusters}", flush=True)
+            if self.debug:
+                print(
+                    f"Mutating cluster {cluster[0]+1}/{self.num_clusters}", flush=True
+                )
             self.mutation(cluster[1])  # Perform mutation
 
     def is_converged(self) -> bool:
@@ -140,12 +155,12 @@ class GeneticAlgorithm(GlobalOptimizer):
         Checks if convergence criteria is satisfied.
         :return: True if convergence criteria is met, otherwise False.
         """
-        if self.current_iteration < self.conv_iters:
+        if self.current_iteration < self.conv_iterations:
             return False
         ret = True
         cur = self.potentials[self.current_iteration - 1]
         for i in range(
-            self.current_iteration - self.conv_iters, self.current_iteration - 1
+            self.current_iteration - self.conv_iterations, self.current_iteration - 1
         ):
             ret &= bool(abs(cur - self.potentials[i]) <= 10**-6)
         return ret
@@ -251,22 +266,33 @@ class GeneticAlgorithm(GlobalOptimizer):
         for i in self.mutation_probability:
             if i == "twist":
                 if np.random.rand() <= self.mutation_probability[i]:
-                    print("Twist", flush=True)
-                    self.utility.twist(cluster)
+                    if self.debug:
+                        print("Twist", flush=True)
+                    self.utility.twist(cluster)  # Perform twist mutation
             elif i == "angular":
                 if np.random.rand() <= self.mutation_probability[i]:
-                    print("Angular", flush=True)
-                    self.utility.angular_movement(cluster)
+                    if self.debug:
+                        print("Angular", flush=True)
+                    self.utility.angular_movement(
+                        cluster
+                    )  # Perform angular movement mutation
+            elif i == "random step":
+                if np.random.rand() <= self.mutation_probability[i]:
+                    if self.debug:
+                        print("Random step", flush=True)
+                    self.utility.random_step(cluster)  # Perform random step mutation
             elif i == "etching":
                 etching = np.random.rand()
                 if etching <= self.mutation_probability[i]:
                     if etching < self.mutation_probability[i] / 2:
-                        print("Etching (-)", flush=True)
+                        if self.debug:
+                            print("Etching (-)", flush=True)
                         self.utility.etching_subtraction(
                             cluster
                         )  # Perform etching mutation (-)
                     else:
-                        print("Etching (+)", flush=True)
+                        if self.debug:
+                            print("Etching (+)", flush=True)
                         self.utility.etching_addition(
                             cluster
                         )  # Perform etching mutation (+)

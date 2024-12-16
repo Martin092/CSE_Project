@@ -69,7 +69,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         max_energy = max(energies)
 
         if max_energy - min_en < self.alpha:
-            self.utility.random_step()
+            self.utility.random_step(self.current_cluster)
         else:
             self.angular_moves += 1
             self.utility.angular_movement(self.current_cluster)
@@ -92,7 +92,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
     def is_converged(self) -> bool:
         """
         Checks if convergence criteria is satisfied.
-        :param conv_iters: Number of iterations to be considered.
         :return: True if convergence criteria is met, otherwise False.
         """
         if self.current_iteration < 10:
