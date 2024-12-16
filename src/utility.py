@@ -97,7 +97,9 @@ class Utility:
 
             cluster.positions[index] += step
 
-            opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
+            opt = self.global_optimizer.local_optimizer(
+                cluster, logfile=self.global_optimizer.logfile
+            )
             opt.run()
             energy_after = cluster.get_potential_energy()  # type: ignore
 
@@ -245,7 +247,9 @@ class Utility:
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
 
-        opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
+        opt = self.global_optimizer.local_optimizer(
+            cluster, logfile=self.global_optimizer.logfile
+        )
         opt.run(steps=20000)
 
         self.append_atom(cluster)
@@ -257,7 +261,9 @@ class Utility:
         """
         self.append_atom(cluster)
 
-        opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
+        opt = self.global_optimizer.local_optimizer(
+            cluster, logfile=self.global_optimizer.logfile
+        )
         opt.run(steps=20000)
 
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore

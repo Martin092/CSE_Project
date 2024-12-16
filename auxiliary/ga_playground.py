@@ -11,19 +11,21 @@ from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
 from auxiliary.benchmark import Benchmark  # pylint: disable=C0413
 from auxiliary.parallel_ga import parallel_ga  # pylint: disable=C0413
 
+
+ga = GeneticAlgorithm(num_clusters=8, preserve=True, debug=True)
+
 # Serial Execution
 lj = [13]
-ga = GeneticAlgorithm(num_clusters=8, preserve=True, debug=True)
 b = Benchmark(ga)
-b.benchmark_run(lj, 100)
+b.benchmark_run(lj, 100, 10)
 
 # Parallel Execution
-parallel_ga(13, 100, 10, num_clusters=8, debug=True)
+parallel_ga(ga, 13, "C", 100, 10)
 
 # Visualize Results
 final_atoms = read(f"../data/optimizer/LJ{13}.xyz")
 view(final_atoms)  # type: ignore
 database = read(f"../data/database/LJ{13}.xyz")
 view(database)  # type: ignore
-traj = TrajectoryReader(f"../data/optimizer/LJ{13}.traj")
-view(traj)
+traj = TrajectoryReader(f"../data/optimizer/LJ{13}.traj")  # type: ignore
+view(traj)  # type: ignore

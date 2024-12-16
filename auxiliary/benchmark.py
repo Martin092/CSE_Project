@@ -37,17 +37,21 @@ class Benchmark:
         plt.title(f"Execution on LJ{self.optimizer.num_atoms}")
         plt.xlabel("Iteration")
         plt.ylabel("Potential Energy")
-        plt.savefig(f"../data/optimizer/LJ{self.optimizer.num_atoms}.png")
+        if self.optimizer.comm is None:
+            plt.savefig(f"../data/optimizer/LJ{self.optimizer.num_atoms}.png")
+        else:
+            plt.savefig(f"./data/optimizer/LJ{self.optimizer.num_atoms}.png")
+        plt.close()
 
     def benchmark_run(
-        self, indices: List[int], num_iterations: int, conv_iters: int = 10
+        self, indices: List[int], num_iterations: int, conv_iterations: int = 10
     ) -> None:
         """
         Benchmark execution of Global Optimizer for LJ clusters.
         Measures the execution times, saves the best configurations history and plots the best potentials.
         :param indices: Cluster indices for LJ tests.
         :param num_iterations: Max number of iterations per execution.
-        :param conv_iters: Number of iterations to be considered in the convergence criteria.
+        :param conv_iterations: Number of iterations to be considered in the convergence criteria.
         :return: None.
         """
         times = []
@@ -59,23 +63,20 @@ class Benchmark:
             os.mkdir("../data")
             os.mkdir("../data/optimizer")
         for lj in indices:
-            self.optimizer.run(lj, "C", num_iterations, conv_iters)
+            self.optimizer.run(lj, "C", num_iterations, conv_iterations)
 
             best_cluster = self.optimizer.best_config
             best_cluster.center()  # type: ignore
             write(f"../data/optimizer/LJ{lj}.xyz", best_cluster)
 
-            best = get_cluster_energy(lj, self.optimizer.atom_type)
+            best = get_cluster_energy(lj)
 
-            if (
-                self.optimizer.best_potential > best
-                and self.optimizer.best_potential - best < 0.001
-            ):
+            if abs(self.optimizer.best_potential - best) < 0.0001:
                 minima.append(1)
             elif self.optimizer.best_potential < best:
                 minima.append(2)
             else:
-                minima.append(3)
+                minima.append(0)
 
             self.optimizer.utility.write_trajectory(f"../data/optimizer/LJ{lj}.traj")
 

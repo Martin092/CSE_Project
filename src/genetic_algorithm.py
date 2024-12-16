@@ -43,7 +43,6 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param comm: global parallel execution communicator
         :param debug: Whether to print every operation for debugging purposes.
         """
-        self.parallel: bool = False
         super().__init__(
             local_optimizer=local_optimizer,
             calculator=calculator,
@@ -89,8 +88,10 @@ class GeneticAlgorithm(GlobalOptimizer):
         for _ in range(self.num_clusters):
             clus = self.utility.generate_cluster()
             self.cluster_list.append(clus)
-        if self.comm is not None:
-            self.parallel = True  # pragma: no cover
+        if self.comm is None:
+            self.logfile = "../log.txt"
+        else:
+            self.logfile = "./log.txt"
 
     def iteration(self) -> None:
         """
@@ -102,29 +103,32 @@ class GeneticAlgorithm(GlobalOptimizer):
         if self.debug:
             print(f"Iteration {self.current_iteration}", flush=True)
         self.energies = []
-        if self.parallel:  # pragma: no cover
+        if self.comm is not None:  # pragma: no cover
             for index, cluster in enumerate(self.cluster_list):
-                receiver = index % (self.comm.Get_size() - 1) + 1  # type: ignore
+                receiver = index % (self.comm.Get_size() - 1) + 1
                 if self.debug:
-                    print(f"Sending to {receiver} from {self.comm.Get_rank()}.", flush=True)  # type: ignore
-                self.comm.Send([cluster.positions, MPI.DOUBLE], dest=receiver, tag=1)  # type: ignore
+                    print(
+                        f"Sending to {receiver} from {self.comm.Get_rank()}.",
+                        flush=True,
+                    )
+                self.comm.Send([cluster.positions, MPI.DOUBLE], dest=receiver, tag=1)
             self.cluster_list = []
             for _ in range(self.num_clusters):
                 pos = np.empty((self.num_atoms, 3), dtype=np.float64)
                 if self.debug:
-                    print(f"{self.comm.Get_rank()} receiving.", flush=True)  # type: ignore
-                self.comm.Recv([pos, MPI.DOUBLE], tag=2, source=MPI.ANY_SOURCE)  # type: ignore
+                    print(f"{self.comm.Get_rank()} receiving.", flush=True)
+                self.comm.Recv([pos, MPI.DOUBLE], tag=2, source=MPI.ANY_SOURCE)
                 clus = self.utility.generate_cluster(pos)
                 self.cluster_list.append(clus)
 
-        if not self.parallel:
+        else:
             for index, cluster in enumerate(self.cluster_list):
                 if self.debug:
                     print(
                         f"Cluster {index+1}/{self.num_clusters} begins local optimization.",
                         flush=True,
                     )
-                opt = self.local_optimizer(cluster, logfile="../log.txt")
+                opt = self.local_optimizer(cluster, logfile=self.logfile)
                 t = time.time()
                 opt.run(steps=20000)  # Local optimization
                 if self.debug:
@@ -163,6 +167,8 @@ class GeneticAlgorithm(GlobalOptimizer):
             self.current_iteration - self.conv_iterations, self.current_iteration - 1
         ):
             ret &= bool(abs(cur - self.potentials[i]) <= 10**-6)
+        if ret and self.debug:
+            print(f"Converged at iteration {self.current_iteration}.", flush=True)
         return ret
 
     def selection(self) -> List[Atoms]:

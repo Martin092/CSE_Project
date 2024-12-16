@@ -44,6 +44,7 @@ class GlobalOptimizer(ABC):
         self.num_atoms: int = 0
         self.atom_type: str = ""
         self.debug = debug
+        self.logfile = "../log.txt"
 
     @abstractmethod
     def iteration(self) -> None:
@@ -79,6 +80,10 @@ class GlobalOptimizer(ABC):
         self.atom_type = atom_type
         self.utility = Utility(self, num_atoms, atom_type)
         self.current_cluster = self.utility.generate_cluster(initial_configuration)
+        if self.comm is None:
+            self.logfile = "../log.txt"
+        else:
+            self.logfile = "./log.txt"
 
     def run(
         self,
@@ -113,3 +118,6 @@ class GlobalOptimizer(ABC):
             self.current_iteration += 1
 
         self.execution_time = time.time() - start_time
+
+        if self.debug and self.current_iteration == max_iterations:
+            print("Maximum number of iterations reached", flush=True)

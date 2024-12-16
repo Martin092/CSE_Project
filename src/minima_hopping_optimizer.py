@@ -48,8 +48,8 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
             np.zeros(self.current_cluster.get_momenta().shape)  # type: ignore
         )
 
-        with self.local_optimizer(self.current_cluster, logfile="../log.txt") as opt:
-            opt.run(fmax=0.2)
+        with self.local_optimizer(self.current_cluster, logfile=self.logfile) as opt:
+            opt.run()
 
         self.check_results()
         self.configs.append(self.current_cluster.copy())  # type: ignore

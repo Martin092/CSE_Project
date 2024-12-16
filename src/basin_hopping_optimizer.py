@@ -79,8 +79,8 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
 
         self.alphas = np.append(self.alphas, self.alpha)
-        opt = self.local_optimizer(self.current_cluster, logfile="../log.txt")
-        opt.run(fmax=0.2)
+        opt = self.local_optimizer(self.current_cluster, logfile=self.logfile)
+        opt.run()
         self.configs.append(self.current_cluster.copy())  # type: ignore
 
         curr_energy = self.current_cluster.get_potential_energy()  # type: ignore
