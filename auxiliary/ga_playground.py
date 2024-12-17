@@ -1,6 +1,7 @@
 """GA empirical testing playground"""
 
 import sys
+from collections import OrderedDict
 from ase.io import read
 from ase.io.trajectory import TrajectoryReader
 from ase.visualize import view
@@ -11,8 +12,17 @@ from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
 from auxiliary.benchmark import Benchmark  # pylint: disable=C0413
 from auxiliary.parallel_ga import parallel_ga  # pylint: disable=C0413
 
+mutation = OrderedDict(
+    [
+        ("twist", 0.3),
+        ("random displacement", 0.1),
+        ("angular", 0.3),
+        ("random step", 0.3),
+        ("etching", 0.1),
+    ]
+)
 
-ga = GeneticAlgorithm(num_clusters=32, preserve=True, debug=True)
+ga = GeneticAlgorithm(mutation=mutation, num_clusters=32, debug=True)
 
 # Serial Execution
 lj = [13]
