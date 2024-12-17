@@ -54,16 +54,23 @@ class Utility:
         positions: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
         ) = None,
+        seed: int | None = None,
     ) -> Atoms:
         """
         Generate Atoms object with given or randomly generated coordinates.
         :param positions: Atomic coordinates, if None or Default, randomly generated.
         :return: Atoms object with cell and calculator specified.
         """
+        rng: np.random.Generator
+        if seed:
+            rng = np.random.default_rng(seed)
+        else:
+            rng = np.random.default_rng()
+
         if positions is None:
             while True:
                 positions = (
-                    (np.random.rand(self.num_atoms, 3) - 0.5) * self.box_length * 1.5
+                    (rng.random((self.num_atoms, 3)) - 0.5) * self.box_length * 1.5
                 )
                 if self.configuration_validity(positions):
                     break
@@ -81,11 +88,18 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self, cluster: Atoms, max_local_steps: int = 0) -> None:
+    def random_step(
+        self,
+        cluster: Atoms,
+        max_rejects: int = 5,
+        sensitivity: float = 0.01,
+        max_local_steps: int = 0,
+    ) -> None:
         """
         Moves the highest energy atom in a random direction.
         :param cluster: The cluster to perform the random step for.
-        :param max_local_steps: Maximum number of steps for the local optimizer.
+        :param max_rejects: Maximum number of steps that can be rejected before a move at temperature infinity is made
+        :param sensitivity: how quickly does the step size in order to keep the metropolis at 0.5
         :return: Result is written directly to cluster, nothing is returned.
         """
         energies = cluster.get_potential_energies()  # type: ignore
@@ -108,14 +122,13 @@ class Utility:
             energy_after = cluster.get_potential_energy()  # type: ignore
 
             accept: float
-            if rejected > 5:
-                print("MAKING BIG MOVES", flush=True)
+            if rejected > max_rejects:
                 self.big_jumps.append(self.global_optimizer.current_iteration)
                 break
 
             # Metropolis criterion gives an acceptance probability based on temperature for each move
             accept = self.metropolis_criterion(energy_before, energy_after)
-            self.step = self.step * (1 - 0.01 * (0.5 - accept))
+            self.step = self.step * (1 - sensitivity * (0.5 - accept))
 
             if np.random.uniform() > accept:
                 rejected += 1

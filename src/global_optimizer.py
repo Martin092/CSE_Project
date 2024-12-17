@@ -67,19 +67,23 @@ class GlobalOptimizer(ABC):
         initial_configuration: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
         ) = None,
+        seed: int | None = None,
     ) -> None:
         """
         Sets up the clusters by either initializing random clusters or using the seed provided.
         :param num_atoms: Number of atoms in cluster.
         :param atom_type: Atomic type of cluster.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
+        :param seed: seed for the random number generator
         :return: None.
         """
         self.current_iteration = 0
         self.num_atoms = num_atoms
         self.atom_type = atom_type
         self.utility = Utility(self, num_atoms, atom_type)
-        self.current_cluster = self.utility.generate_cluster(initial_configuration)
+        self.current_cluster = self.utility.generate_cluster(
+            initial_configuration, seed
+        )
         if self.comm is None:
             self.logfile = "../log.txt"
         else:
@@ -104,14 +108,14 @@ class GlobalOptimizer(ABC):
         :param conv_iterations: Number of iterations to be considered in the convergence criteria.
         :param seed: Seeding for reproducibility.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
+        :param log: Are logs printed to the terminal
         :return: None.
         """
-        np.random.seed(seed)
         if conv_iterations == 0:
             conv_iterations = max_iterations
         self.conv_iterations = conv_iterations
         start_time = time.time()
-        self.setup(num_atoms, atom_type, initial_configuration)
+        self.setup(num_atoms, atom_type, initial_configuration, seed)
 
         while self.current_iteration < max_iterations and not self.is_converged():
             self.iteration()

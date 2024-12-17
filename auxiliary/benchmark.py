@@ -43,10 +43,15 @@ class Benchmark:
             plt.savefig(f"../data/optimizer/LJ{self.optimizer.num_atoms}.png")
         else:
             plt.savefig(f"./data/optimizer/LJ{self.optimizer.num_atoms}.png")
+        plt.show()
         plt.close()
 
     def benchmark_run(
-        self, indices: List[int], num_iterations: int, conv_iterations: int = 10
+        self,
+        indices: List[int],
+        num_iterations: int,
+        conv_iterations: int = 10,
+        seed: int | None = None,
     ) -> None:
         """
         Benchmark execution of Global Optimizer for LJ clusters.
@@ -54,6 +59,7 @@ class Benchmark:
         :param indices: Cluster indices for LJ tests.
         :param num_iterations: Max number of iterations per execution.
         :param conv_iterations: Number of iterations to be considered in the convergence criteria.
+        :param seed: Seed for which to perform the benchmark
         :return: None.
         """
         times = []
@@ -65,7 +71,7 @@ class Benchmark:
             os.mkdir("../data")
             os.mkdir("../data/optimizer")
         for lj in indices:
-            self.optimizer.run(lj, "C", num_iterations, conv_iterations)
+            self.optimizer.run(lj, "C", num_iterations, conv_iterations, seed=seed)
 
             best_cluster = self.optimizer.best_config
             best_cluster.center()  # type: ignore
