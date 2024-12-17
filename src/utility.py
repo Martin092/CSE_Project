@@ -88,7 +88,13 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self, cluster: Atoms, max_rejects: int = 5, sensitivity: float = 0.01, max_local_steps: int = 0) -> None:
+    def random_step(
+        self,
+        cluster: Atoms,
+        max_rejects: int = 5,
+        sensitivity: float = 0.01,
+        max_local_steps: int = 0,
+    ) -> None:
         """
         Moves the highest energy atom in a random direction.
         :param cluster: The cluster to perform the random step for.
