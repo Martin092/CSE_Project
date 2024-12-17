@@ -88,10 +88,11 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self, cluster: Atoms) -> None:
+    def random_step(self, cluster: Atoms, max_local_steps: int = 100000000) -> None:
         """
         Moves the highest energy atom in a random direction.
         :param cluster: The cluster to perform the random step for.
+        :param max_local_steps: Maximum number of steps for the local optimizer.
         :return: Result is written directly to cluster, nothing is returned.
         """
         energies = cluster.get_potential_energies()  # type: ignore
@@ -107,7 +108,7 @@ class Utility:
             opt = self.global_optimizer.local_optimizer(
                 cluster, logfile=self.global_optimizer.logfile
             )
-            opt.run()
+            opt.run(max_local_steps)
             energy_after = cluster.get_potential_energy()  # type: ignore
 
             accept: float
@@ -169,7 +170,7 @@ class Utility:
             if np.random.uniform() < accept:
                 break
             cluster.positions = initial_positions
-        else:
+        else:  # pragma: no cover
             print("WARNING: Unable to find a valid rotational move.", file=sys.stderr)
 
     def md(
@@ -244,10 +245,11 @@ class Utility:
 
         return cluster
 
-    def etching_subtraction(self, cluster: Atoms) -> None:
+    def etching_subtraction(self, cluster: Atoms, max_local_steps: int = 20000) -> None:
         """
-        Deletes a random atom from the cluster, optimizes the cluster, and
+        Deletes the highest energy atom from the cluster, optimizes the cluster, and
         then adds a new atom to maintain the same number of atoms.
+        :param max_local_steps: Maximum number of steps for the local optimizer.
         :param cluster: The atomic cluster to modify
         """
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
@@ -256,13 +258,14 @@ class Utility:
         opt = self.global_optimizer.local_optimizer(
             cluster, logfile=self.global_optimizer.logfile
         )
-        opt.run(steps=20000)
+        opt.run(steps=max_local_steps)
 
         self.append_atom(cluster)
 
-    def etching_addition(self, cluster: Atoms) -> None:
+    def etching_addition(self, cluster: Atoms, max_local_steps: int = 20000) -> None:
         """
         Adds a new atom to the cluster, optimizes the cluster, and then deletes the highest energy atom.
+        :param max_local_steps: Maximum number of steps for the local optimizer.
         :param cluster: The atomic cluster to modify
         """
         self.append_atom(cluster)
@@ -270,7 +273,7 @@ class Utility:
         opt = self.global_optimizer.local_optimizer(
             cluster, logfile=self.global_optimizer.logfile
         )
-        opt.run(steps=20000)
+        opt.run(steps=max_local_steps)
 
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
@@ -340,6 +343,41 @@ class Utility:
         principal_axes = pca.components_
         cluster.positions = np.dot(cluster.positions, principal_axes.T)
         return cluster
+
+    def vector(self, length: float = 0.1) -> np.ndarray:
+        """
+        Generates a 3D vector in random direction, given its length.
+        :param length: Length of the vector.
+        :return: 3D vector in random direction, of specified length.
+        """
+        azimuthal_angle = np.random.uniform(0, 2 * np.pi)
+        polar_angle = np.random.uniform(0, np.pi)
+
+        x = length * np.sin(polar_angle) * np.cos(azimuthal_angle)
+        y = length * np.sin(polar_angle) * np.sin(azimuthal_angle)
+        z = length * np.cos(polar_angle)
+
+        return np.array([x, y, z])
+
+    def random_displacement(self, cluster: Atoms, prob: float) -> None:
+        """
+        Performs random displacement of length 0.1 on atoms in cluster by given probability.
+        :param cluster: Cluster object to be mutated by random displacement.
+        :param prob: Probability of random displacement per atom.
+        :return: None, since cluster object is dynamically updated.
+        """
+        for i in range(self.global_optimizer.num_atoms):
+            if np.random.rand() < prob:
+                if self.global_optimizer.debug:
+                    print("Random displacement", flush=True)
+                positions = cluster.positions.copy()
+                vector = self.vector()
+                positions[i] += vector
+                while not self.configuration_validity(positions):
+                    positions = cluster.positions.copy()
+                    vector = self.vector()
+                    positions[i] += vector
+                cluster[i].position += vector
 
     def compare_clusters(
         self, cluster1: Atoms, cluster2: Atoms, atol: float
