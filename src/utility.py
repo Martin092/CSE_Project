@@ -88,12 +88,12 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self, cluster: Atoms, max_rejects: int = 5, sensitivity: float = 0.01, max_local_steps: int = 100_000_000) -> None:
+    def random_step(self, cluster: Atoms, max_rejects: int = 5, sensitivity: float = 0.01) -> None:
         """
         Moves the highest energy atom in a random direction.
         :param cluster: The cluster to perform the random step for.
         :param max_rejects: Maximum number of steps that can be rejected before a move at temperature infinity is made
-        :param max_local_steps: Maximum number of steps for the local optimizer.
+        :param sensitivity: how quickly does the step size in order to keep the metropolis at 0.5
         :return: Result is written directly to cluster, nothing is returned.
         """
         energies = cluster.get_potential_energies()  # type: ignore
@@ -109,7 +109,7 @@ class Utility:
             opt = self.global_optimizer.local_optimizer(
                 cluster, logfile=self.global_optimizer.logfile
             )
-            opt.run(max_local_steps)
+            opt.run()
             energy_after = cluster.get_potential_energy()  # type: ignore
 
             accept: float

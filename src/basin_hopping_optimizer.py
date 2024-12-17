@@ -26,7 +26,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         energy pair for angular movements to take place. Keep in mind that this parameter
         changes overtime and will oscillate around a certain value. Optimally it should
         start around that value.
-        sensitivity         how quickly will alpha change. Larger values result in bigger oscillations
+        sensitivity_angular  how quickly will alpha change. Larger values result in bigger oscillations
+        sensitivity_step     how quickly does the step size in order to keep the metropolis at 0.5
+        percent_angular_moves what percent of the total moves should be angular approximately
     """
 
     def __init__(
@@ -78,7 +80,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         max_energy = max(energies)
 
         if max_energy - min_en < self.alpha:
-            self.utility.random_step(self.current_cluster, max_rejects=self.max_rejects, sensitivity=self.sensitivity_step)
+            self.utility.random_step(self.current_cluster, sensitivity=self.sensitivity_step)
         else:
             self.angular_moves += 1
             self.utility.angular_movement(self.current_cluster)
@@ -113,9 +115,6 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             energy = self.configs[i].get_potential_energy()
 
             decreased |= energy > biggest
-
-        # if not decreased:
-        #     print(f"Converged at {self.current_iteration}")
 
         return not decreased
 
