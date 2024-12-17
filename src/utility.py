@@ -88,10 +88,11 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self, cluster: Atoms, max_local_steps: int = 100000000) -> None:
+    def random_step(self, cluster: Atoms, max_rejects: int = 5, sensitivity: float = 0.01, max_local_steps: int = 100_000_000) -> None:
         """
         Moves the highest energy atom in a random direction.
         :param cluster: The cluster to perform the random step for.
+        :param max_rejects: Maximum number of steps that can be rejected before a move at temperature infinity is made
         :param max_local_steps: Maximum number of steps for the local optimizer.
         :return: Result is written directly to cluster, nothing is returned.
         """
@@ -112,13 +113,13 @@ class Utility:
             energy_after = cluster.get_potential_energy()  # type: ignore
 
             accept: float
-            if rejected > 5:
+            if rejected > max_rejects:
                 self.big_jumps.append(self.global_optimizer.current_iteration)
                 break
 
             # Metropolis criterion gives an acceptance probability based on temperature for each move
             accept = self.metropolis_criterion(energy_before, energy_after)
-            self.step = self.step * (1 - 0.01 * (0.5 - accept))
+            self.step = self.step * (1 - sensitivity * (0.5 - accept))
 
             if np.random.uniform() > accept:
                 rejected += 1

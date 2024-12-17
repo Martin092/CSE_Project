@@ -34,9 +34,12 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         local_optimizer: Any = FIRE,
         calculator: Any = LennardJones,
         alpha: float = 2,
-        sensitivity: float = 0.3,
+        sensitivity_angular: float = 0.3,
+        sensitivity_step: float = 0.01,
+        percent_angular_moves: float = 0.5,
         comm: MPI.Intracomm | None = None,
         debug: bool = False,
+        max_rejects: int = 5
     ) -> None:
         super().__init__(
             local_optimizer=local_optimizer,
@@ -48,7 +51,10 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         self.alpha = alpha
         self.angular_moves = 0
         self.alphas = np.array([self.alpha])
-        self.sensitivity = sensitivity
+        self.sensitivity_angular = sensitivity_angular
+        self.sensitivity_step = sensitivity_step
+        self.max_rejects = max_rejects
+        self.percent_angular_moves = percent_angular_moves
 
     def iteration(self) -> None:
         """
@@ -72,14 +78,14 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         max_energy = max(energies)
 
         if max_energy - min_en < self.alpha:
-            self.utility.random_step(self.current_cluster)
+            self.utility.random_step(self.current_cluster, max_rejects=self.max_rejects, sensitivity=self.sensitivity_step)
         else:
             self.angular_moves += 1
             self.utility.angular_movement(self.current_cluster)
 
             if self.current_iteration != 0:
                 fraction = self.angular_moves / self.current_iteration
-                self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
+                self.alpha = self.alpha * (1 - self.sensitivity_angular * (self.percent_angular_moves - fraction))
 
         self.alphas = np.append(self.alphas, self.alpha)
         opt = self.local_optimizer(self.current_cluster, logfile=self.logfile)
