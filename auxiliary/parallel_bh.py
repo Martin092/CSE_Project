@@ -33,12 +33,14 @@ start = time.time()
 bh.run(max_iterations=1000, num_atoms=lj, atom_type="C", conv_iterations=150)
 
 runtime = time.time() - start
-print(f"Energy is {bh.best_potential} in process {rank} found in {runtime} for {bh.current_iteration} iterations")
+print(
+    f"Energy is {bh.best_potential} in process {rank} found in {runtime} for {bh.current_iteration} iterations"
+)
 
 if rank == 0:
     best_cluster = bh.best_config
     best_energy = bh.best_potential
-    rank_best = 0
+    RANK_BEST = 0
     for i in range(size - 1):
         data = np.ones((bh.utility.num_atoms, 3))
         print("Receiving...")
@@ -53,9 +55,9 @@ if rank == 0:
         if new_energy < best_energy:
             best_cluster = new_cluster
             best_energy = new_energy
-            rank_best = rank_curr
+            RANK_BEST = rank_curr
 
-    print(f"Best energy is {best_energy} from {rank_best}")
+    print(f"Best energy is {best_energy} from {RANK_BEST}")
     best = get_cluster_energy(bh.num_atoms, "./")
     print(f"Actual best is {best}")
     if not os.path.exists("./data/optimizer"):

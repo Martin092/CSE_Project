@@ -41,7 +41,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         percent_angular_moves: float = 0.5,
         comm: MPI.Intracomm | None = None,
         debug: bool = False,
-        max_rejects: int = 5
+        max_rejects: int = 5,
     ) -> None:
         super().__init__(
             local_optimizer=local_optimizer,
@@ -80,14 +80,19 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         max_energy = max(energies)
 
         if max_energy - min_en < self.alpha:
-            self.utility.random_step(self.current_cluster, sensitivity=self.sensitivity_step)
+            self.utility.random_step(
+                self.current_cluster, sensitivity=self.sensitivity_step
+            )
         else:
             self.angular_moves += 1
             self.utility.angular_movement(self.current_cluster)
 
             if self.current_iteration != 0:
                 fraction = self.angular_moves / self.current_iteration
-                self.alpha = self.alpha * (1 - self.sensitivity_angular * (self.percent_angular_moves - fraction))
+                self.alpha = self.alpha * (
+                    1
+                    - self.sensitivity_angular * (self.percent_angular_moves - fraction)
+                )
 
         self.alphas = np.append(self.alphas, self.alpha)
         opt = self.local_optimizer(self.current_cluster, logfile=self.logfile)
@@ -109,10 +114,15 @@ class BasinHoppingOptimizer(GlobalOptimizer):
             return False
 
         decreased = False
-        biggest = self.current_cluster.get_potential_energy()
-        for i in reversed(range(self.current_iteration - self.conv_iterations, self.current_iteration - 1)):
+        biggest = self.current_cluster.get_potential_energy()  # type: ignore
+        for i in reversed(
+            range(
+                self.current_iteration - self.conv_iterations,
+                self.current_iteration - 1,
+            )
+        ):
             self.configs[i].calc = self.calculator()
-            energy = self.configs[i].get_potential_energy()
+            energy = self.configs[i].get_potential_energy()  # type: ignore
 
             decreased |= energy > biggest
 

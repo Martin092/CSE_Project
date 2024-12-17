@@ -71,12 +71,14 @@ class GeneticAlgorithm(GlobalOptimizer):
         initial_configuration: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
         ) = None,
+        seed: int | None = None,
     ) -> None:
         """
         Sets up the clusters by either initializing random clusters or using the seed provided.
         :param num_atoms: Number of atoms in cluster.
         :param atom_type: Atomic type of cluster.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
+        :param seed: seed for the random number generator
         :return: None.
         """
         self.current_iteration = 0  # Current iteration/generation set to 0

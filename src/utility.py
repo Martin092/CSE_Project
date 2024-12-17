@@ -54,7 +54,7 @@ class Utility:
         positions: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
         ) = None,
-        seed: int | None = None
+        seed: int | None = None,
     ) -> Atoms:
         """
         Generate Atoms object with given or randomly generated coordinates.
@@ -88,7 +88,9 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self, cluster: Atoms, max_rejects: int = 5, sensitivity: float = 0.01) -> None:
+    def random_step(
+        self, cluster: Atoms, max_rejects: int = 5, sensitivity: float = 0.01
+    ) -> None:
         """
         Moves the highest energy atom in a random direction.
         :param cluster: The cluster to perform the random step for.

@@ -47,7 +47,11 @@ class Benchmark:
         plt.close()
 
     def benchmark_run(
-        self, indices: List[int], num_iterations: int, conv_iterations: int = 10, seed: int | None = None
+        self,
+        indices: List[int],
+        num_iterations: int,
+        conv_iterations: int = 10,
+        seed: int | None = None,
     ) -> None:
         """
         Benchmark execution of Global Optimizer for LJ clusters.
