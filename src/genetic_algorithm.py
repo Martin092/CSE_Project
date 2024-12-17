@@ -361,7 +361,7 @@ class GeneticAlgorithm(GlobalOptimizer):
                     if self.debug:
                         print("Random step", flush=True)
                     self.utility.random_step(
-                        cluster, max_local_steps
+                        cluster, max_local_steps=max_local_steps
                     )  # Perform random step mutation
             elif i == "etching":  # If key is etching
                 etching = np.random.rand()  # Draw probability
