@@ -20,16 +20,8 @@ class GeneticAlgorithm(GlobalOptimizer):
 
     def __init__(  # pylint: disable=W0102
         self,
-        mutation: OrderedDict[str, float] = OrderedDict(
-            [
-                ("twist", 0.3),
-                ("random displacement", 0.1),
-                ("angular", 0.3),
-                ("random step", 0.3),
-                ("etching", 0.3),
-            ]
-        ),
-        num_clusters: int = 16,
+        mutation: OrderedDict[str, float],
+        num_clusters: int,
         num_selection: int = 0,
         preserve: bool = True,
         local_optimizer: Any = BFGS,
@@ -334,10 +326,11 @@ class GeneticAlgorithm(GlobalOptimizer):
             ):  # Check if children generation is a valid configuration
                 return child_2
 
-    def mutation(self, cluster: Atoms) -> None:
+    def mutation(self, cluster: Atoms, max_local_steps: int = 20000) -> None:
         """
         Perform mutation on a cluster.
         :param cluster: Cluster to be mutated.
+        :param max_local_steps: Maximum number of steps for the local optimizer.
         :return: None, since clusters are dynamically binding object in the scope of the program.
         """
         for i in self.mutation_probability:  # Iterate over mutation Ordered Dictionary
@@ -365,7 +358,9 @@ class GeneticAlgorithm(GlobalOptimizer):
                 ):  # If drawn probability is sufficient
                     if self.debug:
                         print("Random step", flush=True)
-                    self.utility.random_step(cluster)  # Perform random step mutation
+                    self.utility.random_step(
+                        cluster, max_local_steps
+                    )  # Perform random step mutation
             elif i == "etching":  # If key is etching
                 etching = np.random.rand()  # Draw probability
                 if (
@@ -375,11 +370,11 @@ class GeneticAlgorithm(GlobalOptimizer):
                         if self.debug:
                             print("Etching (-)", flush=True)
                         self.utility.etching_subtraction(
-                            cluster
+                            cluster, max_local_steps
                         )  # Perform etching mutation (-)
                     else:  # But upper half
                         if self.debug:
                             print("Etching (+)", flush=True)
                         self.utility.etching_addition(
-                            cluster
+                            cluster, max_local_steps
                         )  # Perform etching mutation (+)

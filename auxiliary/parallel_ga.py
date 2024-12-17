@@ -129,7 +129,7 @@ def parallel_ga(
                 clus = ga.utility.generate_cluster(i)  # type: ignore
                 clusters.append(clus)  # Add Atoms object to list of clusters
             for clus in clusters:  # For each received cluster
-                ga.mutation(clus)  # Perform mutation
+                ga.mutation(clus, max_local_steps)  # Perform mutation
                 opt = ga.local_optimizer(
                     clus, logfile=ga.logfile
                 )  # Set up local optimizer
