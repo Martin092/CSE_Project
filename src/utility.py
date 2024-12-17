@@ -81,7 +81,7 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self, cluster: Atoms, max_local_steps: int = 100000000) -> None:
+    def random_step(self, cluster: Atoms, max_local_steps: int = 0) -> None:
         """
         Moves the highest energy atom in a random direction.
         :param cluster: The cluster to perform the random step for.
@@ -101,7 +101,10 @@ class Utility:
             opt = self.global_optimizer.local_optimizer(
                 cluster, logfile=self.global_optimizer.logfile
             )
-            opt.run(steps=max_local_steps)
+            if max_local_steps == 0:
+                opt.run()
+            else:
+                opt.run(steps=max_local_steps)
             energy_after = cluster.get_potential_energy()  # type: ignore
 
             accept: float
