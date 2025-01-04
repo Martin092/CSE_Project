@@ -66,8 +66,6 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
     def check_results(self) -> None:
         """
         Checks the outcome of a minima hopping run and changes temperature and e_diff variables depending on the outcome
-        :param m: Minima we found
-        :param cluster_index: Current index in the cluster list
         :return: None
         """
         if self.m_cur is not None:

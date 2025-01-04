@@ -151,8 +151,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
                 local_optimizer=self.local_optimizer, calculator=self.calculator
             )
             alg.run(
-                num_atoms=self.utility.num_atoms,
-                atom_type=self.utility.atom_type,
+                atoms=self.utility.atoms,
                 max_iterations=300,
             )
 
@@ -187,7 +186,7 @@ class BasinHoppingOptimizer(GlobalOptimizer):
                 sys.exit("Something went wrong")
             positions = np.vstack((positions, new_pos))
 
-        new_cluster = Atoms(self.utility.atom_type + str(self.utility.num_atoms), positions=positions)  # type: ignore
+        new_cluster = Atoms(self.utility.atoms, positions=positions)  # type: ignore
         new_cluster.calc = self.calculator()
 
         write("clusters/seeded_LJ_finished.xyz", new_cluster)

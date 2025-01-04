@@ -16,8 +16,7 @@ from auxiliary.cambridge_database import get_cluster_energy  # pylint: disable=C
 
 def parallel_ga(
     ga: GeneticAlgorithm,
-    num_atoms: int,
-    atom_type: str,
+    atoms: str,
     max_iterations: int,
     conv_iterations: int = 0,
     seed: int | None = None,
@@ -26,8 +25,7 @@ def parallel_ga(
     """
     Execute GA in parallel using mpiexec.
     :param ga: Genetic Algorithm instance
-    :param num_atoms: Number of atoms in cluster to optimize for.
-    :param atom_type: Atomic type of cluster.
+    :param atoms: Number of atoms and atomic type in cluster.
     :param max_iterations: Number of maximum iterations to perform.
     :param conv_iterations: Number of iterations to be considered in the convergence criteria.
     :param seed: Seeding for reproducibility.
@@ -38,12 +36,12 @@ def parallel_ga(
     rank = comm.Get_rank()  # Get the processes rank
 
     ga.comm = comm  # set up the GA's global communicator
-    ga.setup(num_atoms, atom_type)  # Ensure GA is properly set up
+    ga.setup(atoms)  # Ensure GA is properly set up
+
+    num_atoms = ga.utility.num_atoms
 
     if rank == 0:  # If master process
-        ga.run(
-            num_atoms, atom_type, max_iterations, conv_iterations, seed
-        )  # Execute GA
+        ga.run(atoms, max_iterations, conv_iterations, seed)  # Execute GA
 
         for i in range(
             1, comm.Get_size()
@@ -89,7 +87,7 @@ def parallel_ga(
         )
 
         if (
-            abs(ga.best_potential - best) < 0.0001
+            abs(ga.best_potential - best) < 0.000001 * num_atoms * num_atoms
         ):  # Check if within uncertainty boundaries
             print("Found global minimum from database.")
         elif ga.best_potential < best:  # Else if sufficiently better
