@@ -5,9 +5,11 @@ import sys
 from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
 
+
 sys.path.append("./")
 
 from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
+from src.basin_hopping_optimizer import BasinHoppingOptimizer # pylint: disable=C0413
 from auxiliary.benchmark import Benchmark  # pylint: disable=C0413
 
 
@@ -17,6 +19,8 @@ def parallel_ga(
     conv_iters: int,
     num_clusters: int = 8,
     preserve: bool = True,
+    atom_type: str = 'C',
+    bh_optimizer: BasinHoppingOptimizer = None
 ) -> None:
     """
     Execute GA in parallel using mpiexec.
@@ -34,7 +38,7 @@ def parallel_ga(
     print(f"Hello from {rank}", flush=True)
 
     ga = GeneticAlgorithm(num_clusters=num_clusters, preserve=preserve, comm=comm)
-    ga.setup(num_atoms, "C")
+    ga.setup(num_atoms, atom_type)
 
     if rank == 0:
         b = Benchmark(ga)
@@ -55,7 +59,11 @@ def parallel_ga(
             if status.tag == 0:
                 break
             clus = ga.utility.generate_cluster(pos)
-            opt = ga.local_optimizer(clus)
-            opt.run(steps=20000)
+            if bh_optimizer:
+                bh_optimizer.run(num_atoms, atom_type, 40, 20, initial_configuration=clus.positions)
+                clus = bh_optimizer.best_config
+            else:
+                opt = ga.local_optimizer(clus)
+                opt.run(steps=20000)
             print(f"Rank {ga.comm.Get_rank()} sending.", flush=True)  # type: ignore
             ga.comm.Send([clus.positions, MPI.DOUBLE], dest=0, tag=2)  # type: ignore
