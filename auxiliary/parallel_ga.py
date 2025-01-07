@@ -9,7 +9,7 @@ import numpy as np
 sys.path.append("./")
 
 from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
-from src.basin_hopping_optimizer import BasinHoppingOptimizer # pylint: disable=C0413
+from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable=C0413
 from auxiliary.benchmark import Benchmark  # pylint: disable=C0413
 
 
@@ -19,8 +19,8 @@ def parallel_ga(
     conv_iters: int,
     num_clusters: int = 8,
     preserve: bool = True,
-    atom_type: str = 'C',
-    bh_optimizer: BasinHoppingOptimizer = None
+    atom_type: str = "C",
+    bh_optimizer: BasinHoppingOptimizer | None = None,
 ) -> None:
     """
     Execute GA in parallel using mpiexec.
@@ -29,6 +29,8 @@ def parallel_ga(
     :param conv_iters: Number of iterations to be considered in the convergence criteria.
     :param num_clusters: Number of clusters per generation/iteration.
     :param preserve: Whether to preserve selected parents in future generation or not.
+    :param atom_type: The type of the atom
+    :param bh_optimizer: A basin hopping optimizer to be used instead of a local optimizer
     :return: None
     """
 
@@ -60,10 +62,12 @@ def parallel_ga(
                 break
             clus = ga.utility.generate_cluster(pos)
             if bh_optimizer:
-                bh_optimizer.run(num_atoms, atom_type, 40, 20, initial_configuration=clus.positions)
+                bh_optimizer.run(
+                    num_atoms, atom_type, 40, 20, initial_configuration=clus.positions
+                )
                 clus = bh_optimizer.best_config
             else:
-                opt = ga.local_optimizer(clus)
-                opt.run(steps=20000)
+                ga.local_optimizer(clus).run(steps=20000)
+
             print(f"Rank {ga.comm.Get_rank()} sending.", flush=True)  # type: ignore
             ga.comm.Send([clus.positions, MPI.DOUBLE], dest=0, tag=2)  # type: ignore

@@ -58,8 +58,8 @@ class BasinHoppingOptimizer(GlobalOptimizer):
                 f"Iteration {self.current_iteration} in {self.comm.Get_rank()}"
             )  # pragma: no cover
         else:
-            # print(f"Iteration {self.current_iteration}")
-            pass
+            print(f"Iteration {self.current_iteration}")
+
         if self.current_iteration == 0:
             self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
