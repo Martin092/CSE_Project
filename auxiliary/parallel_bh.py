@@ -20,7 +20,7 @@ from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable
 from auxiliary.cambridge_database import get_cluster_energy  # pylint: disable=C0413
 
 
-lj = 38  # pylint: disable=C0103
+lj = 13  # pylint: disable=C0103
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
