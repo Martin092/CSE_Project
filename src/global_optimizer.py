@@ -32,7 +32,7 @@ class GlobalOptimizer(ABC):
         self.local_optimizer: Any = local_optimizer
         self.current_iteration: int = 0
         self.calculator: Any = calculator
-        self.utility: Utility = Utility(self, 0, "C")
+        self.utility: Utility = Utility(self, "")
         self.execution_time: float = 0.0
         self.comm: MPI.Intracomm | None = comm
         self.current_cluster: Atoms = self.utility.generate_cluster()
@@ -41,10 +41,9 @@ class GlobalOptimizer(ABC):
         self.potentials: List[float] = []
         self.configs: List[Atoms] = []
         self.conv_iterations: int = 0
-        self.num_atoms: int = 0
-        self.atom_type: str = ""
         self.debug = debug
         self.logfile = "../log.txt"
+        self.atoms: str = ""
 
     @abstractmethod
     def iteration(self) -> None:
@@ -62,8 +61,7 @@ class GlobalOptimizer(ABC):
 
     def setup(
         self,
-        num_atoms: int,
-        atom_type: str,
+        atoms: str,
         initial_configuration: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
         ) = None,
@@ -71,16 +69,14 @@ class GlobalOptimizer(ABC):
     ) -> None:
         """
         Sets up the clusters by either initializing random clusters or using the seed provided.
-        :param num_atoms: Number of atoms in cluster.
-        :param atom_type: Atomic type of cluster.
+        :param atoms: Number of atoms and atomic type in cluster.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
         :param seed: seed for the random number generator
         :return: None.
         """
         self.current_iteration = 0
-        self.num_atoms = num_atoms
-        self.atom_type = atom_type
-        self.utility = Utility(self, num_atoms, atom_type)
+        self.atoms = atoms
+        self.utility = Utility(self, atoms)
         self.current_cluster = self.utility.generate_cluster(
             initial_configuration, seed
         )
@@ -91,8 +87,7 @@ class GlobalOptimizer(ABC):
 
     def run(
         self,
-        num_atoms: int,
-        atom_type: str,
+        atoms: str,
         max_iterations: int,
         conv_iterations: int = 0,
         seed: int | None = None,
@@ -102,20 +97,18 @@ class GlobalOptimizer(ABC):
     ) -> None:
         """
         Executes the Global Optimizer algorithm.
-        :param num_atoms: Number of atoms in cluster to optimize for.
-        :param atom_type: Atomic type of cluster.
+        :param atoms: Number of atoms and atomic type in cluster.
         :param max_iterations: Number of maximum iterations to perform.
         :param conv_iterations: Number of iterations to be considered in the convergence criteria.
         :param seed: Seeding for reproducibility.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
-        :param log: Are logs printed to the terminal
         :return: None.
         """
         if conv_iterations == 0:
             conv_iterations = max_iterations
         self.conv_iterations = conv_iterations
         start_time = time.time()
-        self.setup(num_atoms, atom_type, initial_configuration, seed)
+        self.setup(atoms, initial_configuration, seed)
 
         while self.current_iteration < max_iterations and not self.is_converged():
             self.iteration()

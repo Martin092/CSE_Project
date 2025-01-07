@@ -36,13 +36,13 @@ class Benchmark:
                 [energies[i] for i in self.optimizer.utility.big_jumps],
                 c="red",
             )
-        plt.title(f"Execution on LJ{self.optimizer.num_atoms}")
+        plt.title(f"Execution on LJ{self.optimizer.utility.num_atoms}")
         plt.xlabel("Iteration")
         plt.ylabel("Potential Energy")
         if self.optimizer.comm is None:
-            plt.savefig(f"../data/optimizer/LJ{self.optimizer.num_atoms}.png")
+            plt.savefig(f"../data/optimizer/LJ{self.optimizer.utility.num_atoms}.png")
         else:
-            plt.savefig(f"./data/optimizer/LJ{self.optimizer.num_atoms}.png")
+            plt.savefig(f"./data/optimizer/LJ{self.optimizer.utility.num_atoms}.png")
         plt.show()
         plt.close()
 
@@ -71,7 +71,9 @@ class Benchmark:
             os.mkdir("../data")
             os.mkdir("../data/optimizer")
         for lj in indices:
-            self.optimizer.run(lj, "C", num_iterations, conv_iterations, seed=seed)
+            self.optimizer.run(
+                "C" + str(lj), num_iterations, conv_iterations, seed=seed
+            )
 
             best_cluster = self.optimizer.best_config
             best_cluster.center()  # type: ignore
@@ -79,7 +81,7 @@ class Benchmark:
 
             best = get_cluster_energy(lj)
 
-            if abs(self.optimizer.best_potential - best) < 0.0001:
+            if abs(self.optimizer.best_potential - best) < 0.000001 * lj * lj:
                 minima.append(1)
             elif self.optimizer.best_potential < best:
                 minima.append(2)

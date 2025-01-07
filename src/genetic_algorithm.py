@@ -66,8 +66,7 @@ class GeneticAlgorithm(GlobalOptimizer):
 
     def setup(
         self,
-        num_atoms: int,
-        atom_type: str,
+        atoms: str,
         initial_configuration: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
         ) = None,
@@ -75,8 +74,7 @@ class GeneticAlgorithm(GlobalOptimizer):
     ) -> None:
         """
         Sets up the clusters by either initializing random clusters or using the seed provided.
-        :param num_atoms: Number of atoms in cluster.
-        :param atom_type: Atomic type of cluster.
+        :param atoms: Number of atoms and atomic type in cluster.
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
         :param seed: seed for the random number generator
         :return: None.
@@ -86,15 +84,10 @@ class GeneticAlgorithm(GlobalOptimizer):
         self.best_potential: float = float("inf")
         self.energies = []  # List for storing potentials of current generation
         self.potentials = []  # List for storing the best potentials per generation
-        self.num_atoms = num_atoms  # Number of atoms in cluster
-        self.atom_type = atom_type  # Atomic type of cluster
-        self.utility = Utility(self, num_atoms, atom_type)  # set up Utility object
+        self.utility = Utility(self, atoms)  # set up Utility object
         self.best_config: Atoms = (
             self.utility.generate_cluster()
         )  # Random setup configuration
-        self.current_cluster = self.utility.generate_cluster(
-            initial_configuration
-        )  # Unused by GA
         self.cluster_list = []  # List for storing configurations of current generation
         for _ in range(self.num_clusters):  # Generate initial generation configurations
             clus = (
@@ -181,7 +174,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             self.cluster_list = []  # Empty cluster list
             for _ in range(ranks):  # For each rank
                 pos = np.empty(
-                    (size, self.num_atoms, 3), dtype=np.float64
+                    (size, self.utility.num_atoms, 3), dtype=np.float64
                 )  # Clusters to receive
                 if self.debug:
                     print(f"{self.comm.Get_rank()} receiving.", flush=True)
@@ -319,12 +312,12 @@ class GeneticAlgorithm(GlobalOptimizer):
 
             if (
                 self.utility.configuration_validity(np.array(group1))
-                and len(group1) == self.num_atoms
+                and len(group1) == self.utility.num_atoms
             ):  # Check if children generation is a valid configuration
                 return child_1
             if (
                 self.utility.configuration_validity(np.array(group2))
-                and len(group2) == self.num_atoms
+                and len(group2) == self.utility.num_atoms
             ):  # Check if children generation is a valid configuration
                 return child_2
 
