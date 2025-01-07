@@ -13,4 +13,4 @@ def test_ga():
         ]
     )
     ga = GeneticAlgorithm(mutation=mutation, num_clusters=4, preserve=True, debug=True)
-    ga.run(13, 'C', 50, conv_iterations=10)
+    ga.run('C13', 50, conv_iterations=10)

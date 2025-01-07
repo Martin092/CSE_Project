@@ -30,7 +30,7 @@ print(rank, flush=True)
 bh = BasinHoppingOptimizer(local_optimizer=FIRE, comm=comm, debug=False)
 
 start = time.time()
-bh.run(max_iterations=1000, num_atoms=lj, atom_type="C", conv_iterations=150)
+bh.run(max_iterations=1000, atoms="C" + str(lj), conv_iterations=150)
 
 runtime = time.time() - start
 print(
@@ -48,7 +48,7 @@ if rank == 0:
         comm.Recv([data, MPI.DOUBLE], tag=MPI.ANY_TAG, status=status)
         rank_curr = status.Get_source()
 
-        new_cluster = Atoms(bh.utility.atom_type + str(bh.utility.num_atoms), positions=data)  # type: ignore
+        new_cluster = Atoms(bh.utility.atoms, positions=data)  # type: ignore
         new_cluster.calc = bh.calculator()
         new_energy = new_cluster.get_potential_energy()  # type: ignore
 
@@ -58,7 +58,7 @@ if rank == 0:
             RANK_BEST = rank_curr
 
     print(f"Best energy is {best_energy} from {RANK_BEST}")
-    best = get_cluster_energy(bh.num_atoms, "./")
+    best = get_cluster_energy(bh.utility.num_atoms, "./")
     print(f"Actual best is {best}")
     if not os.path.exists("./data/optimizer"):
         os.mkdir("./data/optimizer")

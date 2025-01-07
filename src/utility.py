@@ -1,6 +1,6 @@
 """Utility methods module"""
 
-from typing import Any, List, Literal, Tuple
+from typing import Any, List, Literal, Tuple, Counter
 import time
 import sys
 
@@ -23,31 +23,30 @@ class Utility:
     def __init__(
         self,
         global_optimizer: Any,
-        num_atoms: int,
-        atom_type: str,
+        atoms: str,
         temp: float = 0.8,
         step: float = 1,
     ) -> None:
         """
         Utility Class Constructor
         :param global_optimizer: Global optimizer object.
-        :param num_atoms: Number of atoms in cluster.
-        :param atom_type: Atomic type of cluster.
+        :param atoms: Number of atoms and atomic type in cluster.
         :param temp: Temperature.
         :param step: Step length.
         """
         self.global_optimizer = global_optimizer
-        self.num_atoms = num_atoms
-        self.atom_type = atom_type
+        self.atoms = atoms
         self.temp = temp
         self.step = step
         self.big_jumps: list[int] = []
         self.covalent_radius: float = 1.0
+        self.num_atoms = len(Atoms(atoms))  # type: ignore
         self.box_length: float = (
             2
             * self.covalent_radius
             * (0.5 + ((3.0 * self.num_atoms) / (4 * np.pi * np.sqrt(2))) ** (1 / 3))
         )
+        self.atom_types: Counter[str, int] = Counter(self.generate_cluster().get_chemical_symbols())  # type: ignore
 
     def generate_cluster(
         self,
@@ -59,6 +58,7 @@ class Utility:
         """
         Generate Atoms object with given or randomly generated coordinates.
         :param positions: Atomic coordinates, if None or Default, randomly generated.
+        :param seed: seed for the random number generator
         :return: Atoms object with cell and calculator specified.
         """
         rng: np.random.Generator
@@ -68,14 +68,13 @@ class Utility:
             rng = np.random.default_rng()
 
         if positions is None:
-            while True:
+            positions = (rng.random((self.num_atoms, 3)) - 0.5) * self.box_length * 1.5
+            while not self.configuration_validity(positions):
                 positions = (
                     (rng.random((self.num_atoms, 3)) - 0.5) * self.box_length * 1.5
                 )
-                if self.configuration_validity(positions):
-                    break
         clus = Atoms(
-            self.atom_type + str(self.num_atoms),
+            self.atoms,
             positions=positions,
             cell=np.array(
                 [
@@ -100,6 +99,7 @@ class Utility:
         :param cluster: The cluster to perform the random step for.
         :param max_rejects: Maximum number of steps that can be rejected before a move at temperature infinity is made
         :param sensitivity: how quickly does the step size in order to keep the metropolis at 0.5
+        :param max_local_steps: Maximum number of steps for the local optimizer.
         :return: Result is written directly to cluster, nothing is returned.
         """
         energies = cluster.get_potential_energies()  # type: ignore
@@ -155,7 +155,6 @@ class Utility:
         Perform a rotational movement for the atom with the highest energy.
         :param cluster: The atomic cluster to modify
         """
-
         energies = cluster.get_potential_energies()  # type: ignore
         index = np.argmax(energies)
 
@@ -263,6 +262,7 @@ class Utility:
         :param cluster: The atomic cluster to modify
         """
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
+        atomic_type = cluster[atom_index].symbol
         del cluster[atom_index]  # type: ignore
 
         opt = self.global_optimizer.local_optimizer(
@@ -270,7 +270,7 @@ class Utility:
         )
         opt.run(steps=max_local_steps)
 
-        self.append_atom(cluster)
+        self.append_atom(cluster, atomic_type)
 
     def etching_addition(self, cluster: Atoms, max_local_steps: int = 20000) -> None:
         """
@@ -278,20 +278,28 @@ class Utility:
         :param max_local_steps: Maximum number of steps for the local optimizer.
         :param cluster: The atomic cluster to modify
         """
-        self.append_atom(cluster)
+        atomic_type = np.random.choice(list(self.atom_types.keys()))
+        self.append_atom(cluster, atomic_type)
 
         opt = self.global_optimizer.local_optimizer(
             cluster, logfile=self.global_optimizer.logfile
         )
         opt.run(steps=max_local_steps)
 
-        atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
-        del cluster[atom_index]  # type: ignore
+        energies = cluster.get_potential_energies()  # type: ignore
+        index = -1
+        energy = -float("inf")
+        for idx, eng in enumerate(energies):
+            if eng < energy and cluster[idx].get_chemical_symbol() == atomic_type:
+                energy = eng
+                index = idx
+        del cluster[index]  # type: ignore
 
-    def append_atom(self, cluster: Atoms) -> None:
+    def append_atom(self, cluster: Atoms, atomic_type: str) -> None:
         """
         Appends an atom at a random position in the cluster.
         :param cluster: Cluster to which an atom to be appended.
+        :param atomic_type: Atomic type of appended atom.
         :return: None, since cluster object is dynamically updated.
         """
         position = (np.random.rand(3) - 0.5) * self.box_length * 1.5
@@ -300,7 +308,7 @@ class Utility:
         ):
             position = (np.random.rand(3) - 0.5) * self.box_length * 1.5
         new_atom = Atom(
-            self.global_optimizer.atom_type,
+            atomic_type,
             position=position,
         )  # type: ignore
         cluster.append(new_atom)  # type: ignore
@@ -354,7 +362,7 @@ class Utility:
         cluster.positions = np.dot(cluster.positions, principal_axes.T)
         return cluster
 
-    def vector(self, length: float = 0.1) -> np.ndarray:
+    def vector(self, length: float) -> np.ndarray:
         """
         Generates a 3D vector in random direction, given its length.
         :param length: Length of the vector.
@@ -369,23 +377,26 @@ class Utility:
 
         return np.array([x, y, z])
 
-    def random_displacement(self, cluster: Atoms, prob: float) -> None:
+    def random_displacement(
+        self, cluster: Atoms, prob: float, length: float = 0.1
+    ) -> None:
         """
-        Performs random displacement of length 0.1 on atoms in cluster by given probability.
+        Performs random displacement of specified length on atoms in cluster by given probability.
         :param cluster: Cluster object to be mutated by random displacement.
         :param prob: Probability of random displacement per atom.
+        :param length: Length of the displacement.
         :return: None, since cluster object is dynamically updated.
         """
-        for i in range(self.global_optimizer.num_atoms):
+        for i in range(self.num_atoms):
             if np.random.rand() < prob:
                 if self.global_optimizer.debug:
                     print("Random displacement", flush=True)
                 positions = cluster.positions.copy()
-                vector = self.vector()
+                vector = self.vector(length)
                 positions[i] += vector
                 while not self.configuration_validity(positions):
                     positions = cluster.positions.copy()
-                    vector = self.vector()
+                    vector = self.vector(length)
                     positions[i] += vector
                 cluster[i].position += vector
 
@@ -398,6 +409,7 @@ class Utility:
         such as overlap matrix fingerprint thresholding.
         :param cluster1: First cluster
         :param cluster2: Second cluster
+        :param atol: Tolerance in potential energy difference.
         :return: boolean
         """
         return np.isclose(
