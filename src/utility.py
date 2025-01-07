@@ -391,7 +391,7 @@ class Utility:
 
     def compare_clusters(
         self, cluster1: Atoms, cluster2: Atoms, atol: float
-    ) -> np.bool:
+    ) -> np.bool_:
         """
         Checks whether two clusters are equal based on their potential energy.
         This method may be changed in the future to use more sophisticated methods,

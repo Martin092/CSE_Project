@@ -30,12 +30,12 @@ b = Benchmark(ga)
 b.benchmark_run(lj, 100, 10)
 
 # Parallel Execution
-parallel_ga(ga, 38, "C", 100, 20, max_local_steps=10000)
-
-# Visualize Results
-final_atoms = read(f"../data/optimizer/LJ{38}.xyz")
-view(final_atoms)  # type: ignore
-database = read(f"../data/database/LJ{38}.xyz")
-view(database)  # type: ignore
-traj = TrajectoryReader(f"../data/optimizer/LJ{38}.traj")  # type: ignore
-view(traj)  # type: ignore
+# parallel_ga(ga, 38, "C", 100, 20, max_local_steps=10000)
+#
+# # Visualize Results
+# final_atoms = read(f"../data/optimizer/LJ{38}.xyz")
+# view(final_atoms)  # type: ignore
+# database = read(f"../data/database/LJ{38}.xyz")
+# view(database)  # type: ignore
+# traj = TrajectoryReader(f"../data/optimizer/LJ{38}.traj")  # type: ignore
+# view(traj)  # type: ignore
