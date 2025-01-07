@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.decomposition import PCA  # type: ignore
 from scipy.spatial.distance import pdist  # type: ignore
 from ase import Atoms, Atom
+from ase.io import Trajectory
 from ase.units import fs
 from ase.md.langevin import Langevin
 from ase.optimize.minimahopping import PassedMinimum
@@ -53,16 +54,23 @@ class Utility:
         positions: (
             np.ndarray[Tuple[Any, Literal[3]], np.dtype[np.float64]] | None
         ) = None,
+        seed: int | None = None,
     ) -> Atoms:
         """
         Generate Atoms object with given or randomly generated coordinates.
         :param positions: Atomic coordinates, if None or Default, randomly generated.
         :return: Atoms object with cell and calculator specified.
         """
+        rng: np.random.Generator
+        if seed:
+            rng = np.random.default_rng(seed)
+        else:
+            rng = np.random.default_rng()
+
         if positions is None:
             while True:
                 positions = (
-                    (np.random.rand(self.num_atoms, 3) - 0.5) * self.box_length * 1.5
+                    (rng.random((self.num_atoms, 3)) - 0.5) * self.box_length * 1.5
                 )
                 if self.configuration_validity(positions):
                     break
@@ -80,41 +88,51 @@ class Utility:
         )  # type: ignore
         return clus
 
-    def random_step(self) -> None:
+    def random_step(
+        self,
+        cluster: Atoms,
+        max_rejects: int = 5,
+        sensitivity: float = 0.01,
+        max_local_steps: int = 0,
+    ) -> None:
         """
-        Moves the highest energy atom in a random direction
-        :param cluster: the cluster we want to disturb
-        :return: result is written directly to cluster, nothing is returned
+        Moves the highest energy atom in a random direction.
+        :param cluster: The cluster to perform the random step for.
+        :param max_rejects: Maximum number of steps that can be rejected before a move at temperature infinity is made
+        :param sensitivity: how quickly does the step size in order to keep the metropolis at 0.5
+        :return: Result is written directly to cluster, nothing is returned.
         """
-        energies = self.global_optimizer.current_cluster.get_potential_energies()
+        energies = cluster.get_potential_energies()  # type: ignore
         index = np.argmax(energies)
-        energy_before = self.global_optimizer.current_cluster.get_potential_energy()
+        energy_before = cluster.get_potential_energy()  # type: ignore
 
         rejected = 0
         while True:
             step = (np.random.rand(3) - 0.5) * 2 * self.step
 
-            self.global_optimizer.current_cluster.positions[index] += step
+            cluster.positions[index] += step
 
             opt = self.global_optimizer.local_optimizer(
-                self.global_optimizer.current_cluster, logfile="../log.txt"
+                cluster, logfile=self.global_optimizer.logfile
             )
-            opt.run(fmax=0.2)
-            energy_after = self.global_optimizer.current_cluster.get_potential_energy()
+            if max_local_steps == 0:
+                opt.run()
+            else:
+                opt.run(steps=max_local_steps)
+            energy_after = cluster.get_potential_energy()  # type: ignore
 
             accept: float
-            if rejected > 5:
-                print("MAKING BIG MOVES")
+            if rejected > max_rejects:
                 self.big_jumps.append(self.global_optimizer.current_iteration)
                 break
 
             # Metropolis criterion gives an acceptance probability based on temperature for each move
             accept = self.metropolis_criterion(energy_before, energy_after)
-            self.step = self.step * (1 - 0.01 * (0.5 - accept))
+            self.step = self.step * (1 - sensitivity * (0.5 - accept))
 
             if np.random.uniform() > accept:
                 rejected += 1
-                self.global_optimizer.current_cluster.positions[index] -= step
+                cluster.positions[index] -= step
                 continue
             break
 
@@ -162,7 +180,7 @@ class Utility:
             if np.random.uniform() < accept:
                 break
             cluster.positions = initial_positions
-        else:
+        else:  # pragma: no cover
             print("WARNING: Unable to find a valid rotational move.", file=sys.stderr)
 
     def md(
@@ -237,29 +255,35 @@ class Utility:
 
         return cluster
 
-    def etching_subtraction(self, cluster: Atoms) -> None:
+    def etching_subtraction(self, cluster: Atoms, max_local_steps: int = 20000) -> None:
         """
-        Deletes a random atom from the cluster, optimizes the cluster, and
+        Deletes the highest energy atom from the cluster, optimizes the cluster, and
         then adds a new atom to maintain the same number of atoms.
+        :param max_local_steps: Maximum number of steps for the local optimizer.
         :param cluster: The atomic cluster to modify
         """
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
 
-        opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
-        opt.run(steps=20000)
+        opt = self.global_optimizer.local_optimizer(
+            cluster, logfile=self.global_optimizer.logfile
+        )
+        opt.run(steps=max_local_steps)
 
         self.append_atom(cluster)
 
-    def etching_addition(self, cluster: Atoms) -> None:
+    def etching_addition(self, cluster: Atoms, max_local_steps: int = 20000) -> None:
         """
         Adds a new atom to the cluster, optimizes the cluster, and then deletes the highest energy atom.
+        :param max_local_steps: Maximum number of steps for the local optimizer.
         :param cluster: The atomic cluster to modify
         """
         self.append_atom(cluster)
 
-        opt = self.global_optimizer.local_optimizer(cluster, logfile="../log.txt")
-        opt.run(steps=20000)
+        opt = self.global_optimizer.local_optimizer(
+            cluster, logfile=self.global_optimizer.logfile
+        )
+        opt.run(steps=max_local_steps)
 
         atom_index = np.argmax(cluster.get_potential_energies())  # type: ignore
         del cluster[atom_index]  # type: ignore
@@ -330,9 +354,44 @@ class Utility:
         cluster.positions = np.dot(cluster.positions, principal_axes.T)
         return cluster
 
+    def vector(self, length: float = 0.1) -> np.ndarray:
+        """
+        Generates a 3D vector in random direction, given its length.
+        :param length: Length of the vector.
+        :return: 3D vector in random direction, of specified length.
+        """
+        azimuthal_angle = np.random.uniform(0, 2 * np.pi)
+        polar_angle = np.random.uniform(0, np.pi)
+
+        x = length * np.sin(polar_angle) * np.cos(azimuthal_angle)
+        y = length * np.sin(polar_angle) * np.sin(azimuthal_angle)
+        z = length * np.cos(polar_angle)
+
+        return np.array([x, y, z])
+
+    def random_displacement(self, cluster: Atoms, prob: float) -> None:
+        """
+        Performs random displacement of length 0.1 on atoms in cluster by given probability.
+        :param cluster: Cluster object to be mutated by random displacement.
+        :param prob: Probability of random displacement per atom.
+        :return: None, since cluster object is dynamically updated.
+        """
+        for i in range(self.global_optimizer.num_atoms):
+            if np.random.rand() < prob:
+                if self.global_optimizer.debug:
+                    print("Random displacement", flush=True)
+                positions = cluster.positions.copy()
+                vector = self.vector()
+                positions[i] += vector
+                while not self.configuration_validity(positions):
+                    positions = cluster.positions.copy()
+                    vector = self.vector()
+                    positions[i] += vector
+                cluster[i].position += vector
+
     def compare_clusters(
         self, cluster1: Atoms, cluster2: Atoms, atol: float
-    ) -> np.bool:
+    ) -> np.bool_:
         """
         Checks whether two clusters are equal based on their potential energy.
         This method may be changed in the future to use more sophisticated methods,
@@ -395,3 +454,14 @@ class Utility:
                 ],
             ]
         )
+
+    def write_trajectory(self, filename: str) -> None:  # pragma: no cover
+        """
+        Writes all clusters in the history to a trajectory file
+        :param filename: Path of the trajectory file, with .traj extension
+        :return: None, writes to file
+        """
+        with Trajectory(filename, mode="w") as traj:  # type: ignore
+            for cluster in self.global_optimizer.configs:
+                cluster.center()
+                traj.write(cluster)  # pylint: disable=E1101

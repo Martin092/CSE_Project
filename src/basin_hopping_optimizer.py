@@ -26,7 +26,9 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         energy pair for angular movements to take place. Keep in mind that this parameter
         changes overtime and will oscillate around a certain value. Optimally it should
         start around that value.
-        sensitivity         how quickly will alpha change. Larger values result in bigger oscillations
+        sensitivity_angular  how quickly will alpha change. Larger values result in bigger oscillations
+        sensitivity_step     how quickly does the step size in order to keep the metropolis at 0.5
+        percent_angular_moves what percent of the total moves should be angular approximately
     """
 
     def __init__(
@@ -34,31 +36,40 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         local_optimizer: Any = FIRE,
         calculator: Any = LennardJones,
         alpha: float = 2,
-        sensitivity: float = 0.3,
+        sensitivity_angular: float = 0.3,
+        sensitivity_step: float = 0.01,
+        percent_angular_moves: float = 0.5,
         comm: MPI.Intracomm | None = None,
+        debug: bool = False,
+        max_rejects: int = 5,
     ) -> None:
         super().__init__(
             local_optimizer=local_optimizer,
             calculator=calculator,
             comm=comm,
+            debug=debug,
         )
         self.last_energy = float("inf")
         self.alpha = alpha
         self.angular_moves = 0
         self.alphas = np.array([self.alpha])
-        self.sensitivity = sensitivity
+        self.sensitivity_angular = sensitivity_angular
+        self.sensitivity_step = sensitivity_step
+        self.max_rejects = max_rejects
+        self.percent_angular_moves = percent_angular_moves
 
     def iteration(self) -> None:
         """
         Performs single iteration of the Basin Hopping Optimizer.
         :return: None.
         """
-        if self.comm:
+        if self.comm and self.debug:
             print(
                 f"Iteration {self.current_iteration} in {self.comm.Get_rank()}"
             )  # pragma: no cover
-        else:
+        elif self.debug:
             print(f"Iteration {self.current_iteration}")
+
         if self.current_iteration == 0:
             self.last_energy = self.current_cluster.get_potential_energy()  # type: ignore
 
@@ -69,18 +80,23 @@ class BasinHoppingOptimizer(GlobalOptimizer):
         max_energy = max(energies)
 
         if max_energy - min_en < self.alpha:
-            self.utility.random_step()
+            self.utility.random_step(
+                self.current_cluster, sensitivity=self.sensitivity_step
+            )
         else:
             self.angular_moves += 1
             self.utility.angular_movement(self.current_cluster)
 
-        if self.current_iteration != 0:
-            fraction = self.angular_moves / self.current_iteration
-            self.alpha = self.alpha * (1 - self.sensitivity * (0.5 - fraction))
+            if self.current_iteration != 0:
+                fraction = self.angular_moves / self.current_iteration
+                self.alpha = self.alpha * (
+                    1
+                    - self.sensitivity_angular * (self.percent_angular_moves - fraction)
+                )
 
         self.alphas = np.append(self.alphas, self.alpha)
-        opt = self.local_optimizer(self.current_cluster, logfile="../log.txt")
-        opt.run(fmax=0.2)
+        opt = self.local_optimizer(self.current_cluster, logfile=self.logfile)
+        opt.run()
         self.configs.append(self.current_cluster.copy())  # type: ignore
 
         curr_energy = self.current_cluster.get_potential_energy()  # type: ignore
@@ -92,20 +108,25 @@ class BasinHoppingOptimizer(GlobalOptimizer):
     def is_converged(self) -> bool:
         """
         Checks if convergence criteria is satisfied.
-        :param conv_iters: Number of iterations to be considered.
         :return: True if convergence criteria is met, otherwise False.
         """
-        if self.current_iteration < 10:
+        if self.current_iteration < self.conv_iterations:
             return False
 
-        ret = True
-        cur = self.current_cluster.get_potential_energy()  # type: ignore
-        for i in range(self.current_iteration - 8, self.current_iteration - 1):
+        decreased = False
+        biggest = self.current_cluster.get_potential_energy()  # type: ignore
+        for i in reversed(
+            range(
+                self.current_iteration - self.conv_iterations,
+                self.current_iteration - 1,
+            )
+        ):
             self.configs[i].calc = self.calculator()
-            energy_hist = self.configs[i].get_potential_energy()  # type: ignore
-            ret &= bool(abs(cur - energy_hist) <= 1e-14)
-        # return ret
-        return False
+            energy = self.configs[i].get_potential_energy()  # type: ignore
+
+            decreased |= energy > biggest
+
+        return not decreased
 
     def seed(self, starting_from: int) -> Atoms:  # pragma: no cover
         """

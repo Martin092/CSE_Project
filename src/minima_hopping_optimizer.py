@@ -24,8 +24,9 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
         atol: float = 5e-6,
         local_optimizer: Any = QuasiNewton,
         calculator: Any = LennardJones,
+        debug: bool = False,
     ):
-        super().__init__(local_optimizer, calculator)
+        super().__init__(local_optimizer, calculator, debug=debug)
         self.alpha_r = 1.02
         self.alpha_a = 1 / 1.02
         self.beta_s = 1.05
@@ -48,8 +49,8 @@ class MinimaHoppingOptimizer(GlobalOptimizer):
             np.zeros(self.current_cluster.get_momenta().shape)  # type: ignore
         )
 
-        with self.local_optimizer(self.current_cluster, logfile="../log.txt") as opt:
-            opt.run(fmax=0.2)
+        with self.local_optimizer(self.current_cluster, logfile=self.logfile) as opt:
+            opt.run()
 
         self.check_results()
         self.configs.append(self.current_cluster.copy())  # type: ignore
