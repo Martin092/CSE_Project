@@ -86,7 +86,7 @@ class OptimizerGUI:
         ttk.Label(self.simulation_frame, text="Select Interaction/Calculator:").pack()
         self.calculator_var = tk.StringVar()
         self.calculator_dropdown = ttk.Combobox(self.simulation_frame, textvariable=self.calculator_var, state="readonly")
-        self.calculator_dropdown['values'] = ("LJ", "EMT", "Tersoff", "Stillinger-Weber")
+        self.calculator_dropdown['values'] = ("LJ", "EMT", "Tersoff", "Stillinger-Weber", "GPAW")
         self.calculator_dropdown.current(0)
         self.calculator_dropdown.pack(pady=5)
 
@@ -188,11 +188,16 @@ class OptimizerGUI:
             from ase.calculators.emt import EMT
             return EMT
         elif calculator_choice == "Tersoff":
-            from ase.calculators.lammps import LAMMPS
-            return LAMMPS(parameters={"pair_style": "tersoff", "pair_coeff": ["* * SiC.tersoff Si C"]})
+            from ase.calculators.lammpslib import LAMMPSlib
+            #parameters={"pair_style": "tersoff", "pair_coeff": ["* * SiC.tersoff Si C"]}
+            lammps = LAMMPSlib(lmpcmds=["pair_style tersoff", "pair_coeff * * SiC.tersoff Si C"], log_file='test.log')
+            return lammps
         elif calculator_choice == "Stillinger-Weber":
-            from ase.calculators.lammps import LAMMPS
-            return LAMMPS(parameters={"pair_style": "sw", "pair_coeff": ["* * SiC.sw Si C"]})
+            from ase.calculators.lammpslib import LAMMPSlib
+            return LAMMPSlib(parameters={"pair_style": "sw", "pair_coeff": ["* * SiC.sw Si C"]})
+        elif calculator_choice == "GPAW":
+            from gpaw import GPAW, PW
+            return GPAW(mode=PW(300))
         else:
             raise ValueError("Unsupported calculator.")
 
