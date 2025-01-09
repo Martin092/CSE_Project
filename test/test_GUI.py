@@ -35,11 +35,9 @@ class OptimizerGUI:
         self.create_start()
 
     def set_background(self, image_path):
-            # Load the image
             image = Image.open(image_path)
             self.background_image = ImageTk.PhotoImage(image)
 
-            # Display the image
             background_label = tk.Label(self.start_frame, image=self.background_image)
             background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
@@ -49,7 +47,6 @@ class OptimizerGUI:
         menu_frame = tk.Frame(self.start_frame, bd=0)
         menu_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Add menu buttons
         button_style = {
             "bg": "#f0f0f0",
             "fg": "#333333",

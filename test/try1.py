@@ -5,29 +5,23 @@ class StartMenu:
     def __init__(self, root):
         self.root = root
         self.root.title("Atomic Simulation Start Menu")
-        self.root.geometry("800x600")  # Set the window size
+        self.root.geometry("800x600")  
 
-        # Load and set the background image
         self.set_background("../../../Downloads/imagebg.webp")
 
-        # Create the menu overlay
         self.create_menu()
 
     def set_background(self, image_path):
-            # Load the image
             image = Image.open(image_path)
             self.background_image = ImageTk.PhotoImage(image)
 
-            # Display the image
             background_label = tk.Label(self.root, image=self.background_image)
             background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
     def create_menu(self):
-        # Create a transparent frame for buttons
         menu_frame = tk.Frame(self.root, bg="black", bd=0)
         menu_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Add menu buttons
         button_font = ("Arial", 14, "bold")
         button_style = {"bg": "#ffffff", "fg": "#000000", "relief": "raised", "bd": 3}
 
