@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from src.genetic_algorithm import GeneticAlgorithm
+from ase.visualize import view
 
 
 def test_ga():
