@@ -1,18 +1,17 @@
-import os, sys
-sys.path.append('./')
-
+from collections import OrderedDict
 from src.genetic_algorithm import GeneticAlgorithm
 from ase.visualize import view
 
 
 def test_ga():
-    ga = GeneticAlgorithm(num_clusters=4, preserve=True)
-    ga.run(13, 'C', 50)
-    atoms = ga.cluster_list[-1]
-    view(atoms)
-
-test_ga()
-
-
-#python test/test_GA.py
-#set PYDEVD_DISABLE_FILE_VALIDATION=1  
+    mutation = OrderedDict(
+        [
+            ("twist", 0.3),
+            ("random displacement", 0.1),
+            ("angular", 0.3),
+            ("random step", 0.3),
+            ("etching", 0.1),
+        ]
+    )
+    ga = GeneticAlgorithm(mutation=mutation, num_clusters=4, preserve=True, debug=True)
+    ga.run('C13', 50, conv_iterations=10)
