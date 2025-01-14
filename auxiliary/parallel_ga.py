@@ -7,6 +7,7 @@ from ase.io import write
 from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib import ticker
 
 sys.path.append("./")
 
@@ -74,6 +75,7 @@ def parallel_ga(
         plt.plot(
             ga.potentials[1:]
         )  # Remove best initial potential since all are random
+        plt.gca().yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
         plt.title(f"Execution on LJ{num_atoms}")  # Give title to the plot
         plt.xlabel("Iteration")  # Label the x-axis
         plt.ylabel("Potential Energy")  # Label the y-axis

@@ -150,7 +150,9 @@ class GeneticAlgorithm(GlobalOptimizer):
             )  # Add child to current list of configurations
         if self.comm is not None:  # pragma: no cover
             # If executing in parallel
-            ranks = self.comm.Get_size() - 1  # Number of worker processes
+            ranks = min(
+                self.comm.Get_size() - 1, self.num_clusters
+            )  # Number of worker processes
             size = int(
                 np.ceil(self.num_clusters / ranks)
             )  # Number of clusters per worker process

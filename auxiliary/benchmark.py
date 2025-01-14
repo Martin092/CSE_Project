@@ -9,6 +9,7 @@ import os
 import numpy as np
 from ase.io import write
 from matplotlib import pyplot as plt
+from matplotlib import ticker
 
 from src.global_optimizer import GlobalOptimizer
 from src.basin_hopping_optimizer import BasinHoppingOptimizer
@@ -30,6 +31,7 @@ class Benchmark:
         """
         energies = self.optimizer.potentials
         plt.plot(energies)
+        plt.gca().yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
         if isinstance(self.optimizer, BasinHoppingOptimizer):
             plt.scatter(
                 self.optimizer.utility.big_jumps,

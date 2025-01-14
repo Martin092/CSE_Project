@@ -23,19 +23,19 @@ mutation = OrderedDict(
 )
 
 ga = GeneticAlgorithm(mutation=mutation, num_clusters=4, debug=True)
+lj = [13]
 
 # Serial Execution
-lj = [13]
 b = Benchmark(ga)
 b.benchmark_run(lj, 100, 10)
 
 # Parallel Execution
-parallel_ga(ga, "C13", 100, 10, max_local_steps=10000)
+parallel_ga(ga, "C" + str(lj[0]), 100, 10, max_local_steps=10000)
 
 # Visualize Results (run serially)
-final_atoms = read(f"../data/optimizer/LJ{38}.xyz")
+final_atoms = read(f"../data/optimizer/LJ{lj[0]}.xyz")
 view(final_atoms)  # type: ignore
-database = read(f"../data/database/LJ{38}.xyz")
+database = read(f"../data/database/LJ{lj[0]}.xyz")
 view(database)  # type: ignore
-traj = TrajectoryReader(f"../data/optimizer/LJ{38}.traj")  # type: ignore
+traj = TrajectoryReader(f"../data/optimizer/LJ{lj[0]}.traj")  # type: ignore
 view(traj)  # type: ignore
