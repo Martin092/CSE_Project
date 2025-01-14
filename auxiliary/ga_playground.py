@@ -22,20 +22,22 @@ mutation = OrderedDict(
     ]
 )
 
-ga = GeneticAlgorithm(mutation=mutation, num_clusters=32, debug=True)
+ga = GeneticAlgorithm(mutation=mutation, num_clusters=4, debug=True)
+lj = [13]
 
 # Serial Execution
-lj = [13]
 b = Benchmark(ga)
 b.benchmark_run(lj, 100, 10)
 
 # Parallel Execution
-parallel_ga(ga, "C38", 100, 20, max_local_steps=10000)
+for i in lj:
+    parallel_ga(ga, "C" + str(i), 100, 10, max_local_steps=10000)
 
 # Visualize Results (run serially)
-final_atoms = read(f"../data/optimizer/LJ{38}.xyz")
-view(final_atoms)  # type: ignore
-database = read(f"../data/database/LJ{38}.xyz")
-view(database)  # type: ignore
-traj = TrajectoryReader(f"../data/optimizer/LJ{38}.traj")  # type: ignore
-view(traj)  # type: ignore
+for i in lj:
+    final_atoms = read(f"../data/optimizer/LJ{i}.xyz")
+    view(final_atoms)  # type: ignore
+    database = read(f"../data/database/LJ{i}.xyz")
+    view(database)  # type: ignore
+    traj = TrajectoryReader(f"../data/optimizer/LJ{i}.traj")  # type: ignore
+    view(traj)  # type: ignore

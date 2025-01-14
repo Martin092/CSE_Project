@@ -7,6 +7,8 @@ from ase.io import write
 from mpi4py import MPI  # pylint: disable=E0611
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib import ticker
+from matplotlib.ticker import MaxNLocator
 
 sys.path.append("./")
 
@@ -74,14 +76,25 @@ def parallel_ga(
         plt.plot(
             ga.potentials[1:]
         )  # Remove best initial potential since all are random
+        plt.gca().xaxis.set_major_locator(
+            MaxNLocator(integer=True)
+        )  # Make x-axis ticks integers
+        plt.gca().yaxis.set_major_formatter(
+            ticker.ScalarFormatter(useOffset=False)
+        )  # Make y-axis ticks scalar
+        ticks = list(plt.gca().get_xticks())[1:-1]  # Get x-axis ticks
+        if ticks[-1] != len(ga.potentials) - 2:
+            ticks.append(len(ga.potentials) - 2)  # Explicitly add last index
+        plt.gca().set_xticks(ticks)  # Adjust x-axis ticks
         plt.title(f"Execution on LJ{num_atoms}")  # Give title to the plot
         plt.xlabel("Iteration")  # Label the x-axis
         plt.ylabel("Potential Energy")  # Label the y-axis
+        plt.tight_layout()  # Fix the plot's location on the figure
         plt.savefig(f"./data/optimizer/LJ{num_atoms}.png")  # Save plot to file
         plt.close()  # Close plot object
 
         print(  # Print execution summary
-            f"LJ {num_atoms}: {ga.current_iteration} iterations for "
+            f"LJ {num_atoms}: {ga.current_iteration-1} iterations for "
             f"{int(np.floor_divide(ga.execution_time, 60))} min {int(ga.execution_time) % 60} sec",
             flush=True,
         )
@@ -104,7 +117,7 @@ def parallel_ga(
     else:  # If worker process
         ranks = comm.Get_size() - 1  # Compute number of worker processes
         size = int(
-            ga.num_clusters / ranks
+            np.ceil(ga.num_clusters / ranks)
         )  # Compute number of clusters per worker process
         while True:  # Execute until master process kills worker process
             pos = np.empty(
