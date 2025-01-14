@@ -99,7 +99,7 @@ class Benchmark:
 
         for k in range(len(indices)):  # pylint: disable=C0200
             print(
-                f"LJ {indices[k]}: {convergence[k]} iterations for "
+                f"LJ {indices[k]}: {convergence[k] - 1} iterations for "
                 f"{int(np.floor_divide(times[k], 60))} min {int(times[k])%60} sec"
             )
             if minima[k] == 0:

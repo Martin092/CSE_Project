@@ -81,7 +81,7 @@ def parallel_ga(
         plt.close()  # Close plot object
 
         print(  # Print execution summary
-            f"LJ {num_atoms}: {ga.current_iteration} iterations for "
+            f"LJ {num_atoms}: {ga.current_iteration-1} iterations for "
             f"{int(np.floor_divide(ga.execution_time, 60))} min {int(ga.execution_time) % 60} sec",
             flush=True,
         )
@@ -104,7 +104,7 @@ def parallel_ga(
     else:  # If worker process
         ranks = comm.Get_size() - 1  # Compute number of worker processes
         size = int(
-            ga.num_clusters / ranks
+            np.ceil(ga.num_clusters / ranks)
         )  # Compute number of clusters per worker process
         while True:  # Execute until master process kills worker process
             pos = np.empty(
