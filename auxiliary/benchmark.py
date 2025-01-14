@@ -10,6 +10,7 @@ import numpy as np
 from ase.io import write
 from matplotlib import pyplot as plt
 from matplotlib import ticker
+from matplotlib.ticker import MaxNLocator
 
 from src.global_optimizer import GlobalOptimizer
 from src.basin_hopping_optimizer import BasinHoppingOptimizer
@@ -31,7 +32,12 @@ class Benchmark:
         """
         energies = self.optimizer.potentials
         plt.plot(energies)
+        plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.gca().yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
+        ticks = list(plt.gca().get_xticks())[1:-1]
+        if ticks[-1] != len(energies) - 1:
+            ticks.append(len(energies) - 1)
+        plt.gca().set_xticks(ticks)
         if isinstance(self.optimizer, BasinHoppingOptimizer):
             plt.scatter(
                 self.optimizer.utility.big_jumps,
@@ -41,6 +47,7 @@ class Benchmark:
         plt.title(f"Execution on LJ{self.optimizer.utility.num_atoms}")
         plt.xlabel("Iteration")
         plt.ylabel("Potential Energy")
+        plt.tight_layout()
         if self.optimizer.comm is None:
             plt.savefig(f"../data/optimizer/LJ{self.optimizer.utility.num_atoms}.png")
         else:
