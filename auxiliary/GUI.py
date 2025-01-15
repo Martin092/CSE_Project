@@ -1,6 +1,8 @@
 import sys
 sys.path.append('./')
 
+import os
+
 import numpy as np
 import tkinter as tk
 import ase
@@ -28,7 +30,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 matplotlib.use('Agg')
 
-from test_gpaw import test_gpw
+from auxiliary.gpw import gpw
 
 class OptimizerGUI:
     def __init__(self, root):
@@ -203,11 +205,14 @@ class OptimizerGUI:
 
             
             if optimizer_choice == "Genetic Algorithm":
-                ga = GeneticAlgorithm(mutation=self.mutation,num_clusters=4, preserve=True, debug=True, calculator=calculator_)
+                ga = GeneticAlgorithm(mutation=self.mutation, num_clusters=4, preserve=True, debug=True, calculator=calculator_)
                 ga.run(element, iterations, conv_iterations)
                 self.myatoms = ga.best_config
 
-                with Trajectory("test/gpaw/movie.traj", mode="w") as traj:  # type: ignore
+                if not os.path.exists("./gpaw"):
+                    os.mkdir("./gpaw")
+
+                with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
                     for cluster in ga.configs:
                         cluster.center()
                         traj.write(cluster)
@@ -219,7 +224,10 @@ class OptimizerGUI:
                 self.view_menu.add_command(label="Movie", command=self.show_movie)
 
                 if calculator_choice == "GPAW":
-                    id = test_gpw(self.myatoms)
+                    if not os.path.exists("./gpaw"):
+                        os.mkdir("./gpaw")
+
+                    id = gpw(self.myatoms)
                     self.view_menu.add_command(label="Band Structure", command=self.show_band_structure(id))
                     self.show_log()        
                     
@@ -229,7 +237,10 @@ class OptimizerGUI:
                 bh.run(element, iterations)
                 self.myatoms = bh.best_config
 
-                with Trajectory("test/gpaw/movie.traj", mode="w") as traj:  # type: ignore
+                if not os.path.exists("./gpaw"):
+                    os.mkdir("./gpaw")
+
+                with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
                     for cluster in bh.configs:
                         cluster.center()
                         traj.write(cluster)
@@ -241,7 +252,7 @@ class OptimizerGUI:
                 self.view_menu.add_command(label="Movie", command=self.show_movie)
 
                 if calculator_choice == "GPAW":
-                    id = test_gpw(self.myatoms)
+                    id = gpw(self.myatoms)
                     self.view_menu.add_command(label="Band Structure", command=self.show_band_structure(id))
                     self.show_log()  
 
@@ -327,7 +338,7 @@ class OptimizerGUI:
 
     def show_movie(self):
         self.hide_all_views()
-        self.movie_atoms = ase.io.read("test/gpaw/movie.traj", index=":")
+        self.movie_atoms = ase.io.read("./gpaw/movie.traj", index=":")
         view(self.movie_atoms)
 
     def hide_all_views(self):
