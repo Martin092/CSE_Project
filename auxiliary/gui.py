@@ -229,9 +229,7 @@ class OptimizerGUI:
             mutation_dropdown["values"] = ("Default", "Manual")
             mutation_dropdown.current(0)
             mutation_dropdown.grid(row=4, column=1, padx=5, pady=5)
-            mutation_dropdown.bind(
-                "<<ComboboxSelected>>", self.update_mutation_inputs
-            )
+            mutation_dropdown.bind("<<ComboboxSelected>>", self.update_mutation_inputs)
 
             self.create_mutation_inputs()
 
