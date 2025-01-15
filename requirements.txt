@@ -25,4 +25,3 @@ astroid==3.3.5
 requests==2.32.3
 types-requests==2.31.0
 mpi4py==4.0.1
-gpaw==25.1.0
