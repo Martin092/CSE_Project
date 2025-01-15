@@ -304,10 +304,9 @@ class OptimizerGUI:
         if self.canvas:
             self.canvas.get_tk_widget().pack(pady=10)
 
-
-
     def show_3d_model(self):
         self.hide_all_views()
+        self.myatoms.center()
         view(self.myatoms)
     
     def show_band_structure(self,id):
