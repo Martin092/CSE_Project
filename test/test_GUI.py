@@ -83,7 +83,7 @@ class OptimizerGUI:
         ttk.Label(self.simulation_frame, text="Select Optimization Method:").pack()
         self.optimizer_var = tk.StringVar()
         self.optimizer_dropdown = ttk.Combobox(self.simulation_frame, textvariable=self.optimizer_var, state="readonly")
-        self.optimizer_dropdown['values'] = ("Genetic Algorithm", "Minima Hopping", "Basin Hopping")
+        self.optimizer_dropdown['values'] = ("Genetic Algorithm", "Basin Hopping")
         self.optimizer_dropdown.current(0)
         self.optimizer_dropdown.pack(pady=5)
         
@@ -216,15 +216,6 @@ class OptimizerGUI:
                     self.view_menu.add_command(label="Band Structure", command=self.show_band_structure(id))
                     self.show_log()        
                     
-
-
-            elif optimizer_choice == "Minima Hopping":
-                mh = MinimaHoppingOptimizer(calculator=calculator_)
-                mh.run(element, element, iterations)
-                self.myatoms = mh.cluster_list[-1]
-                self.log("Minima Hopping completed successfully.")
-                self.plot_trajectory(mh.potentials)
-                self.show_log()
 
             elif optimizer_choice == "Basin Hopping":
                 bh = BasinHoppingOptimizer(calculator=calculator_)
