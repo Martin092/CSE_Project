@@ -47,7 +47,7 @@ class OptimizerGUI:
             background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
     def create_start(self):
-        self.set_background("../../../Downloads/imagebg.webp")
+        self.set_background("static/imagebg.webp")
 
         menu_frame = tk.Frame(self.start_frame, bd=0)
         menu_frame.place(relx=0.5, rely=0.5, anchor="center")
