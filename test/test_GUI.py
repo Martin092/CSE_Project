@@ -83,7 +83,7 @@ class OptimizerGUI:
         ttk.Label(self.simulation_frame, text="Select Optimization Method:").pack()
         self.optimizer_var = tk.StringVar()
         self.optimizer_dropdown = ttk.Combobox(self.simulation_frame, textvariable=self.optimizer_var, state="readonly")
-        self.optimizer_dropdown['values'] = ("Genetic Algorithm", "Basin Hopping")
+        self.optimizer_dropdown['values'] = (" ","Genetic Algorithm", "Basin Hopping")
         self.optimizer_dropdown.current(0)
         self.optimizer_dropdown.pack(pady=5)
         
@@ -91,11 +91,14 @@ class OptimizerGUI:
         ttk.Label(self.simulation_frame, text="Select Interaction/Calculator:").pack()
         self.calculator_var = tk.StringVar()
         self.calculator_dropdown = ttk.Combobox(self.simulation_frame, textvariable=self.calculator_var, state="readonly")
-        self.calculator_dropdown['values'] = ("LJ", "EMT", "Tersoff", "Stillinger-Weber", "GPAW")
+        self.calculator_dropdown['values'] = (" ","LJ", "EMT", "Tersoff", "Stillinger-Weber", "GPAW")
         self.calculator_dropdown.current(0)
         self.calculator_dropdown.pack(pady=5)
 
         self.create_input_fields()
+        
+        self.optimizer_dropdown.bind("<<ComboboxSelected>>", lambda event: self.selected_optimizer())
+
 
         self.run_button = ttk.Button(self.simulation_frame, text="Run Optimizer", command=self.run_optimizer)
         self.run_button.pack(pady=10)
@@ -106,7 +109,6 @@ class OptimizerGUI:
 
         # State tracking for views
         self.graph_shown = False
-
 
     def settings(self):
         tk.messagebox.showinfo("Settings", "Open settings menu.")
@@ -140,18 +142,26 @@ class OptimizerGUI:
         self.conv_iter_var = tk.IntVar(value=10)
         self.conv_iter_entry = ttk.Entry(self.input_frame, textvariable=self.conv_iter_var, width=10)
         self.conv_iter_entry.grid(row=3, column=1, padx=5, pady=5)
+    
+    def selected_optimizer(self):
+        if self.optimizer_var.get() == "Genetic Algorithm":
+            ttk.Label(self.input_frame, text="Mutation Parameters:").grid(row=4, column=0, padx=5, pady=5)
+            self.mutation_var = tk.StringVar(value="Default")
+            self.mutation_dropdown = ttk.Combobox(self.input_frame, textvariable=self.mutation_var, state="readonly")
+            self.mutation_dropdown['values'] = ("Default", "Manual")
+            self.mutation_dropdown.current(0)
+            self.mutation_dropdown.grid(row=4, column=1, padx=5, pady=5)
+            self.mutation_dropdown.bind("<<ComboboxSelected>>", self.update_mutation_inputs)
 
+            self.mutation_inputs = {}
+            self.create_mutation_inputs()
 
-        ttk.Label(self.input_frame, text="Mutation Parameters:").grid(row=4, column=0, padx=5, pady=5)
-        self.mutation_var = tk.StringVar(value="Default")
-        self.mutation_dropdown = ttk.Combobox(self.input_frame, textvariable=self.mutation_var, state="readonly")
-        self.mutation_dropdown['values'] = ("Default", "Manual")
-        self.mutation_dropdown.current(0)
-        self.mutation_dropdown.grid(row=4, column=1, padx=5, pady=5)
-        self.mutation_dropdown.bind("<<ComboboxSelected>>", self.update_mutation_inputs)
+        if self.optimizer_var.get() == "Basin Hopping":
+            for widget in self.input_frame.grid_slaves():
+                if int(widget.grid_info()["row"]) > 3:
+                    widget.grid_forget()
 
-        self.mutation_inputs = {}
-        self.create_mutation_inputs()
+                  
 
     def create_mutation_inputs(self):
         labels = ["twist", "random displacement", "angular", "random step", "etching"]
@@ -163,7 +173,6 @@ class OptimizerGUI:
             entry.grid(row=5+i, column=1, padx=5, pady=5)
             self.mutation_inputs[label] = var
 
-
     def update_mutation_inputs(self, event):
         if self.mutation_var.get() == "Default":
             for label, var in self.mutation_inputs.items():
@@ -172,8 +181,6 @@ class OptimizerGUI:
             for label, var in self.mutation_inputs.items():
                 var.set(0.0)
     
-
-
     def run_optimizer(self):
         try:
             optimizer_choice = self.optimizer_var.get()
