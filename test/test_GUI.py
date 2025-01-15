@@ -91,7 +91,7 @@ class OptimizerGUI:
         ttk.Label(self.simulation_frame, text="Select Interaction/Calculator:").pack()
         self.calculator_var = tk.StringVar()
         self.calculator_dropdown = ttk.Combobox(self.simulation_frame, textvariable=self.calculator_var, state="readonly")
-        self.calculator_dropdown['values'] = (" ","LJ", "EMT", "Tersoff", "Stillinger-Weber", "GPAW")
+        self.calculator_dropdown['values'] = (" ","Lennard Jones", "EMT","EAM" , "GPAW")
         self.calculator_dropdown.current(0)
         self.calculator_dropdown.pack(pady=5)
 
@@ -205,7 +205,7 @@ class OptimizerGUI:
             if optimizer_choice == "Genetic Algorithm":
                 ga = GeneticAlgorithm(mutation=self.mutation,num_clusters=4, preserve=True, debug=True, calculator=calculator_)
                 ga.run(element, iterations, conv_iterations)
-                self.myatoms = ga.cluster_list[-1]
+                self.myatoms = ga.best_config
 
                 with Trajectory("test/gpaw/movie.traj", mode="w") as traj:  # type: ignore
                     for cluster in ga.configs:
@@ -226,11 +226,24 @@ class OptimizerGUI:
 
             elif optimizer_choice == "Basin Hopping":
                 bh = BasinHoppingOptimizer(calculator=calculator_)
-                bh.run(element, element, iterations)
-                self.myatoms = bh.cluster_list[-1]
+                bh.run(element, iterations)
+                self.myatoms = bh.best_config
+
+                with Trajectory("test/gpaw/movie.traj", mode="w") as traj:  # type: ignore
+                    for cluster in bh.configs:
+                        cluster.center()
+                        traj.write(cluster)
+
                 self.log("Basin Hopping completed successfully.")
                 self.plot_trajectory(bh.potentials)
                 self.show_log()
+                self.view_menu.add_separator()
+                self.view_menu.add_command(label="Movie", command=self.show_movie)
+
+                if calculator_choice == "GPAW":
+                    id = test_gpw(self.myatoms)
+                    self.view_menu.add_command(label="Band Structure", command=self.show_band_structure(id))
+                    self.show_log()  
 
             else:
                 messagebox.showerror("Error", "Invalid optimizer selection.")
@@ -240,23 +253,18 @@ class OptimizerGUI:
             messagebox.showerror("Error", f"An error occurred: {e}")
 
     def get_calculator(self, calculator_choice):
-        if calculator_choice == "LJ":
+        if calculator_choice == "Lennard Jones":
             from ase.calculators.lj import LennardJones
             return LennardJones
         elif calculator_choice == "EMT":
             from ase.calculators.emt import EMT
             return EMT
-        elif calculator_choice == "Tersoff":
-            from ase.calculators.lammpslib import LAMMPSlib
-            #parameters={"pair_style": "tersoff", "pair_coeff": ["* * SiC.tersoff Si C"]}
-            lammps = LAMMPSlib(lmpcmds=["pair_style tersoff", "pair_coeff * * SiC.tersoff Si C"], log_file='test.log')
-            return lammps
-        elif calculator_choice == "Stillinger-Weber":
-            from ase.calculators.lammpslib import LAMMPSlib
-            return LAMMPSlib(parameters={"pair_style": "sw", "pair_coeff": ["* * SiC.sw Si C"]})
         elif calculator_choice == "GPAW":
             from ase.calculators.lj import LennardJones
             return LennardJones
+        elif calculator_choice == "EAM":
+            from ase.calculators.eam import EAM
+            return EAM
         else:
             raise ValueError("Unsupported calculator.")
 
