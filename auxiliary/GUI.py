@@ -191,14 +191,15 @@ class OptimizerGUI:
             iterations = self.num_iter_var.get()
             conv_iterations = self.conv_iter_var.get()
 
-            self.mutation = OrderedDict(
-            [
-            ("twist", self.mutation_inputs["twist"].get()),
-            ("random displacement", self.mutation_inputs["random displacement"].get()),
-            ("angular", self.mutation_inputs["angular"].get()),
-            ("random step", self.mutation_inputs["random step"].get()),
-            ("etching", self.mutation_inputs["etching"].get()),
-            ])   
+            if self.optimizer_var.get() == 'Genetic Algorithm':
+                self.mutation = OrderedDict(
+                [
+                ("twist", self.mutation_inputs["twist"].get()),
+                ("random displacement", self.mutation_inputs["random displacement"].get()),
+                ("angular", self.mutation_inputs["angular"].get()),
+                ("random step", self.mutation_inputs["random step"].get()),
+                ("etching", self.mutation_inputs["etching"].get()),
+                ])
 
             self.log(f"Running {optimizer_choice} with {calculator_choice} Cluster='{element}', iterations={iterations}")
             calculator_ = self.get_calculator(calculator_choice)
