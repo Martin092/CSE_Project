@@ -17,7 +17,6 @@ jobs:
         run: |
           sudo apt install libopenmpi-dev
           pip install -r requirements.txt
-          sudo apt -y install gpaw
       - name: Format Check
         run: |
           black --check src/
