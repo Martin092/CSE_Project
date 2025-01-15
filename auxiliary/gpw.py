@@ -1,8 +1,8 @@
 """TODO: WRITE DESCRIPTION"""
 
 from ase import Atoms
-from gpaw import GPAW  # pylint: disable=E0611
-from gpaw.tddft import *  # pylint: disable=E0611
+from gpaw import GPAW  # type: ignore  # pylint: disable=E0611
+from gpaw.tddft import *  # type: ignore  # pylint: disable=E0611
 
 
 def gpw(traj_file: Atoms) -> str:
