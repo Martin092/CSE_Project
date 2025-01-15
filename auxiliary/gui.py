@@ -1,53 +1,78 @@
+"""TODO: WRITE DESCRIPTION"""
+
 import sys
-
-sys.path.append("../auxiliary/")
-
 import os
-
-import numpy as np
-import tkinter as tk
-import ase
-from tkinter import ttk
-from tkinter import messagebox
-
-from PIL import Image, ImageTk
-
 from collections import OrderedDict
+from typing import Any, List
 
-from ase.io import Trajectory
-
-from src.genetic_algorithm import GeneticAlgorithm
-from src.basin_hopping_optimizer import BasinHoppingOptimizer
-
-import matplotlib.pyplot as plt
-
-from ase.visualize import view
-
+import tkinter as tk
+from tkinter import ttk, messagebox
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+import ase
+from ase import Atoms
+from ase.io import Trajectory
+from ase.visualize import view
+from ase.calculators.lj import LennardJones
+from ase.calculators.emt import EMT
+from ase.calculators.eam import EAM
 
+sys.path.append("./")
 matplotlib.use("Agg")
 
-from GUI.gpw import gpw
+from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
+from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable=C0413
+from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
-    def __init__(self, root):
-        self.root = root
+    """
+    TODO: Write this.
+    """
+
+    def __init__(self, r: tk.Tk):
+        self.root = r
         self.root.title("Atomic Materials Structure Optimizer")
         self.root.geometry("800x600")
         self.start_frame = tk.Frame(self.root)
         self.start_frame.pack(expand=True, fill="both")
         self.create_start()
+        self.simulation_frame: tk.Frame
+        self.background_image: ImageTk.PhotoImage
+        self.optimizer_var: tk.StringVar
+        self.calculator_var: tk.StringVar
+        self.log_text: tk.Text | None = None
+        self.fig: Figure | None = None
+        self.ax: Axes
+        self.canvas: FigureCanvasTkAgg | None = None
+        self.view_menu: tk.Menu
+        self.input_frame: tk.Frame
+        self.element_var: tk.StringVar
+        self.num_iter_var: tk.IntVar
+        self.conv_iter_var: tk.IntVar
+        self.mutation_var: tk.StringVar
+        self.mutation_inputs: dict[Any, Any] = {}
+        self.myatoms: Atoms
 
-    def set_background(self, image_path):
+    def set_background(self, image_path: str) -> None:
+        """
+        TODO: Write this.
+        """
         image = Image.open(image_path)
         self.background_image = ImageTk.PhotoImage(image)
 
-        background_label = tk.Label(self.start_frame, image=self.background_image)
+        background_label = tk.Label(self.start_frame, image=self.background_image)  # type: ignore
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-    def create_start(self):
+    def create_start(self) -> None:
+        """
+        TODO: Write this.
+        """
         self.set_background("static/imagebg.webp")
 
         menu_frame = tk.Frame(self.start_frame, bd=0)
@@ -67,20 +92,26 @@ class OptimizerGUI:
         tk.Button(
             menu_frame,
             text="Start Simulation",
-            **button_style,
+            **button_style,  # type: ignore
             command=self.start_simulation,
         ).pack(pady=10)
         tk.Button(
-            menu_frame, text="Settings", **button_style, command=self.settings
+            menu_frame, text="Settings", **button_style, command=self.settings  # type: ignore
         ).pack(pady=10)
-        tk.Button(menu_frame, text="Quit", **button_style, command=self.root.quit).pack(
+        tk.Button(menu_frame, text="Quit", **button_style, command=self.root.quit).pack(  # type: ignore
             pady=10
         )
 
-    def destroy_start(self):
+    def destroy_start(self) -> None:
+        """
+        TODO: Write this.
+        """
         self.start_frame.pack_forget()
 
-    def start_simulation(self):
+    def start_simulation(self) -> None:
+        """
+        TODO: Write this.
+        """
         self.destroy_start()
         self.create_menu()
         self.simulation_frame = tk.Frame(self.root)
@@ -94,50 +125,49 @@ class OptimizerGUI:
 
         ttk.Label(self.simulation_frame, text="Select Optimization Method:").pack()
         self.optimizer_var = tk.StringVar()
-        self.optimizer_dropdown = ttk.Combobox(
+        optimizer_dropdown = ttk.Combobox(
             self.simulation_frame, textvariable=self.optimizer_var, state="readonly"
         )
-        self.optimizer_dropdown["values"] = (" ", "Genetic Algorithm", "Basin Hopping")
-        self.optimizer_dropdown.current(0)
-        self.optimizer_dropdown.pack(pady=5)
+        optimizer_dropdown["values"] = (" ", "Genetic Algorithm", "Basin Hopping")
+        optimizer_dropdown.current(0)
+        optimizer_dropdown.pack(pady=5)
 
         ttk.Label(self.simulation_frame, text="Select Interaction/Calculator:").pack()
         self.calculator_var = tk.StringVar()
-        self.calculator_dropdown = ttk.Combobox(
+        calculator_dropdown = ttk.Combobox(
             self.simulation_frame, textvariable=self.calculator_var, state="readonly"
         )
-        self.calculator_dropdown["values"] = (
+        calculator_dropdown["values"] = (
             " ",
             "Lennard Jones",
             "EMT",
             "EAM",
             "GPAW",
         )
-        self.calculator_dropdown.current(0)
-        self.calculator_dropdown.pack(pady=5)
+        calculator_dropdown.current(0)
+        calculator_dropdown.pack(pady=5)
 
         self.create_input_fields()
 
-        self.optimizer_dropdown.bind(
+        optimizer_dropdown.bind(
             "<<ComboboxSelected>>", lambda event: self.selected_optimizer()
         )
 
-        self.run_button = ttk.Button(
+        run_button = ttk.Button(
             self.simulation_frame, text="Run Optimizer", command=self.run_optimizer
         )
-        self.run_button.pack(pady=10)
+        run_button.pack(pady=10)
 
-        self.log_text = None
-        self.fig, self.ax = None, None
-        self.canvas = None
-
-        # State tracking for views
-        self.graph_shown = False
-
-    def settings(self):
+    def settings(self) -> None:
+        """
+        TODO: Write this.
+        """
         tk.messagebox.showinfo("Settings", "Open settings menu.")
 
-    def create_menu(self):
+    def create_menu(self) -> None:
+        """
+        TODO: Write this.
+        """
         menu_bar = tk.Menu(self.root)
         self.root.config(menu=menu_bar)
 
@@ -150,7 +180,10 @@ class OptimizerGUI:
         self.view_menu.add_separator()
         self.view_menu.add_command(label="Log Output", command=self.show_log)
 
-    def create_input_fields(self):
+    def create_input_fields(self) -> None:
+        """
+        TODO: Write this.
+        """
         self.input_frame = tk.Frame(self.simulation_frame)
         self.input_frame.pack()
 
@@ -158,46 +191,48 @@ class OptimizerGUI:
             self.input_frame, text="Atoms (e.g., C2H4 for 2 carbons and 4 hydrogens):"
         ).grid(row=1, column=0, padx=5, pady=5)
         self.element_var = tk.StringVar(value="C2H4")
-        self.element_entry = ttk.Entry(
+        element_entry = ttk.Entry(
             self.input_frame, textvariable=self.element_var, width=10
         )
-        self.element_entry.grid(row=1, column=1, padx=5, pady=5)
+        element_entry.grid(row=1, column=1, padx=5, pady=5)
 
         ttk.Label(self.input_frame, text="Max Number of Iterations:").grid(
             row=2, column=0, padx=5, pady=5
         )
         self.num_iter_var = tk.IntVar(value=50)
-        self.num_iter_entry = ttk.Entry(
+        num_iter_entry = ttk.Entry(
             self.input_frame, textvariable=self.num_iter_var, width=10
         )
-        self.num_iter_entry.grid(row=2, column=1, padx=5, pady=5)
+        num_iter_entry.grid(row=2, column=1, padx=5, pady=5)
 
         ttk.Label(
             self.input_frame, text="Min Number of Iterations to convergence:"
         ).grid(row=3, column=0, padx=5, pady=5)
         self.conv_iter_var = tk.IntVar(value=10)
-        self.conv_iter_entry = ttk.Entry(
+        conv_iter_entry = ttk.Entry(
             self.input_frame, textvariable=self.conv_iter_var, width=10
         )
-        self.conv_iter_entry.grid(row=3, column=1, padx=5, pady=5)
+        conv_iter_entry.grid(row=3, column=1, padx=5, pady=5)
 
-    def selected_optimizer(self):
+    def selected_optimizer(self) -> None:
+        """
+        TODO: Write this.
+        """
         if self.optimizer_var.get() == "Genetic Algorithm":
             ttk.Label(self.input_frame, text="Mutation Parameters:").grid(
                 row=4, column=0, padx=5, pady=5
             )
             self.mutation_var = tk.StringVar(value="Default")
-            self.mutation_dropdown = ttk.Combobox(
+            mutation_dropdown = ttk.Combobox(
                 self.input_frame, textvariable=self.mutation_var, state="readonly"
             )
-            self.mutation_dropdown["values"] = ("Default", "Manual")
-            self.mutation_dropdown.current(0)
-            self.mutation_dropdown.grid(row=4, column=1, padx=5, pady=5)
-            self.mutation_dropdown.bind(
+            mutation_dropdown["values"] = ("Default", "Manual")
+            mutation_dropdown.current(0)
+            mutation_dropdown.grid(row=4, column=1, padx=5, pady=5)
+            mutation_dropdown.bind(
                 "<<ComboboxSelected>>", self.update_mutation_inputs
             )
 
-            self.mutation_inputs = {}
             self.create_mutation_inputs()
 
         if self.optimizer_var.get() == "Basin Hopping":
@@ -205,7 +240,10 @@ class OptimizerGUI:
                 if int(widget.grid_info()["row"]) > 3:
                     widget.grid_forget()
 
-    def create_mutation_inputs(self):
+    def create_mutation_inputs(self) -> None:
+        """
+        TODO: Write this.
+        """
         labels = ["twist", "random displacement", "angular", "random step", "etching"]
         default_values = [0.3, 0.1, 0.3, 0.3, 0.1]
         for i, label in enumerate(labels):
@@ -217,7 +255,10 @@ class OptimizerGUI:
             entry.grid(row=5 + i, column=1, padx=5, pady=5)
             self.mutation_inputs[label] = var
 
-    def update_mutation_inputs(self, event):
+    def update_mutation_inputs(self, _: Any) -> None:
+        """
+        TODO: Write this.
+        """
         if self.mutation_var.get() == "Default":
             for label, var in self.mutation_inputs.items():
                 var.set(
@@ -235,7 +276,10 @@ class OptimizerGUI:
             for label, var in self.mutation_inputs.items():
                 var.set(0.0)
 
-    def run_optimizer(self):
+    def run_optimizer(self) -> None:
+        """
+        TODO: Write this.
+        """
         try:
             optimizer_choice = self.optimizer_var.get()
             calculator_choice = self.calculator_var.get()
@@ -244,7 +288,7 @@ class OptimizerGUI:
             conv_iterations = self.conv_iter_var.get()
 
             if self.optimizer_var.get() == "Genetic Algorithm":
-                self.mutation = OrderedDict(
+                mutation = OrderedDict(
                     [
                         ("twist", self.mutation_inputs["twist"].get()),
                         (
@@ -264,7 +308,7 @@ class OptimizerGUI:
 
             if optimizer_choice == "Genetic Algorithm":
                 ga = GeneticAlgorithm(
-                    mutation=self.mutation,
+                    mutation=mutation,  # pylint: disable=E0606
                     num_clusters=4,
                     preserve=True,
                     debug=True,
@@ -278,8 +322,8 @@ class OptimizerGUI:
 
                 with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
                     for cluster in ga.configs:
-                        cluster.center()
-                        traj.write(cluster)
+                        cluster.center()  # type: ignore
+                        traj.write(cluster)  # pylint: disable=E1101
 
                 self.log("Genetic Algorithm completed successfully.")
                 self.plot_trajectory(ga.potentials)
@@ -291,9 +335,9 @@ class OptimizerGUI:
                     if not os.path.exists("./gpaw"):
                         os.mkdir("./gpaw")
 
-                    id = gpw(self.myatoms)
+                    id = gpw(self.myatoms)  # pylint: disable=W0622
                     self.view_menu.add_command(
-                        label="Band Structure", command=self.show_band_structure(id)
+                        label="Band Structure", command=self.show_band_structure(id)  # type: ignore
                     )
                     self.show_log()
 
@@ -307,8 +351,8 @@ class OptimizerGUI:
 
                 with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
                     for cluster in bh.configs:
-                        cluster.center()
-                        traj.write(cluster)
+                        cluster.center()  # type: ignore
+                        traj.write(cluster)  # pylint: disable=E1101
 
                 self.log("Basin Hopping completed successfully.")
                 self.plot_trajectory(bh.potentials)
@@ -319,100 +363,118 @@ class OptimizerGUI:
                 if calculator_choice == "GPAW":
                     id = gpw(self.myatoms)
                     self.view_menu.add_command(
-                        label="Band Structure", command=self.show_band_structure(id)
+                        label="Band Structure", command=self.show_band_structure(id)  # type: ignore
                     )
                     self.show_log()
 
             else:
                 messagebox.showerror("Error", "Invalid optimizer selection.")
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=W0718
             self.log(f"Error: {e}")
             messagebox.showerror("Error", f"An error occurred: {e}")
 
-    def get_calculator(self, calculator_choice):
+    def get_calculator(self, calculator_choice: str) -> Any:
+        """
+        TODO: Write this.
+        """
         if calculator_choice == "Lennard Jones":
-            from ase.calculators.lj import LennardJones
-
             return LennardJones
-        elif calculator_choice == "EMT":
-            from ase.calculators.emt import EMT
-
+        if calculator_choice == "EMT":
             return EMT
-        elif calculator_choice == "GPAW":
-            from ase.calculators.lj import LennardJones
-
+        if calculator_choice == "GPAW":
             return LennardJones
-        elif calculator_choice == "EAM":
-            from ase.calculators.eam import EAM
-
+        if calculator_choice == "EAM":
             return EAM
-        else:
-            raise ValueError("Unsupported calculator.")
+        raise ValueError("Unsupported calculator.")
 
-    def log(self, message):
+    def log(self, message: str) -> None:
+        """
+        TODO: Write this.
+        """
         if not self.log_text:
             self.log_text = tk.Text(self.simulation_frame, height=10, width=60)
         self.log_text.insert(tk.END, message + "\n")
         self.log_text.see(tk.END)
 
-    def plot_trajectory(self, potentials):
+    def plot_trajectory(self, potentials: List[float]) -> None:
+        """
+        TODO: Write this.
+        """
         self.hide_all_views()
         if not self.fig or not self.canvas:
             self.fig, self.ax = plt.subplots(figsize=(5, 4))
-            self.canvas = FigureCanvasTkAgg(self.fig, self.simulation_frame)
+            self.canvas = FigureCanvasTkAgg(self.fig, self.simulation_frame)  # type: ignore
 
         self.ax.clear()
         self.ax.plot(range(len(potentials)), potentials)
         self.ax.set_xlabel("Iterations")
         self.ax.set_ylabel("Energy")
         self.ax.set_title("Optimization Trajectory")
-        self.canvas.draw()
+        self.canvas.draw()  # type: ignore
 
-    def show_graph(self):
+    def show_graph(self) -> None:
+        """
+        TODO: Write this.
+        """
         self.hide_all_views()
         if self.canvas:
-            self.canvas.get_tk_widget().pack(pady=10)
+            self.canvas.get_tk_widget().pack(pady=10)  # type: ignore
 
-    def show_3d_model(self):
+    def show_3d_model(self) -> None:
+        """
+        TODO: Write this.
+        """
         self.hide_all_views()
-        self.myatoms.center()
-        view(self.myatoms)
+        self.myatoms.center()  # type: ignore
+        view(self.myatoms)  # type: ignore
 
-    def show_band_structure(self, id):
+    def show_band_structure(self, id: str) -> None:  # pylint: disable=W0622
+        """
+        TODO: Write this.
+        """
         self.hide_all_views()
         file_path = id
         data = np.loadtxt(file_path, skiprows=1)
         energy = data[:, 0]  # First column: energy in eV
-        S_z = data[:, 3]  # Second column: S_z
+        s_z = data[:, 3]  # Second column: S_z
         energy = np.delete(energy, 0)
-        S_z = np.delete(S_z, 0)
+        s_z = np.delete(s_z, 0)
         wavelength = 1240 / energy  # Convert energy (eV) to wavelength (nm)
-        fig, ax = plt.subplots()
-        ax.plot(wavelength, S_z, label="S_z")
-        ax.set_xlabel("Wavelength (nm)")
-        ax.set_ylabel("S_z")
-        ax.set_title("Optical Photoabsorption Spectrum")
-        ax.legend()
-        ax.set_xlim(0, 1000)
+        self.fig, self.ax = plt.subplots()
+        self.ax.plot(wavelength, s_z, label="S_z")
+        self.ax.set_xlabel("Wavelength (nm)")
+        self.ax.set_ylabel("S_z")
+        self.ax.set_title("Optical Photoabsorption Spectrum")
+        self.ax.legend()
+        self.ax.set_xlim(0, 1000)
 
-        canvas = FigureCanvasTkAgg(fig, master=self.simulation_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(pady=10)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.simulation_frame)  # type: ignore
+        self.canvas.draw()  # type: ignore
+        self.canvas.get_tk_widget().pack(pady=10)  # type: ignore
 
-    def show_log(self):
+    def show_log(self) -> None:
+        """
+        TODO: Write this.
+        """
         self.hide_all_views()
         if self.log_text:
             self.log_text.pack(pady=5)
 
-    def show_movie(self):
+    def show_movie(self) -> None:
+        """
+        TODO: Write this.
+        """
         self.hide_all_views()
-        self.movie_atoms = ase.io.read("./gpaw/movie.traj", index=":")
-        view(self.movie_atoms)
+        movie_atoms = ase.io.read("./gpaw/movie.traj", index=":")
+        view(movie_atoms)  # type: ignore
 
-    def hide_all_views(self):
+    def hide_all_views(self) -> None:
+        """
+        TODO: Write this.
+        """
         if self.canvas:
-            self.canvas.get_tk_widget().pack_forget()
+            self.canvas.get_tk_widget().pack_forget()  # type: ignore
         if self.log_text:
             self.log_text.pack_forget()
 
