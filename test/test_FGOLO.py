@@ -15,7 +15,6 @@ def benchmark_optimizers():
     
     # Generate initial atomic configuration
     atoms = utility.generate_cluster()
-    atoms.calc = LennardJones()  # Assign Lennard-Jones potential calculator
 
     # Clone atoms for fair comparison
     atoms_fgolo = atoms.copy()
@@ -24,7 +23,7 @@ def benchmark_optimizers():
     atoms_fire.calc = LennardJones()
 
     # Initialize and run FGOLO optimizer
-    fgolo_optimizer = FGOLO(atoms_fgolo)
+    fgolo_optimizer = FGOLO(atoms_fgolo, logfile=None)
     print("\nRunning FGOLO optimizer...")
     start_time_fgolo = time.time()
     fgolo_optimizer.run(fmax=0.01)
@@ -51,37 +50,6 @@ def benchmark_optimizers():
     print("\n=== Benchmark Results ===")
     print(f"FGOLO: Time = {fgolo_time:.4f} s, Final Energy = {fgolo_final_energy:.6f}")
     print(f"FIRE : Time = {fire_time:.4f} s, Final Energy = {fire_final_energy:.6f}")
-
-    # Compare final positions
-    # print("\nFGOLO Final Positions:")
-    # print(fgolo_final_positions)
-    # print("\nFIRE Final Positions:")
-    # print(fire_final_positions)
-
-
-def test_fgolo_optimizer():
-    a = BasinHoppingOptimizer()
-    utility = Utility(a, 'H4')
-
-
-    atoms1 = utility.generate_cluster()
-    atoms2 = atoms1
-
-    #atoms = Atoms('H2', positions=[[0, 0, 0], [0, 0, 1.3]])
-
-    atoms1.calc = LennardJones()
-
-    optimizer = FGOLO(atoms1)
-
-    # Run the optimization
-    optimizer.run(fmax=0.01)
-
-    # Check results
-    print("Final positions:")
-    print(atoms.get_positions())
-    print("Final energy:")
-    print(atoms.get_potential_energy())
-
 
 if __name__ == "__main__":
     benchmark_optimizers()

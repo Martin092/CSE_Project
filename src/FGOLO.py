@@ -18,24 +18,18 @@ class FGOLO(Optimizer):
         **kwargs,
     ):
         Optimizer.__init__(self, atoms, restart, logfile, trajectory, **kwargs)
-        self.offsetAtoms1 = OptimizableAtoms(atoms)
-        self.offsetAtoms2 = OptimizableAtoms(atoms)
-
         self.atoms = atoms
         self.df = df
         self.dE = dE
 
-        self.lastEnergy = None
-
-    #def log(self, forces=None):
-    #    return
+        self.last_energy = None
 
     def converged(self, forces=None):
-        if self.lastEnergy is None:
+        if self.last_energy is None:
             return False
         
         #print("dE ", abs(self.lastEnergy - self.optimizable.get_potential_energy()))
-        return abs(self.lastEnergy - self.optimizable.get_potential_energy()) < self.dE
+        return abs(self.last_energy - self.optimizable.get_potential_energy()) < self.dE
     
     def step(self):
         
@@ -43,38 +37,42 @@ class FGOLO(Optimizer):
         optimizable = self.optimizable
         energy0 = optimizable.get_potential_energy()
 
-        negativeGradient = optimizable.get_forces()
-        gradLength = np.sqrt((negativeGradient ** 2).sum(axis=1).sum())
+        negative_gradient = optimizable.get_forces()
+        grad_length = np.sqrt((negative_gradient ** 2).sum(axis=1).sum())
 
-        if(gradLength < 0.000001):
-            self.lastEnergy = energy0
+        if(grad_length < 0.000001):
+            self.last_energy = energy0
             return
         
         # the gradient size is clipped within a reasonable range, to ensure that the sampling distance remains reasonable
-        negativeGradient = negativeGradient * ((min(100, gradLength)) / gradLength)
+        negative_gradient = negative_gradient * ((min(100, grad_length)) / grad_length)
 
         # evaluate the energies of clusters moved along the gradient
         positions = optimizable.get_positions()
 
-        optimizable.set_positions(positions + self.df * negativeGradient)
+        optimizable.set_positions(positions + self.df * negative_gradient)
         energy1 = optimizable.get_potential_energy()
 
-        optimizable.set_positions(positions + 2 * self.df * negativeGradient)
+        optimizable.set_positions(positions + 2 * self.df * negative_gradient)
         energy2 = optimizable.get_potential_energy()
         
         # based on the energy at these 3 points along the same 3*N dimensional line, fit a y=ax^2+bx+c polynomial, and estimate the minimum on this fitted curve
         val1 = (2 * energy2 - 4 * energy1 + 2 * energy0)
         if(abs(val1) < 0.00000001):
             optimizable.set_positions(positions)
-            self.lastEnergy = energy0
+            self.last_energy = energy0
             return
 
-        optimalMoveDistance = (energy2 - 4 * energy1 + 3 * energy0) / val1
-        #print("move Dist: ", optimalMoveDistance)
+        optimal_move_units = (energy2 - 4 * energy1 + 3 * energy0) / val1
 
-        if (optimalMoveDistance < 0):
-            optimalMoveDistance = 20
-        optimalMoveDistance = min(optimalMoveDistance, 50)
+        # clamp the estimated minimum of the polynomial appropriately
+        # if the minimum is in the opposite direction of the negative gradient, the energy surface is better approximated as a negative parabola, meaning (for LJ) the atoms are too far apart
+        # instead, nudge the atoms a steady small amount in the direction of the negative gradient
+        if (optimal_move_units < 0):
+            optimal_move_units = 20
+        # the basic polynomial used for fitting is only accurate for a limited range, thus clamp the distance to a reasonable range
+        optimal_move_units = min(optimal_move_units, 50)
 
-        optimizable.set_positions(positions + (self.df * optimalMoveDistance) * negativeGradient)
-        self.lastEnergy = energy0
+        # update cluster atom locations
+        optimizable.set_positions(positions + (self.df * optimal_move_units) * negative_gradient)
+        self.last_energy = energy0
