@@ -66,7 +66,7 @@ class OptimizerGUI:
         image = Image.open(image_path)
         self.background_image = ImageTk.PhotoImage(image)
 
-        background_label = tk.Label(self.start_frame, image=self.background_image)  # type: ignore
+        background_label = tk.Label(self.start_frame, image=self.background_image)
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
     def create_start(self) -> None:
@@ -309,7 +309,7 @@ class OptimizerGUI:
                     mutation=mutation,  # pylint: disable=E0606
                     num_clusters=4,
                     preserve=True,
-                    debug=True,
+                    debug=False,
                     calculator=calculator_,
                 )
                 ga.run(element, iterations, conv_iterations)

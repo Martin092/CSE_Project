@@ -9,17 +9,14 @@ def gpw(traj_file: Atoms) -> str:
     """
     TODO: WRITE THIS.
     """
-    si = traj_file
-    # Periodic boundary conditions
-    si.set_pbc([True, True, True])  # type: ignore
 
-    # ------------------------------
-    atoms = si.copy()  # type: ignore
-
-    atoms.center(vacuum=6.0)
+    atoms = traj_file
+    atoms.center(vacuum=6.0)  # type: ignore
+    atoms.set_pbc([True, True, True])  # type: ignore
 
     calc = GPAW(mode="fd", nbands=50, h=0.3, symmetry={"point_group": False})
     atoms.calc = calc
+    atoms.get_potential_energy()  # type: ignore
     calc.write("./gpaw/be_gs.gpw", "all")
 
     time_step = 8.0  # 1 attoseconds = 0.041341 autime
