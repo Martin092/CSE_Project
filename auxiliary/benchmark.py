@@ -23,8 +23,9 @@ class Benchmark:
     the performance of global optimization algorithms
     """
 
-    def __init__(self, optimizer: GlobalOptimizer):
+    def __init__(self, optimizer: GlobalOptimizer, log: str | None = None):
         self.optimizer = optimizer
+        self.log = log
 
     def plot_energies(self) -> None:
         """
@@ -107,17 +108,27 @@ class Benchmark:
             self.plot_energies()
 
         for k in range(len(indices)):  # pylint: disable=C0200
-            print(
-                f"LJ {indices[k]}: {convergence[k] - 1} iterations for "
+            self.print_log(
+                f"LJ {indices[k]}: {convergence[k] - 1} iterations for " +
                 f"{int(np.floor_divide(times[k], 60))} min {int(times[k])%60} sec"
             )
             if minima[k] == 0:
-                print(
+                self.print_log(
                     f"Didn't find global minimum. Found {energy[k]}, but global minimum is {database[k]}."
                 )
             elif minima[k] == 1:
-                print("Found global minimum from database.")
+                self.print_log("Found global minimum from database.")
             else:
-                print(
+                self.print_log(
                     f"Found new global minimum. Found {energy[k]}, but database minimum is {database[k]}."
                 )
+
+            self.print_log('\n')
+
+    def print_log(self, content):
+        if self.log is None:
+            print(content)
+        else:
+            with open(self.log, 'a') as f:
+                f.write(content + '\n')
+                f.flush()

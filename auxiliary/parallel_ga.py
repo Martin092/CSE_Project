@@ -84,21 +84,17 @@ def worker(
         if status.tag == 0:
             break  # If status tag is 0, kill worker process
         clusters = []  # Set up clusters list for each worker process
-        for (
-            i
-        ) in (
-            pos
-        ):  # For each received cluster, generate Atoms object from atomic configuration
+        for i in pos:  # For each received cluster, generate Atoms object from atomic configuration
             clus = ga.utility.generate_cluster(i)
             clusters.append(clus)  # Add Atoms object to list of clusters
-        for clus in clusters:  # For each received cluster
+
+        for i, clus in enumerate(clusters):  # For each received cluster
             ga.mutation(clus, max_local_steps)  # Perform mutation
-            clus = ga.utility.generate_cluster(pos)
             if bh_optimizer:
                 bh_optimizer.run(atoms, 40, 20, initial_configuration=clus.positions)
-                clus = bh_optimizer.best_config
+                clusters[i] = bh_optimizer.best_config
             else:
-                ga.local_optimizer(clus).run(steps=20000)  # Perform local optimization
+                ga.local_optimizer(clus, logfile=ga.logfile).run(steps=20000)  # Perform local optimization
         if ga.debug:
             print(f"Rank {ga.comm.Get_rank()} sending.", flush=True)  # type: ignore[union-attr]
         send = []  # Generate list of clusters to send
@@ -167,21 +163,27 @@ def parent_rank(
     plt.tight_layout()  # Fix the plot's location on the figure
     plt.savefig(f"./data/optimizer/LJ{num_atoms}.png")  # Save plot to file
     plt.close()  # Close plot object
-    print(  # Print execution summary
+    print_log(  # Print execution summary
         f"LJ {num_atoms}: {ga.current_iteration - 1} iterations for "
         f"{int(np.floor_divide(ga.execution_time, 60))} min {int(ga.execution_time) % 60} sec",
-        flush=True,
     )
     if (
         abs(ga.best_potential - best) < 0.000001 * num_atoms * num_atoms
     ):  # Check if within uncertainty boundaries
-        print("Found global minimum from database.")
+        print_log("Found global minimum from database.")
     elif ga.best_potential < best:  # Else if sufficiently better
-        print(
+        print_log(
             f"Found new global minimum. Found {ga.best_potential}, but database minimum is {best}."
         )
     else:  # Finally, it is suboptimal
-        print(
+        print_log(
             f"Didn't find global minimum. Found {ga.best_potential}, but global minimum is {best}."
         )
-    MPI.Finalize()  # End parallel execution
+
+    # MPI.Finalize()  # End parallel execution
+
+def print_log(content):
+    print(content, flush=True)
+    with open('parallel_ga_log.txt', 'a') as f:
+        f.write(content + '\n')
+        f.flush()
