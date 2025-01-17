@@ -22,6 +22,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         self,
         mutation: OrderedDict[str, float],
         num_clusters: int,
+        displacement_length: float = 0.1,
         num_selection: int = 0,
         preserve: bool = True,
         local_optimizer: Any = BFGS,
@@ -34,6 +35,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param mutation: dictionary specifying the order of different mutations
                          as well as probabilities for each type of mutation
         :param num_clusters: number of clusters/configurations per generation
+        :param displacement_length: length of the displacement vector for random displacement mutation
         :param num_selection: number of parents to be selected from each generation
         :param preserve: whether to preserve parents in new generation or not
         :param local_optimizer: optimizer used to find local minima
@@ -49,6 +51,9 @@ class GeneticAlgorithm(GlobalOptimizer):
         )
         self.mutation_probability = (
             mutation  # Ordered dictionary of mutations and their probabilities
+        )
+        self.displacement_length = (
+            displacement_length  # Length of displacement mutation vector
         )
         if num_selection == 0:
             num_selection = max(int(num_clusters / 2), 2)
@@ -337,7 +342,9 @@ class GeneticAlgorithm(GlobalOptimizer):
                         print("Twist", flush=True)
                     self.utility.twist(cluster)  # Perform twist mutation
             elif i == "random displacement":  # If key is random displacement
-                self.utility.random_displacement(cluster, self.mutation_probability[i])
+                self.utility.random_displacement(
+                    cluster, self.mutation_probability[i], self.displacement_length
+                )
             elif i == "angular":  # If key is angular
                 if (
                     np.random.rand() <= self.mutation_probability[i]
