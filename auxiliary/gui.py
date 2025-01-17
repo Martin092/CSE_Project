@@ -66,7 +66,7 @@ class OptimizerGUI:
         image = Image.open(image_path)
         self.background_image = ImageTk.PhotoImage(image)
 
-        background_label = tk.Label(self.start_frame, image=self.background_image)
+        background_label = tk.Label(self.start_frame, image=self.background_image)  # type: ignore
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
     def create_start(self) -> None:
