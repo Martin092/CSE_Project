@@ -51,13 +51,14 @@ class OptimizerGUI:
         self.ax: Axes
         self.canvas: FigureCanvasTkAgg | None = None
         self.view_menu: tk.Menu
-        self.input_frame: tk.Frame
         self.element_var: tk.StringVar
         self.num_iter_var: tk.IntVar
         self.conv_iter_var: tk.IntVar
+        self.parameter_frame: tk.Frame
         self.mutation_var: tk.StringVar
         self.mutation_inputs: dict[Any, Any] = {}
         self.myatoms: Atoms
+        self.settings_button: ttk.Button
 
     def set_background(self, image_path: str) -> None:
         """
@@ -115,24 +116,41 @@ class OptimizerGUI:
         self.destroy_start()
         self.create_menu()
         self.simulation_frame = tk.Frame(self.root)
-        self.simulation_frame.pack(expand=True)
+        self.simulation_frame.pack(expand=True, padx=20, pady=20)
 
         ttk.Label(
             self.simulation_frame,
             text="Atomic Materials Structure Optimizer",
             font=("Arial", 16),
-        ).pack(pady=10)
+        ).grid(row=0, column=0, columnspan=3, pady=10)
 
-        ttk.Label(self.simulation_frame, text="Select Optimization Method:").pack()
+        ttk.Label(self.simulation_frame, text="Select Optimization Method:").grid(
+            row=1, column=0, padx=5, pady=5
+        )
         self.optimizer_var = tk.StringVar()
         optimizer_dropdown = ttk.Combobox(
             self.simulation_frame, textvariable=self.optimizer_var, state="readonly"
         )
         optimizer_dropdown["values"] = (" ", "Genetic Algorithm", "Basin Hopping")
         optimizer_dropdown.current(0)
-        optimizer_dropdown.pack(pady=5)
+        optimizer_dropdown.grid(row=1, column=1, padx=5, pady=5)
 
-        ttk.Label(self.simulation_frame, text="Select Interaction/Calculator:").pack()
+        image = Image.open("static/settings.jpeg")
+        settings_icon = ImageTk.PhotoImage(image.resize((25, 25)))
+        self.settings_button = ttk.Button(
+            self.simulation_frame,
+            image=settings_icon,  # type: ignore
+            command=self.selected_optimizer,
+        )
+        self.settings_button.image = settings_icon  # type: ignore
+        self.settings_button.grid(row=1, column=2, padx=10, pady=5)
+        self.settings_button.grid_forget()
+
+        optimizer_dropdown.bind("<<ComboboxSelected>>", self.toggle_settings_button)
+
+        ttk.Label(self.simulation_frame, text="Select Interaction/Calculator:").grid(
+            row=2, column=0, padx=5, pady=5
+        )
         self.calculator_var = tk.StringVar()
         calculator_dropdown = ttk.Combobox(
             self.simulation_frame, textvariable=self.calculator_var, state="readonly"
@@ -145,18 +163,28 @@ class OptimizerGUI:
             "GPAW",
         )
         calculator_dropdown.current(0)
-        calculator_dropdown.pack(pady=5)
+        calculator_dropdown.grid(row=2, column=1, padx=5, pady=5)
+
+        # TODO: Add Local Optimizers (BFGS, FIRE for sure, maybe some other?)
 
         self.create_input_fields()
-
-        optimizer_dropdown.bind(
-            "<<ComboboxSelected>>", lambda event: self.selected_optimizer()
-        )
 
         run_button = ttk.Button(
             self.simulation_frame, text="Run Optimizer", command=self.run_optimizer
         )
-        run_button.pack(pady=10)
+        run_button.grid(row=7, column=0, columnspan=3, pady=10)
+
+    def toggle_settings_button(self, _: Any) -> None:
+        """
+        TODO: Write this.
+        """
+        selected_option = self.optimizer_var.get()
+
+        if selected_option != " ":
+            self.settings_button.grid(row=1, column=2, padx=10, pady=5)
+        else:
+            self.parameter_frame.grid_forget()
+            self.settings_button.grid_forget()
 
     def settings(self) -> None:
         """
@@ -184,57 +212,59 @@ class OptimizerGUI:
         """
         TODO: Write this.
         """
-        self.input_frame = tk.Frame(self.simulation_frame)
-        self.input_frame.pack()
-
         ttk.Label(
-            self.input_frame, text="Atoms (e.g., C2H4 for 2 carbons and 4 hydrogens):"
-        ).grid(row=1, column=0, padx=5, pady=5)
+            self.simulation_frame,
+            text="Atoms (e.g., C2H4 for 2 carbon and 4 hydrogen atoms):",
+        ).grid(row=3, column=0, padx=5, pady=5)
         self.element_var = tk.StringVar(value="C2H4")
         element_entry = ttk.Entry(
-            self.input_frame, textvariable=self.element_var, width=10
+            self.simulation_frame, textvariable=self.element_var, width=10
         )
-        element_entry.grid(row=1, column=1, padx=5, pady=5)
-
-        ttk.Label(self.input_frame, text="Max Number of Iterations:").grid(
-            row=2, column=0, padx=5, pady=5
-        )
-        self.num_iter_var = tk.IntVar(value=50)
-        num_iter_entry = ttk.Entry(
-            self.input_frame, textvariable=self.num_iter_var, width=10
-        )
-        num_iter_entry.grid(row=2, column=1, padx=5, pady=5)
+        element_entry.grid(row=3, column=1, padx=5, pady=5)
 
         ttk.Label(
-            self.input_frame, text="Min Number of Iterations to convergence:"
-        ).grid(row=3, column=0, padx=5, pady=5)
+            self.simulation_frame, text="Max Number of Iterations for Execution:"
+        ).grid(row=4, column=0, padx=5, pady=5)
+        self.num_iter_var = tk.IntVar(value=50)
+        num_iter_entry = ttk.Entry(
+            self.simulation_frame, textvariable=self.num_iter_var, width=10
+        )
+        num_iter_entry.grid(row=4, column=1, padx=5, pady=5)
+
+        ttk.Label(
+            self.simulation_frame,
+            text="Number of Iterations Considered for Convergence:",
+        ).grid(row=5, column=0, padx=5, pady=5)
         self.conv_iter_var = tk.IntVar(value=10)
         conv_iter_entry = ttk.Entry(
-            self.input_frame, textvariable=self.conv_iter_var, width=10
+            self.simulation_frame, textvariable=self.conv_iter_var, width=10
         )
-        conv_iter_entry.grid(row=3, column=1, padx=5, pady=5)
+        conv_iter_entry.grid(row=5, column=1, padx=5, pady=5)
 
     def selected_optimizer(self) -> None:
         """
         TODO: Write this.
         """
+        self.parameter_frame = tk.Frame(self.simulation_frame)
+        self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
+
         if self.optimizer_var.get() == "Genetic Algorithm":
-            ttk.Label(self.input_frame, text="Mutation Parameters:").grid(
-                row=4, column=0, padx=5, pady=5
+            ttk.Label(self.parameter_frame, text="Mutation Parameters:").grid(
+                row=1, column=0, padx=5, pady=5
             )
             self.mutation_var = tk.StringVar(value="Default")
             mutation_dropdown = ttk.Combobox(
-                self.input_frame, textvariable=self.mutation_var, state="readonly"
+                self.parameter_frame, textvariable=self.mutation_var, state="readonly"
             )
             mutation_dropdown["values"] = ("Default", "Manual")
             mutation_dropdown.current(0)
-            mutation_dropdown.grid(row=4, column=1, padx=5, pady=5)
+            mutation_dropdown.grid(row=1, column=1, padx=5, pady=5)
             mutation_dropdown.bind("<<ComboboxSelected>>", self.update_mutation_inputs)
 
             self.create_mutation_inputs()
 
         if self.optimizer_var.get() == "Basin Hopping":
-            for widget in self.input_frame.grid_slaves():
+            for widget in self.parameter_frame.grid_slaves():
                 if int(widget.grid_info()["row"]) > 3:
                     widget.grid_forget()
 
@@ -245,12 +275,12 @@ class OptimizerGUI:
         labels = ["twist", "random displacement", "angular", "random step", "etching"]
         default_values = [0.3, 0.1, 0.3, 0.3, 0.1]
         for i, label in enumerate(labels):
-            ttk.Label(self.input_frame, text=label.capitalize() + ":").grid(
-                row=5 + i, column=0, padx=5, pady=5
+            ttk.Label(self.parameter_frame, text=label.capitalize() + ":").grid(
+                row=2 + i, column=0, padx=5, pady=5
             )
             var = tk.DoubleVar(value=default_values[i])
-            entry = ttk.Entry(self.input_frame, textvariable=var, width=10)
-            entry.grid(row=5 + i, column=1, padx=5, pady=5)
+            entry = ttk.Entry(self.parameter_frame, textvariable=var, width=10)
+            entry.grid(row=2 + i, column=1, padx=5, pady=5)
             self.mutation_inputs[label] = var
 
     def update_mutation_inputs(self, _: Any) -> None:
