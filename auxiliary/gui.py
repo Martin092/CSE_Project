@@ -1,4 +1,4 @@
-"""TODO: WRITE DESCRIPTION"""
+"""GUI module"""
 
 import sys
 import os
@@ -35,7 +35,7 @@ from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 class OptimizerGUI:
     """
-    TODO: Write this.
+    GUI class structure
     """
 
     def __init__(self, r: tk.Tk):
@@ -70,21 +70,15 @@ class OptimizerGUI:
         self.log: str = ""
         self.log_field: tk.Label
 
-    def set_background(self, image_path: str) -> None:
+    def create_start(self) -> None:
         """
-        TODO: Write this.
+        Generates the initial start frame.
         """
-        image = Image.open(image_path)
+        image = Image.open("static/imagebg.webp")
         self.background_image = ImageTk.PhotoImage(image)
 
         background_label = tk.Label(self.start_frame, image=self.background_image)  # type: ignore
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
-
-    def create_start(self) -> None:
-        """
-        TODO: Write this.
-        """
-        self.set_background("static/imagebg.webp")
 
         menu_frame = tk.Frame(self.start_frame, bd=0)
         menu_frame.place(relx=0.5, rely=0.5, anchor="center")
@@ -106,24 +100,15 @@ class OptimizerGUI:
             **button_style,  # type: ignore
             command=self.start_simulation,
         ).pack(pady=10)
-        tk.Button(
-            menu_frame, text="Settings", **button_style, command=self.settings  # type: ignore
-        ).pack(pady=10)
         tk.Button(menu_frame, text="Quit", **button_style, command=self.root.quit).pack(  # type: ignore
             pady=10
         )
 
-    def destroy_start(self) -> None:
-        """
-        TODO: Write this.
-        """
-        self.start_frame.destroy()
-
     def start_simulation(self) -> None:
         """
-        TODO: Write this.
+        Generates the simulation frame.
         """
-        self.destroy_start()
+        self.start_frame.destroy()
         self.create_menu()
         self.simulation_frame = tk.Frame(self.root)
         self.simulation_frame.pack(expand=True, padx=20, pady=20)
@@ -187,7 +172,7 @@ class OptimizerGUI:
 
     def toggle_settings_button(self, _: Any) -> None:
         """
-        TODO: Write this.
+        Toggles settings button when an optimizer is selected.
         """
         selected_option = self.optimizer_var.get()
 
@@ -199,15 +184,9 @@ class OptimizerGUI:
         if self.show_params:
             self.params()
 
-    def settings(self) -> None:
-        """
-        TODO: Write this.
-        """
-        tk.messagebox.showinfo("Settings", "Open settings menu.")
-
     def create_menu(self) -> None:
         """
-        TODO: Write this.
+        Generates filling menu.
         """
         menu_bar = tk.Menu(self.root)
         self.root.config(menu=menu_bar)
@@ -225,7 +204,8 @@ class OptimizerGUI:
 
     def create_input_fields(self) -> None:
         """
-        TODO: Write this.
+        Generates general input fields such as cluster atomic type,
+        max number of iterations and number of convergence iterations.
         """
         ttk.Label(
             self.simulation_frame,
@@ -266,14 +246,14 @@ class OptimizerGUI:
 
     def setting(self) -> None:
         """
-        TODO: Write this.
+        Changes whether hyperparameter fields should be shown and refreshes the frame.
         """
         self.show_params = not self.show_params
         self.params()
 
     def params(self) -> None:
         """
-        TODO: Write this.
+        Generates relevant hyperparameter fields.
         """
         if self.optimizer_var.get() != " " and self.show_params:
             if self.optimizer_var.get() == "Genetic Algorithm":
@@ -294,7 +274,7 @@ class OptimizerGUI:
 
     def create_bh_inputs(self) -> None:
         """
-        TODO: Write this.
+        Generates input fields for Basin Hopping hyperparameters.
         """
         ttk.Label(self.parameter_frame, text="Operators").grid(
             row=0, column=0, rowspan=3, padx=5, pady=5
@@ -331,7 +311,7 @@ class OptimizerGUI:
 
     def toggle_rejects(self) -> None:
         """
-        TODO: Write this.
+        Toggles the max_reject BH hyperparameter when static hyperparameter is false.
         """
         if self.static.get():
             self.rejects_entry.grid_forget()
@@ -342,7 +322,7 @@ class OptimizerGUI:
 
     def create_ga_inputs(self) -> None:
         """
-        TODO: Write this.
+        Generates input fields for Genetic Algorithm hyperparameters.
         """
         ttk.Label(
             self.parameter_frame, text="Number of clusters for optimization:"
@@ -392,7 +372,7 @@ class OptimizerGUI:
 
     def run_optimizer(self) -> None:
         """
-        TODO: Write this.
+        Executes the global optimizer.
         """
         try:
             self.log = ""
@@ -409,13 +389,13 @@ class OptimizerGUI:
                 mutation = OrderedDict(
                     [
                         ("twist", self.mutation_inputs["twist"].get()),
-                        ("angular", self.mutation_inputs["angular"].get()),
-                        ("random step", self.mutation_inputs["random step"].get()),
-                        ("etching", self.mutation_inputs["etching"].get()),
                         (
                             "random displacement",
                             self.mutation_inputs["random displacement"].get(),
                         ),
+                        ("angular", self.mutation_inputs["angular"].get()),
+                        ("random step", self.mutation_inputs["random step"].get()),
+                        ("etching", self.mutation_inputs["etching"].get()),
                     ]
                 )
                 num_clus = self.num_cluster.get()
@@ -485,7 +465,8 @@ class OptimizerGUI:
 
     def get_calculator(self, calculator_choice: str) -> Any:
         """
-        TODO: Write this.
+        Returns an object of the chosen calculator.
+        :param calculator_choice: string name of the calculator.
         """
         if calculator_choice == "Lennard Jones":
             return LennardJones
@@ -499,7 +480,8 @@ class OptimizerGUI:
 
     def plot_graph(self, potentials: List[float]) -> None:
         """
-        TODO: Write this.
+        Saves potentials plot.
+        :param potentials: List of the potentials to be plotted.
         """
         plt.plot(potentials)
         plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -516,21 +498,21 @@ class OptimizerGUI:
 
     def show_plot(self) -> None:
         """
-        TODO: Write this.
+        Displays potentials plot.
         """
         image = Image.open("./gpaw/plot.png")
         image.show()
 
     def show_3d_model(self) -> None:
         """
-        TODO: Write this.
+        Displays 3D model of the optimized cluster.
         """
         self.myatoms.center()  # type: ignore
         view(self.myatoms)  # type: ignore
 
     def plot_band_structure(self) -> None:  # pylint: disable=W0622
         """
-        TODO: Write this.
+        Saves band structure graph.
         """
         data = np.loadtxt("./gpaw/be_spectrum_z2.dat", skiprows=1)
         energy = data[:, 0]  # First column: energy in eV
@@ -549,14 +531,14 @@ class OptimizerGUI:
 
     def show_band_structure(self) -> None:
         """
-        TODO: Write this.
+        Displays band structure graph.
         """
         image = Image.open("./gpaw/spectrum.png")
         image.show()
 
     def show_movie(self) -> None:
         """
-        TODO: Write this.
+        Displays trajectory file.
         """
         movie_atoms = ase.io.read("./gpaw/movie.traj", index=":")
         view(movie_atoms)  # type: ignore

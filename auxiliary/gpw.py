@@ -1,16 +1,14 @@
-"""TODO: WRITE DESCRIPTION"""
+"""GPAW calculator module"""
 
 from ase import Atoms
 from gpaw import GPAW  # type: ignore  # pylint: disable=E0401,E0611
 from gpaw.tddft import *  # type: ignore  # pylint: disable=E0401,E0611,W0401
 
 
-def gpw(traj_file: Atoms) -> None:
+def gpw(atoms: Atoms) -> None:
     """
-    TODO: WRITE THIS.
+    GPAW calculator method
     """
-
-    atoms = traj_file
     atoms.center(vacuum=6.0)  # type: ignore
     atoms.set_pbc([True, True, True])  # type: ignore
 
