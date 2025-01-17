@@ -4,6 +4,8 @@ Global minima Database module
 
 import os
 import sys
+
+import numpy as np
 import requests
 from ase.io import read
 from ase.calculators.lj import LennardJones
@@ -18,9 +20,16 @@ def create_xyz_file(atoms: int, root: str = "../") -> str:
     """
     name = root + f"data/database/LJ{atoms}.xyz"
     if not os.path.exists(name):
-        response = requests.get(
-            f"http://doye.chem.ox.ac.uk/jon/structures/LJ/points/{atoms}", timeout=2
-        )
+        try:
+            response = requests.get(
+                f"http://doye.chem.ox.ac.uk/jon/structures/LJ/points/{atoms}",
+                timeout=10,
+            )
+        except requests.exceptions.ConnectionError:
+            print(
+                "ERROR: Web request failed, please check your internet connection. Setting minimum to infinity"
+            )
+            return ""
         print("GET request sent to the database")
         if response.status_code != 200:
             print(f"ERROR: Web request failed with {response}", file=sys.stderr)
@@ -48,6 +57,8 @@ def get_cluster_energy(atoms: int, root: str = "../") -> float:
     :return: Database global minima potential energy.
     """
     filename = create_xyz_file(atoms, root)
+    if filename == "":
+        return np.inf
     cluster = read(filename)
 
     cluster.calc = LennardJones()  # type: ignore
