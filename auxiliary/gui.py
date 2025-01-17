@@ -9,11 +9,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import ticker
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 from PIL import Image, ImageTk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 import ase
 from ase import Atoms
 from ase.io import Trajectory
@@ -50,10 +49,6 @@ class OptimizerGUI:
         self.background_image: ImageTk.PhotoImage
         self.optimizer_var: tk.StringVar
         self.calculator_var: tk.StringVar
-        self.log_text: tk.Text | None = None
-        self.fig: Figure | None = None
-        self.ax: Axes
-        self.canvas: FigureCanvasTkAgg | None = None
         self.view_menu: tk.Menu
         self.element_var: tk.StringVar
         self.num_iter_var: tk.IntVar
@@ -72,6 +67,8 @@ class OptimizerGUI:
         self.myatoms: Atoms
         self.settings_button: ttk.Button
         self.show_params: bool = False
+        self.log: str = ""
+        self.log_field: tk.Label
 
     def set_background(self, image_path: str) -> None:
         """
@@ -186,6 +183,8 @@ class OptimizerGUI:
             self.simulation_frame, text="Run Optimizer", command=self.run_optimizer
         ).grid(row=7, column=0, columnspan=3, padx=5, pady=5)
 
+        self.log_field = tk.Label(self.simulation_frame)
+
     def toggle_settings_button(self, _: Any) -> None:
         """
         TODO: Write this.
@@ -215,9 +214,13 @@ class OptimizerGUI:
 
         self.view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="View", menu=self.view_menu)
-        self.view_menu.add_command(label="Graph", command=self.show_graph)
+        self.view_menu.add_command(label="Graph", command=self.show_plot)
         self.view_menu.add_command(
             label="3D Interactive Model", command=self.show_3d_model
+        )
+        self.view_menu.add_command(label="Movie", command=self.show_movie)
+        self.view_menu.add_command(
+            label="Band Structure", command=self.show_band_structure
         )
 
     def create_input_fields(self) -> None:
@@ -392,6 +395,10 @@ class OptimizerGUI:
         TODO: Write this.
         """
         try:
+            self.log = ""
+            self.log_field.grid(row=8, column=0, columnspan=3, padx=5, pady=5)
+            self.log_field.config(text=self.log)
+
             optimizer_choice = self.optimizer_var.get()
             calculator_choice = self.calculator_var.get()
             element = self.element_var.get()
@@ -449,7 +456,13 @@ class OptimizerGUI:
                     calculator=calculator_,
                 )
 
+            self.log += f"Executing {optimizer_choice}..."
+            self.log_field.config(text=self.log)
+
             optimizer.run(element, iterations, conv_iterations)
+
+            self.log += "\nExecution finished."
+            self.log_field.config(text=self.log)
 
             self.myatoms = optimizer.best_config
 
@@ -461,18 +474,11 @@ class OptimizerGUI:
                     cluster.center()  # type: ignore
                     traj.write(cluster)  # pylint: disable=E1101
 
-            self.plot_trajectory(optimizer.potentials)
-            self.view_menu.add_separator()
-            self.view_menu.add_command(label="Movie", command=self.show_movie)
+            self.plot_graph(optimizer.potentials)
 
             if calculator_choice == "GPAW":
-                if not os.path.exists("./gpaw"):
-                    os.mkdir("./gpaw")
-
-                id = gpw(self.myatoms)  # pylint: disable=W0622
-                self.view_menu.add_command(
-                    label="Band Structure", command=self.show_band_structure(id)  # type: ignore
-                )
+                gpw(self.myatoms)  # pylint: disable=W0622
+                self.plot_band_structure()
 
         except Exception as e:  # pylint: disable=W0718
             messagebox.showerror("Error", f"An error occurred: {e}")
@@ -491,78 +497,69 @@ class OptimizerGUI:
             return EAM
         raise ValueError("Unsupported calculator.")
 
-    def plot_trajectory(self, potentials: List[float]) -> None:
+    def plot_graph(self, potentials: List[float]) -> None:
         """
         TODO: Write this.
         """
-        self.hide_all_views()
-        if not self.fig or not self.canvas:
-            self.fig, self.ax = plt.subplots(figsize=(5, 4))
-            self.canvas = FigureCanvasTkAgg(self.fig, self.simulation_frame)  # type: ignore
+        plt.plot(potentials)
+        plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+        plt.gca().yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
+        ticks = list(plt.gca().get_xticks())[1:-1]
+        if ticks[-1] != len(potentials) - 1:
+            ticks.append(len(potentials) - 1)
+        plt.gca().set_xticks(ticks)
+        plt.title(f"Execution on {self.element_var.get()}")
+        plt.xlabel("Iteration")
+        plt.ylabel("Potential Energy")
+        plt.tight_layout()
+        plt.savefig("gpaw/plot.png")
 
-        self.ax.clear()
-        self.ax.plot(range(len(potentials)), potentials)
-        self.ax.set_xlabel("Iterations")
-        self.ax.set_ylabel("Energy")
-        self.ax.set_title("Optimization Trajectory")
-        self.canvas.draw()  # type: ignore
-
-    def show_graph(self) -> None:
+    def show_plot(self) -> None:
         """
         TODO: Write this.
         """
-        self.hide_all_views()
-        if self.canvas:
-            self.canvas.get_tk_widget().pack(pady=10)  # type: ignore
+        image = Image.open("./gpaw/plot.png")
+        image.show()
 
     def show_3d_model(self) -> None:
         """
         TODO: Write this.
         """
-        self.hide_all_views()
         self.myatoms.center()  # type: ignore
         view(self.myatoms)  # type: ignore
 
-    def show_band_structure(self, id: str) -> None:  # pylint: disable=W0622
+    def plot_band_structure(self) -> None:  # pylint: disable=W0622
         """
         TODO: Write this.
         """
-        self.hide_all_views()
-        file_path = id
-        data = np.loadtxt(file_path, skiprows=1)
+        data = np.loadtxt("./gpaw/be_spectrum_z2.dat", skiprows=1)
         energy = data[:, 0]  # First column: energy in eV
         s_z = data[:, 3]  # Second column: S_z
         energy = np.delete(energy, 0)
         s_z = np.delete(s_z, 0)
         wavelength = 1240 / energy  # Convert energy (eV) to wavelength (nm)
-        self.fig, self.ax = plt.subplots()
-        self.ax.plot(wavelength, s_z, label="S_z")
-        self.ax.set_xlabel("Wavelength (nm)")
-        self.ax.set_ylabel("S_z")
-        self.ax.set_title("Optical Photoabsorption Spectrum")
-        self.ax.legend()
-        self.ax.set_xlim(0, 1000)
+        fig, ax = plt.subplots()
+        ax.plot(wavelength, s_z, label="S_z")
+        ax.set_xlabel("Wavelength (nm)")
+        ax.set_ylabel("S_z")
+        ax.set_title("Optical Photoabsorption Spectrum")
+        ax.legend()
+        ax.set_xlim(0, 1000)
+        fig.savefig("./gpaw/spectrum.png")
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.simulation_frame)  # type: ignore
-        self.canvas.draw()  # type: ignore
-        self.canvas.get_tk_widget().pack(pady=10)  # type: ignore
+    def show_band_structure(self) -> None:
+        """
+        TODO: Write this.
+        """
+        image = Image.open("./gpaw/spectrum.png")
+        image.show()
 
     def show_movie(self) -> None:
         """
         TODO: Write this.
         """
-        self.hide_all_views()
         movie_atoms = ase.io.read("./gpaw/movie.traj", index=":")
         view(movie_atoms)  # type: ignore
-
-    def hide_all_views(self) -> None:
-        """
-        TODO: Write this.
-        """
-        if self.canvas:
-            self.canvas.get_tk_widget().pack_forget()  # type: ignore
-        if self.log_text:
-            self.log_text.pack_forget()
 
 
 if __name__ == "__main__":

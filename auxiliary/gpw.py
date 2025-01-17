@@ -5,7 +5,7 @@ from gpaw import GPAW  # type: ignore  # pylint: disable=E0401,E0611
 from gpaw.tddft import *  # type: ignore  # pylint: disable=E0401,E0611,W0401
 
 
-def gpw(traj_file: Atoms) -> str:
+def gpw(traj_file: Atoms) -> None:
     """
     TODO: WRITE THIS.
     """
@@ -62,4 +62,3 @@ def gpw(traj_file: Atoms) -> str:
     td_calc.write("./gpaw/be_td2.gpw", mode="all")
 
     photoabsorption_spectrum("./gpaw/be_dm.dat", "./gpaw/be_spectrum_z2.dat")  # type: ignore  # pylint: disable=E0602
-    return "./gpaw/be_spectrum_z2.dat"
