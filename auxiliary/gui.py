@@ -26,7 +26,11 @@ sys.path.append("./")
 matplotlib.use("Agg")
 
 from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
-from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable=C0413
+from src.basin_hopping_optimizer import (
+    BasinHoppingOptimizer,
+    OperatorSequencing,
+)  # pylint: disable=C0413
+from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
 from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
@@ -55,10 +59,19 @@ class OptimizerGUI:
         self.num_iter_var: tk.IntVar
         self.conv_iter_var: tk.IntVar
         self.parameter_frame: tk.Frame
-        self.mutation_var: tk.StringVar
+        self.num_cluster: tk.IntVar
+        self.num_select: tk.IntVar
+        self.preserve: tk.BooleanVar
         self.mutation_inputs: dict[Any, Any] = {}
+        self.displacement_length: tk.DoubleVar
+        self.operators: dict[Any, Any] = {}
+        self.static: tk.BooleanVar
+        self.reject_lab: ttk.Label
+        self.max_rejects: tk.IntVar
+        self.rejects_entry: ttk.Entry
         self.myatoms: Atoms
         self.settings_button: ttk.Button
+        self.show_params: bool = False
 
     def set_background(self, image_path: str) -> None:
         """
@@ -107,7 +120,7 @@ class OptimizerGUI:
         """
         TODO: Write this.
         """
-        self.start_frame.pack_forget()
+        self.start_frame.destroy()
 
     def start_simulation(self) -> None:
         """
@@ -122,7 +135,7 @@ class OptimizerGUI:
             self.simulation_frame,
             text="Atomic Materials Structure Optimizer",
             font=("Arial", 16),
-        ).grid(row=0, column=0, columnspan=3, pady=10)
+        ).grid(row=0, column=0, columnspan=3, pady=5, padx=5)
 
         ttk.Label(self.simulation_frame, text="Select Optimization Method:").grid(
             row=1, column=0, padx=5, pady=5
@@ -140,10 +153,10 @@ class OptimizerGUI:
         self.settings_button = ttk.Button(
             self.simulation_frame,
             image=settings_icon,  # type: ignore
-            command=self.selected_optimizer,
+            command=self.setting,
         )
         self.settings_button.image = settings_icon  # type: ignore
-        self.settings_button.grid(row=1, column=2, padx=10, pady=5)
+        self.settings_button.grid(row=1, column=2, padx=5, pady=5)
         self.settings_button.grid_forget()
 
         optimizer_dropdown.bind("<<ComboboxSelected>>", self.toggle_settings_button)
@@ -169,10 +182,9 @@ class OptimizerGUI:
 
         self.create_input_fields()
 
-        run_button = ttk.Button(
+        ttk.Button(
             self.simulation_frame, text="Run Optimizer", command=self.run_optimizer
-        )
-        run_button.grid(row=7, column=0, columnspan=3, pady=10)
+        ).grid(row=7, column=0, columnspan=3, padx=5, pady=5)
 
     def toggle_settings_button(self, _: Any) -> None:
         """
@@ -181,10 +193,12 @@ class OptimizerGUI:
         selected_option = self.optimizer_var.get()
 
         if selected_option != " ":
-            self.settings_button.grid(row=1, column=2, padx=10, pady=5)
+            self.settings_button.grid(row=1, column=2, padx=5, pady=5)
         else:
-            self.parameter_frame.grid_forget()
             self.settings_button.grid_forget()
+
+        if self.show_params:
+            self.params()
 
     def settings(self) -> None:
         """
@@ -205,8 +219,6 @@ class OptimizerGUI:
         self.view_menu.add_command(
             label="3D Interactive Model", command=self.show_3d_model
         )
-        self.view_menu.add_separator()
-        self.view_menu.add_command(label="Log Output", command=self.show_log)
 
     def create_input_fields(self) -> None:
         """
@@ -217,92 +229,163 @@ class OptimizerGUI:
             text="Atoms (e.g., C2H4 for 2 carbon and 4 hydrogen atoms):",
         ).grid(row=3, column=0, padx=5, pady=5)
         self.element_var = tk.StringVar(value="C2H4")
-        element_entry = ttk.Entry(
-            self.simulation_frame, textvariable=self.element_var, width=10
+        ttk.Entry(self.simulation_frame, textvariable=self.element_var, width=10).grid(
+            row=3, column=1, padx=5, pady=5
         )
-        element_entry.grid(row=3, column=1, padx=5, pady=5)
 
         ttk.Label(
             self.simulation_frame, text="Max Number of Iterations for Execution:"
         ).grid(row=4, column=0, padx=5, pady=5)
         self.num_iter_var = tk.IntVar(value=50)
-        num_iter_entry = ttk.Entry(
-            self.simulation_frame, textvariable=self.num_iter_var, width=10
+        ttk.Entry(self.simulation_frame, textvariable=self.num_iter_var, width=10).grid(
+            row=4, column=1, padx=5, pady=5
         )
-        num_iter_entry.grid(row=4, column=1, padx=5, pady=5)
 
         ttk.Label(
             self.simulation_frame,
             text="Number of Iterations Considered for Convergence:",
         ).grid(row=5, column=0, padx=5, pady=5)
         self.conv_iter_var = tk.IntVar(value=10)
-        conv_iter_entry = ttk.Entry(
+        ttk.Entry(
             self.simulation_frame, textvariable=self.conv_iter_var, width=10
-        )
-        conv_iter_entry.grid(row=5, column=1, padx=5, pady=5)
+        ).grid(row=5, column=1, padx=5, pady=5)
 
-    def selected_optimizer(self) -> None:
-        """
-        TODO: Write this.
-        """
+        self.parameter_frame = tk.Frame(self.simulation_frame)
+        self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
+        self.create_ga_inputs()
+        self.parameter_frame.destroy()
+        self.parameter_frame = tk.Frame(self.simulation_frame)
+        self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
+        self.create_bh_inputs()
+        self.parameter_frame.destroy()
         self.parameter_frame = tk.Frame(self.simulation_frame)
         self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
 
-        if self.optimizer_var.get() == "Genetic Algorithm":
-            ttk.Label(self.parameter_frame, text="Mutation Parameters:").grid(
-                row=1, column=0, padx=5, pady=5
-            )
-            self.mutation_var = tk.StringVar(value="Default")
-            mutation_dropdown = ttk.Combobox(
-                self.parameter_frame, textvariable=self.mutation_var, state="readonly"
-            )
-            mutation_dropdown["values"] = ("Default", "Manual")
-            mutation_dropdown.current(0)
-            mutation_dropdown.grid(row=1, column=1, padx=5, pady=5)
-            mutation_dropdown.bind("<<ComboboxSelected>>", self.update_mutation_inputs)
-
-            self.create_mutation_inputs()
-
-        if self.optimizer_var.get() == "Basin Hopping":
-            for widget in self.parameter_frame.grid_slaves():
-                if int(widget.grid_info()["row"]) > 3:
-                    widget.grid_forget()
-
-    def create_mutation_inputs(self) -> None:
+    def setting(self) -> None:
         """
         TODO: Write this.
         """
-        labels = ["twist", "random displacement", "angular", "random step", "etching"]
-        default_values = [0.3, 0.1, 0.3, 0.3, 0.1]
+        self.show_params = not self.show_params
+        self.params()
+
+    def params(self) -> None:
+        """
+        TODO: Write this.
+        """
+        if self.optimizer_var.get() != " " and self.show_params:
+            if self.optimizer_var.get() == "Genetic Algorithm":
+                self.parameter_frame.destroy()
+                self.parameter_frame = tk.Frame(self.simulation_frame)
+                self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=2)
+                self.create_ga_inputs()
+            elif self.optimizer_var.get() == "Basin Hopping":
+                self.parameter_frame.destroy()
+                self.parameter_frame = tk.Frame(self.simulation_frame)
+                self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=2)
+                self.create_bh_inputs()
+            else:
+                self.parameter_frame.grid_forget()
+        else:
+            if hasattr(self, "parameter_frame"):
+                self.parameter_frame.grid_forget()
+
+    def create_bh_inputs(self) -> None:
+        """
+        TODO: Write this.
+        """
+        ttk.Label(self.parameter_frame, text="Operators").grid(
+            row=0, column=0, rowspan=3, padx=5, pady=5
+        )
+        ttk.Label(self.parameter_frame, text="Steps").grid(
+            row=0, column=3, rowspan=3, padx=5, pady=5
+        )
+        labels = ["random step", "twist", "angular"]
+        default_values = [5, 5, 5]
         for i, label in enumerate(labels):
             ttk.Label(self.parameter_frame, text=label.capitalize() + ":").grid(
-                row=2 + i, column=0, padx=5, pady=5
+                row=i, column=1, padx=5, pady=5
             )
-            var = tk.DoubleVar(value=default_values[i])
-            entry = ttk.Entry(self.parameter_frame, textvariable=var, width=10)
-            entry.grid(row=2 + i, column=1, padx=5, pady=5)
-            self.mutation_inputs[label] = var
+            var = tk.IntVar(value=default_values[i])
+            ttk.Entry(self.parameter_frame, textvariable=var, width=10).grid(
+                row=i, column=2, padx=5, pady=5
+            )
+            self.operators[label] = var
+        ttk.Label(self.parameter_frame, text="Static:").grid(
+            row=3, column=0, padx=5, pady=5, columnspan=2
+        )
+        self.static = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            self.parameter_frame,
+            variable=self.static,
+            width=10,
+            command=self.toggle_rejects,
+        ).grid(row=3, column=2, padx=5, pady=5, columnspan=2)
+        self.reject_lab = ttk.Label(self.parameter_frame, text="Max rejects:")
+        self.max_rejects = tk.IntVar(value=5)
+        self.rejects_entry = ttk.Entry(
+            self.parameter_frame, textvariable=self.max_rejects, width=10
+        )
 
-    def update_mutation_inputs(self, _: Any) -> None:
+    def toggle_rejects(self) -> None:
         """
         TODO: Write this.
         """
-        if self.mutation_var.get() == "Default":
-            for label, var in self.mutation_inputs.items():
-                var.set(
-                    OrderedDict(
-                        [
-                            ("twist", 0.3),
-                            ("random displacement", 0.1),
-                            ("angular", 0.3),
-                            ("random step", 0.3),
-                            ("etching", 0.1),
-                        ]
-                    )[label]
-                )
+        if self.static.get():
+            self.rejects_entry.grid_forget()
+            self.reject_lab.grid_forget()
         else:
-            for label, var in self.mutation_inputs.items():
-                var.set(0.0)
+            self.reject_lab.grid(row=4, column=0, padx=5, pady=5, columnspan=2)
+            self.rejects_entry.grid(row=4, column=2, padx=5, pady=5, columnspan=2)
+
+    def create_ga_inputs(self) -> None:
+        """
+        TODO: Write this.
+        """
+        ttk.Label(
+            self.parameter_frame, text="Number of clusters for optimization:"
+        ).grid(row=0, column=0, padx=5, pady=5, columnspan=2)
+        self.num_cluster = tk.IntVar(value=8)
+        ttk.Entry(self.parameter_frame, textvariable=self.num_cluster, width=10).grid(
+            row=0, column=2, padx=5, pady=5, columnspan=2
+        )
+        ttk.Label(self.parameter_frame, text="Number of clusters for selection:").grid(
+            row=1, column=0, padx=5, pady=5, columnspan=2
+        )
+        self.num_select = tk.IntVar(value=max(2, int(self.num_cluster.get() / 2)))
+        ttk.Entry(self.parameter_frame, textvariable=self.num_select, width=10).grid(
+            row=1, column=2, padx=5, pady=5, columnspan=2
+        )
+        ttk.Label(self.parameter_frame, text="Preserve selected clusters:").grid(
+            row=2, column=0, padx=5, pady=5, columnspan=2
+        )
+        self.preserve = tk.BooleanVar(value=True)
+        ttk.Checkbutton(self.parameter_frame, variable=self.preserve, width=10).grid(
+            row=2, column=2, padx=5, pady=5, columnspan=2
+        )
+        ttk.Label(self.parameter_frame, text="Mutations").grid(
+            row=3, column=0, rowspan=5, padx=5, pady=5
+        )
+        labels = ["twist", "angular", "random step", "etching", "random displacement"]
+        default_values = [0.3, 0.3, 0.3, 0.1, 0.1]
+        for i, label in enumerate(labels):
+            ttk.Label(self.parameter_frame, text=label.capitalize() + ":").grid(
+                row=3 + i, column=1, padx=5, pady=5
+            )
+            var = tk.DoubleVar(value=default_values[i])
+            ttk.Entry(self.parameter_frame, textvariable=var, width=10).grid(
+                row=3 + i, column=2, padx=5, pady=5
+            )
+            self.mutation_inputs[label] = var
+        ttk.Label(self.parameter_frame, text="Probabilities").grid(
+            row=3, column=3, rowspan=4, padx=5, pady=5
+        )
+        ttk.Label(self.parameter_frame, text="Length of displacement vector:").grid(
+            row=8, column=0, padx=5, pady=5, columnspan=2
+        )
+        self.displacement_length = tk.DoubleVar(value=0.1)
+        ttk.Entry(self.parameter_frame, textvariable=self.displacement_length).grid(
+            row=8, column=2, padx=5, pady=5, columnspan=2
+        )
 
     def run_optimizer(self) -> None:
         """
@@ -319,87 +402,79 @@ class OptimizerGUI:
                 mutation = OrderedDict(
                     [
                         ("twist", self.mutation_inputs["twist"].get()),
+                        ("angular", self.mutation_inputs["angular"].get()),
+                        ("random step", self.mutation_inputs["random step"].get()),
+                        ("etching", self.mutation_inputs["etching"].get()),
                         (
                             "random displacement",
                             self.mutation_inputs["random displacement"].get(),
                         ),
-                        ("angular", self.mutation_inputs["angular"].get()),
-                        ("random step", self.mutation_inputs["random step"].get()),
-                        ("etching", self.mutation_inputs["etching"].get()),
                     ]
                 )
+                num_clus = self.num_cluster.get()
+                num_select = self.num_select.get()
+                pres = self.preserve.get()
 
-            self.log(
-                f"Running {optimizer_choice} with {calculator_choice} Cluster='{element}', iterations={iterations}"
-            )
+            elif self.optimizer_var.get() == "Basin Hopping":
+                operators = OrderedDict(
+                    [
+                        ("random step", self.operators["random step"].get()),
+                        ("twist", self.operators["twist"].get()),
+                        ("angular", self.operators["angular"].get()),
+                    ]
+                )
+                static = self.static.get()
+                max_rejects = self.max_rejects.get()
+
             calculator_ = self.get_calculator(calculator_choice)
 
+            optimizer: GlobalOptimizer
+
             if optimizer_choice == "Genetic Algorithm":
-                ga = GeneticAlgorithm(
+                optimizer = GeneticAlgorithm(
                     mutation=mutation,  # pylint: disable=E0606
-                    num_clusters=4,
-                    preserve=True,
-                    debug=False,
+                    num_clusters=num_clus,  # pylint: disable=E0606
+                    num_selection=num_select,  # pylint: disable=E0606
+                    preserve=pres,  # pylint: disable=E0606
                     calculator=calculator_,
                 )
-                ga.run(element, iterations, conv_iterations)
-                self.myatoms = ga.best_config
-
-                if not os.path.exists("./gpaw"):
-                    os.mkdir("./gpaw")
-
-                with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
-                    for cluster in ga.configs:
-                        cluster.center()  # type: ignore
-                        traj.write(cluster)  # pylint: disable=E1101
-
-                self.log("Genetic Algorithm completed successfully.")
-                self.plot_trajectory(ga.potentials)
-                self.show_log()
-                self.view_menu.add_separator()
-                self.view_menu.add_command(label="Movie", command=self.show_movie)
-
-                if calculator_choice == "GPAW":
-                    if not os.path.exists("./gpaw"):
-                        os.mkdir("./gpaw")
-
-                    id = gpw(self.myatoms)  # pylint: disable=W0622
-                    self.view_menu.add_command(
-                        label="Band Structure", command=self.show_band_structure(id)  # type: ignore
-                    )
-                    self.show_log()
 
             elif optimizer_choice == "Basin Hopping":
-                bh = BasinHoppingOptimizer(calculator=calculator_)
-                bh.run(element, iterations)
-                self.myatoms = bh.best_config
+                optimizer = BasinHoppingOptimizer(
+                    operator_sequencing=OperatorSequencing(
+                        operators=operators,  # pylint: disable=E0601
+                        static=static,  # pylint: disable=E0601
+                        max_rejects=max_rejects,  # pylint: disable=E0601
+                    ),
+                    calculator=calculator_,
+                )
 
+            optimizer.run(element, iterations, conv_iterations)
+
+            self.myatoms = optimizer.best_config
+
+            if not os.path.exists("./gpaw"):
+                os.mkdir("./gpaw")
+
+            with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
+                for cluster in optimizer.configs:
+                    cluster.center()  # type: ignore
+                    traj.write(cluster)  # pylint: disable=E1101
+
+            self.plot_trajectory(optimizer.potentials)
+            self.view_menu.add_separator()
+            self.view_menu.add_command(label="Movie", command=self.show_movie)
+
+            if calculator_choice == "GPAW":
                 if not os.path.exists("./gpaw"):
                     os.mkdir("./gpaw")
 
-                with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
-                    for cluster in bh.configs:
-                        cluster.center()  # type: ignore
-                        traj.write(cluster)  # pylint: disable=E1101
-
-                self.log("Basin Hopping completed successfully.")
-                self.plot_trajectory(bh.potentials)
-                self.show_log()
-                self.view_menu.add_separator()
-                self.view_menu.add_command(label="Movie", command=self.show_movie)
-
-                if calculator_choice == "GPAW":
-                    id = gpw(self.myatoms)
-                    self.view_menu.add_command(
-                        label="Band Structure", command=self.show_band_structure(id)  # type: ignore
-                    )
-                    self.show_log()
-
-            else:
-                messagebox.showerror("Error", "Invalid optimizer selection.")
+                id = gpw(self.myatoms)  # pylint: disable=W0622
+                self.view_menu.add_command(
+                    label="Band Structure", command=self.show_band_structure(id)  # type: ignore
+                )
 
         except Exception as e:  # pylint: disable=W0718
-            self.log(f"Error: {e}")
             messagebox.showerror("Error", f"An error occurred: {e}")
 
     def get_calculator(self, calculator_choice: str) -> Any:
@@ -415,15 +490,6 @@ class OptimizerGUI:
         if calculator_choice == "EAM":
             return EAM
         raise ValueError("Unsupported calculator.")
-
-    def log(self, message: str) -> None:
-        """
-        TODO: Write this.
-        """
-        if not self.log_text:
-            self.log_text = tk.Text(self.simulation_frame, height=10, width=60)
-        self.log_text.insert(tk.END, message + "\n")
-        self.log_text.see(tk.END)
 
     def plot_trajectory(self, potentials: List[float]) -> None:
         """
@@ -480,14 +546,6 @@ class OptimizerGUI:
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.simulation_frame)  # type: ignore
         self.canvas.draw()  # type: ignore
         self.canvas.get_tk_widget().pack(pady=10)  # type: ignore
-
-    def show_log(self) -> None:
-        """
-        TODO: Write this.
-        """
-        self.hide_all_views()
-        if self.log_text:
-            self.log_text.pack(pady=5)
 
     def show_movie(self) -> None:
         """

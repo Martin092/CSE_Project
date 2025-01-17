@@ -61,7 +61,7 @@ class GeneticAlgorithm(GlobalOptimizer):
             num_selection  # Number of parents to select from each generation
         )
         self.preserve = preserve  # Whether to preserve parents in future generation
-        self.num_clusters = num_clusters  # Number of clusters in generation
+        self.num_clusters = max(num_clusters, 2)  # Number of clusters in generation
         self.energies: List[float] = (
             []
         )  # Generate list for storing potentials of current generation
