@@ -2,8 +2,10 @@
 
 import sys
 import os
+import time
 from collections import OrderedDict
 from typing import Any, List
+import threading
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -30,7 +32,7 @@ from src.basin_hopping_optimizer import (
     OperatorSequencing,
 )  # pylint: disable=C0413
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
-from auxiliary.gpw import gpw  # pylint: disable=C0413
+# from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
@@ -416,7 +418,6 @@ class OptimizerGUI:
             calculator_ = self.get_calculator(calculator_choice)
 
             optimizer: GlobalOptimizer
-
             if optimizer_choice == "Genetic Algorithm":
                 optimizer = GeneticAlgorithm(
                     mutation=mutation,  # pylint: disable=E0606
@@ -436,13 +437,10 @@ class OptimizerGUI:
                     calculator=calculator_,
                 )
 
-            self.log += f"Executing {optimizer_choice}..."
+            self.log = f"Executing {optimizer_choice}..."
             self.log_field.config(text=self.log)
 
-            optimizer.run(element, iterations, conv_iterations)
-
-            self.log += "\nExecution finished."
-            self.log_field.config(text=self.log)
+            self.start_algorithm(optimizer, element, iterations, conv_iterations)
 
             self.myatoms = optimizer.best_config
 
@@ -462,6 +460,47 @@ class OptimizerGUI:
 
         except Exception as e:  # pylint: disable=W0718
             messagebox.showerror("Error", f"An error occurred: {e}")
+            print(e)
+
+    def start_algorithm(self, optimizer, element, iterations, conv_iterations):
+        """
+        :param optimizer: The optimizer that will be ran
+        :param element: The molecule
+        :param iterations: Max number of iterations
+        :param conv_iterations: Convergence iterations
+        """
+        if self.show_params:
+            self.setting()
+
+        progressbar = ttk.Progressbar(maximum=iterations)
+        progressbar.place(x=300, y=500, width=200)
+
+        self.current_iteration = 0
+        self.finished = False
+
+        def update_progress():
+            curr = optimizer.current_iteration
+            progressbar.step(curr - self.current_iteration)  # Assuming step uses percentage
+            if not self.finished:
+                self.current_iteration = curr  # Assuming this gets updated
+                progressbar.after(100, update_progress)  # Schedule next check
+
+        def run():
+            start = time.time()
+            optimizer.run(element, iterations, conv_iterations)
+            end = time.time()
+            self.finished = True
+            self.log = f"Execution finished\nAlgorithm took {round(end - start, 2)} seconds and {optimizer.current_iteration} iterations\nBest found energy is {optimizer.best_potential}"
+            self.log_field.config(text=self.log)
+            progressbar.destroy()
+
+
+        optimizer_thread = threading.Thread(target=run)
+        optimizer_thread.daemon = True # Thread is destroyed if window is main loop is stopped
+        optimizer_thread.start()
+        update_progress()
+
+
 
     def get_calculator(self, calculator_choice: str) -> Any:
         """
