@@ -84,7 +84,11 @@ def worker(
         if status.tag == 0:
             break  # If status tag is 0, kill worker process
         clusters = []  # Set up clusters list for each worker process
-        for i in pos:  # For each received cluster, generate Atoms object from atomic configuration
+        for (
+            i
+        ) in (
+            pos
+        ):  # For each received cluster, generate Atoms object from atomic configuration
             clus = ga.utility.generate_cluster(i)
             clusters.append(clus)  # Add Atoms object to list of clusters
 
@@ -94,7 +98,9 @@ def worker(
                 bh_optimizer.run(atoms, 40, 20, initial_configuration=clus.positions)
                 clusters[i] = bh_optimizer.best_config
             else:
-                ga.local_optimizer(clus, logfile=ga.logfile).run(steps=20000)  # Perform local optimization
+                ga.local_optimizer(clus, logfile=ga.logfile).run(
+                    steps=20000
+                )  # Perform local optimization
         if ga.debug:
             print(f"Rank {ga.comm.Get_rank()} sending.", flush=True)  # type: ignore[union-attr]
         send = []  # Generate list of clusters to send
@@ -182,8 +188,13 @@ def parent_rank(
 
     # MPI.Finalize()  # End parallel execution
 
-def print_log(content):
+
+def print_log(content: str) -> None:
+    """
+    Prints the contents to a file or to the console
+    :param content: The string that should be printed
+    """
     print(content, flush=True)
-    with open('parallel_ga_log.txt', 'a') as f:
-        f.write(content + '\n')
+    with open("parallel_ga_log.txt", "a", encoding="utf-8") as f:
+        f.write(content + "\n")
         f.flush()

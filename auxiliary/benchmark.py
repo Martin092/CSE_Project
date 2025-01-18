@@ -109,8 +109,8 @@ class Benchmark:
 
         for k in range(len(indices)):  # pylint: disable=C0200
             self.print_log(
-                f"LJ {indices[k]}: {convergence[k] - 1} iterations for " +
-                f"{int(np.floor_divide(times[k], 60))} min {int(times[k])%60} sec"
+                f"LJ {indices[k]}: {convergence[k] - 1} iterations for "
+                + f"{int(np.floor_divide(times[k], 60))} min {int(times[k])%60} sec"
             )
             if minima[k] == 0:
                 self.print_log(
@@ -123,12 +123,16 @@ class Benchmark:
                     f"Found new global minimum. Found {energy[k]}, but database minimum is {database[k]}."
                 )
 
-            self.print_log('\n')
+            self.print_log("\n")
 
-    def print_log(self, content):
+    def print_log(self, content: str) -> None:
+        """
+        Prints the contents to a file or to the console
+        :param content: The string that should be printed
+        """
         if self.log is None:
             print(content)
         else:
-            with open(self.log, 'a') as f:
-                f.write(content + '\n')
+            with open(self.log, "a", encoding="utf-8") as f:
+                f.write(content + "\n")
                 f.flush()
