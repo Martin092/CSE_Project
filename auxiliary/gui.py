@@ -32,7 +32,7 @@ from src.basin_hopping_optimizer import (
     OperatorSequencing,
 )  # pylint: disable=C0413
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
-# from auxiliary.gpw import gpw  # pylint: disable=C0413
+from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
@@ -462,7 +462,13 @@ class OptimizerGUI:
             messagebox.showerror("Error", f"An error occurred: {e}")
             print(e)
 
-    def start_algorithm(self, optimizer, element, iterations, conv_iterations):
+    def start_algorithm(
+        self,
+        optimizer: GlobalOptimizer,
+        element: str,
+        iterations: int,
+        conv_iterations: int,
+    ) -> None:
         """
         :param optimizer: The optimizer that will be ran
         :param element: The molecule
@@ -475,32 +481,28 @@ class OptimizerGUI:
         progressbar = ttk.Progressbar(maximum=iterations)
         progressbar.place(x=300, y=500, width=200)
 
-        self.current_iteration = 0
-        self.finished = False
-
-        def update_progress():
+        def update_progress(current_iteration: int) -> None:
             curr = optimizer.current_iteration
-            progressbar.step(curr - self.current_iteration)  # Assuming step uses percentage
-            if not self.finished:
-                self.current_iteration = curr  # Assuming this gets updated
-                progressbar.after(100, update_progress)  # Schedule next check
+            progressbar.step(curr - current_iteration)  # Assuming step uses percentage
+            if not optimizer.finished:
+                progressbar.after(100, update_progress, curr)  # Schedule next check
 
-        def run():
+        def run() -> None:
             start = time.time()
             optimizer.run(element, iterations, conv_iterations)
             end = time.time()
-            self.finished = True
-            self.log = f"Execution finished\nAlgorithm took {round(end - start, 2)} seconds and {optimizer.current_iteration} iterations\nBest found energy is {optimizer.best_potential}"
+            self.log = (f"Execution finished\n"
+                        f"Algorithm took {round(end - start, 2)} seconds and {optimizer.current_iteration} iterations\n"
+                        f"Best found energy is {optimizer.best_potential}")
             self.log_field.config(text=self.log)
             progressbar.destroy()
 
-
         optimizer_thread = threading.Thread(target=run)
-        optimizer_thread.daemon = True # Thread is destroyed if window is main loop is stopped
+        optimizer_thread.daemon = (
+            True  # Thread is destroyed if window is main loop is stopped
+        )
         optimizer_thread.start()
-        update_progress()
-
-
+        update_progress(0)
 
     def get_calculator(self, calculator_choice: str) -> Any:
         """

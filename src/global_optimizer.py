@@ -44,6 +44,7 @@ class GlobalOptimizer(ABC):
         self.debug = debug
         self.logfile = "../log.txt"
         self.atoms: str = ""
+        self.finished = False
 
     @abstractmethod
     def iteration(self) -> None:
@@ -104,6 +105,7 @@ class GlobalOptimizer(ABC):
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
         :return: None.
         """
+        self.finished = False
         if conv_iterations == 0:
             conv_iterations = max_iterations
         self.conv_iterations = conv_iterations
@@ -115,6 +117,6 @@ class GlobalOptimizer(ABC):
             self.current_iteration += 1
 
         self.execution_time = time.time() - start_time
-
+        self.finished = True
         if self.debug and self.current_iteration == max_iterations:
             print("Maximum number of iterations reached", flush=True)
