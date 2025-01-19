@@ -3,6 +3,7 @@
 import sys
 import os
 import time
+from pathlib import Path
 from collections import OrderedDict
 from typing import Any, List
 import threading
@@ -27,10 +28,10 @@ sys.path.append("./")
 matplotlib.use("Agg")
 
 from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
-from src.basin_hopping_optimizer import (
+from src.basin_hopping_optimizer import (  # pylint: disable=C0413
     BasinHoppingOptimizer,
     OperatorSequencing,
-)  # pylint: disable=C0413
+)
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
 # from auxiliary.gpw import gpw  # pylint: disable=C0413
 
@@ -71,6 +72,7 @@ class OptimizerGUI:
         self.show_params: bool = False
         self.log: str = ""
         self.log_field: tk.Label
+        self.file_path: Path = Path()
 
     def create_start(self) -> None:
         """
@@ -440,7 +442,9 @@ class OptimizerGUI:
             self.log = f"Executing {optimizer_choice}..."
             self.log_field.config(text=self.log)
 
-            self.start_algorithm(optimizer, element, iterations, conv_iterations, calculator_choice)
+            self.start_algorithm(
+                optimizer, element, iterations, conv_iterations, calculator_choice
+            )
 
         except Exception as e:  # pylint: disable=W0718
             messagebox.showerror("Error", f"An error occurred: {e}")
@@ -452,7 +456,7 @@ class OptimizerGUI:
         element: str,
         iterations: int,
         conv_iterations: int,
-        calculator_choice: str
+        calculator_choice: str,
     ) -> None:
         """
         :param optimizer: The optimizer that will be ran
@@ -465,6 +469,15 @@ class OptimizerGUI:
 
         progressbar = ttk.Progressbar(maximum=iterations)
         progressbar.place(x=300, y=500, width=200)
+        now_date = time.strftime("%Y-%m-%d", time.localtime())
+        now_time = time.strftime("%H:%M:%S", time.localtime())
+        current_path = Path(__file__).parent.parent.resolve()
+        self.file_path = Path.joinpath(
+            current_path.joinpath(Path("gpaw/")),
+            Path.joinpath(Path(now_date), Path(now_time)),
+        )
+
+        os.makedirs(self.file_path)
 
         def update_progress(current_iteration: int) -> None:
             curr = optimizer.current_iteration
@@ -472,27 +485,35 @@ class OptimizerGUI:
             if not optimizer.finished:
                 progressbar.after(100, update_progress, curr)  # Schedule next check
 
-        def run() -> None:
-            start = time.time()
-            optimizer.run(element, iterations, conv_iterations)
-            end = time.time()
-            self.log = (f"Execution finished\n"
-                        f"Algorithm took {round(end - start, 2)} seconds and {optimizer.current_iteration} iterations\n"
-                        f"Best found energy is {optimizer.best_potential}")
-            self.log_field.config(text=self.log)
-            self.myatoms = optimizer.best_config
-            self.plot_graph(optimizer.potentials)
-            if not os.path.exists("./gpaw"):
-                os.mkdir("./gpaw")
-
-            with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
+        def save_logs() -> None:
+            """
+            Saves logs in a nested folder, one for the current date, and one with the current time
+            """
+            with Trajectory(Path.joinpath(self.file_path, "movie.traj"), mode="w") as traj:  # type: ignore
                 for cluster in optimizer.configs:
                     cluster.center()  # type: ignore
                     traj.write(cluster)  # pylint: disable=E1101
 
+            with Trajectory(Path.joinpath(self.file_path, "best_cluster.traj"), mode="w") as traj:  # type: ignore
+                traj.write(optimizer.best_config)  # pylint: disable=E1101
+
             if calculator_choice == "GPAW":
                 gpw(self.myatoms)  # pylint: disable=W0622
                 self.plot_band_structure()
+
+        def run() -> None:
+            start = time.time()
+            optimizer.run(element, iterations, conv_iterations)
+            end = time.time()
+            self.log = (
+                f"Execution finished\n"
+                f"Algorithm took {round(end - start, 2)} seconds and {optimizer.current_iteration} iterations\n"
+                f"Best found energy is {optimizer.best_potential}"
+            )
+            self.log_field.config(text=self.log)
+            self.myatoms = optimizer.best_config
+            save_logs()
+            self.plot_graph(optimizer.potentials, self.file_path)
             progressbar.destroy()
 
         optimizer_thread = threading.Thread(target=run)
@@ -517,7 +538,7 @@ class OptimizerGUI:
             return EAM
         raise ValueError("Unsupported calculator.")
 
-    def plot_graph(self, potentials: List[float]) -> None:
+    def plot_graph(self, potentials: List[float], file_path: Path) -> None:
         """
         Saves potentials plot.
         :param potentials: List of the potentials to be plotted.
@@ -533,21 +554,7 @@ class OptimizerGUI:
         plt.xlabel("Iteration")
         plt.ylabel("Potential Energy")
         plt.tight_layout()
-        plt.savefig("gpaw/plot.png")
-
-    def show_plot(self) -> None:
-        """
-        Displays potentials plot.
-        """
-        image = Image.open("./gpaw/plot.png")
-        image.show()
-
-    def show_3d_model(self) -> None:
-        """
-        Displays 3D model of the optimized cluster.
-        """
-        self.myatoms.center()  # type: ignore
-        view(self.myatoms)  # type: ignore
+        plt.savefig(Path.joinpath(file_path, "plot.png"))
 
     def plot_band_structure(self) -> None:  # pylint: disable=W0622
         """
@@ -566,20 +573,36 @@ class OptimizerGUI:
         ax.set_title("Optical Photoabsorption Spectrum")
         ax.legend()
         ax.set_xlim(0, 1000)
-        fig.savefig("./gpaw/spectrum.png")
+        fig.savefig(Path.joinpath(self.file_path, "/spectrum.png"))
+
+    def show_plot(self) -> None:
+        """
+        Displays potentials plot.
+        """
+        image = Image.open(Path.joinpath(self.file_path, "plot.png"))
+        image.show()
+
+    def show_3d_model(self) -> None:
+        """
+        Displays 3D model of the optimized cluster.
+        """
+        self.myatoms.center()  # type: ignore
+        view(self.myatoms)  # type: ignore
 
     def show_band_structure(self) -> None:
         """
         Displays band structure graph.
         """
-        image = Image.open("./gpaw/spectrum.png")
+        image = Image.open(Path.joinpath(self.file_path, "spectrum.png"))
         image.show()
 
     def show_movie(self) -> None:
         """
         Displays trajectory file.
         """
-        movie_atoms = ase.io.read("./gpaw/movie.traj", index=":")
+        movie_atoms = ase.io.read(
+            Path.joinpath(self.file_path, "movie.traj"), index=":"
+        )
         view(movie_atoms)  # type: ignore
 
 
