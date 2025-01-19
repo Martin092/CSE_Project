@@ -32,7 +32,8 @@ from src.basin_hopping_optimizer import (  # pylint: disable=C0413
     OperatorSequencing,
 )
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
-# from auxiliary.gpw import gpw  # pylint: disable=C0413
+
+from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
@@ -532,8 +533,8 @@ class OptimizerGUI:
             return EMT
         if calculator_choice == "GPAW":
             return LennardJones
-        else:
-            raise ValueError("Unsupported calculator.")
+
+        raise ValueError("Unsupported calculator.")
 
     def plot_graph(self, potentials: List[float], file_path: Path) -> None:
         """
