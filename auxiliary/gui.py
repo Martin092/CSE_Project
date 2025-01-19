@@ -33,7 +33,7 @@ from src.basin_hopping_optimizer import (  # pylint: disable=C0413
 )
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
 
-from auxiliary.gpw import gpw  # pylint: disable=C0413
+# from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
@@ -503,10 +503,11 @@ class OptimizerGUI:
         def run() -> None:
             start = time.time()
             optimizer.run(element, iterations, conv_iterations)
-            end = time.time()
+            t = time.time() - start
             self.log = (
                 f"Execution finished\n"
-                f"Algorithm took {round(end - start, 2)} seconds and {optimizer.current_iteration} iterations\n"
+                f"Algorithm took {int(np.floor_divide(t, 60))} minutes {int(t)%60} seconds"
+                f"and {optimizer.current_iteration-1} iterations\n"
                 f"Best found energy is {optimizer.best_potential}"
             )
             self.log_field.config(text=self.log)
