@@ -22,7 +22,6 @@ from ase.io import Trajectory
 from ase.visualize import view
 from ase.calculators.lj import LennardJones
 from ase.calculators.emt import EMT
-from ase.calculators.eam import EAM
 
 sys.path.append("./")
 matplotlib.use("Agg")
@@ -158,7 +157,6 @@ class OptimizerGUI:
             " ",
             "Lennard Jones",
             "EMT",
-            "EAM",
             "GPAW",
         )
         calculator_dropdown.current(0)
@@ -534,9 +532,8 @@ class OptimizerGUI:
             return EMT
         if calculator_choice == "GPAW":
             return LennardJones
-        if calculator_choice == "EAM":
-            return EAM
-        raise ValueError("Unsupported calculator.")
+        else:
+            raise ValueError("Unsupported calculator.")
 
     def plot_graph(self, potentials: List[float], file_path: Path) -> None:
         """
