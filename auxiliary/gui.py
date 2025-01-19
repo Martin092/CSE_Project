@@ -32,7 +32,7 @@ from src.basin_hopping_optimizer import (
     OperatorSequencing,
 )  # pylint: disable=C0413
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
-from auxiliary.gpw import gpw  # pylint: disable=C0413
+# from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
@@ -440,23 +440,7 @@ class OptimizerGUI:
             self.log = f"Executing {optimizer_choice}..."
             self.log_field.config(text=self.log)
 
-            self.start_algorithm(optimizer, element, iterations, conv_iterations)
-
-            self.myatoms = optimizer.best_config
-
-            if not os.path.exists("./gpaw"):
-                os.mkdir("./gpaw")
-
-            with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
-                for cluster in optimizer.configs:
-                    cluster.center()  # type: ignore
-                    traj.write(cluster)  # pylint: disable=E1101
-
-            self.plot_graph(optimizer.potentials)
-
-            if calculator_choice == "GPAW":
-                gpw(self.myatoms)  # pylint: disable=W0622
-                self.plot_band_structure()
+            self.start_algorithm(optimizer, element, iterations, conv_iterations, calculator_choice)
 
         except Exception as e:  # pylint: disable=W0718
             messagebox.showerror("Error", f"An error occurred: {e}")
@@ -468,6 +452,7 @@ class OptimizerGUI:
         element: str,
         iterations: int,
         conv_iterations: int,
+        calculator_choice: str
     ) -> None:
         """
         :param optimizer: The optimizer that will be ran
@@ -495,6 +480,19 @@ class OptimizerGUI:
                         f"Algorithm took {round(end - start, 2)} seconds and {optimizer.current_iteration} iterations\n"
                         f"Best found energy is {optimizer.best_potential}")
             self.log_field.config(text=self.log)
+            self.myatoms = optimizer.best_config
+            self.plot_graph(optimizer.potentials)
+            if not os.path.exists("./gpaw"):
+                os.mkdir("./gpaw")
+
+            with Trajectory("./gpaw/movie.traj", mode="w") as traj:  # type: ignore
+                for cluster in optimizer.configs:
+                    cluster.center()  # type: ignore
+                    traj.write(cluster)  # pylint: disable=E1101
+
+            if calculator_choice == "GPAW":
+                gpw(self.myatoms)  # pylint: disable=W0622
+                self.plot_band_structure()
             progressbar.destroy()
 
         optimizer_thread = threading.Thread(target=run)
