@@ -472,11 +472,15 @@ class OptimizerGUI:
         now_time = time.strftime("%H:%M:%S", time.localtime())
         current_path = Path(__file__).parent.parent.resolve()
         self.file_path = Path.joinpath(
-            current_path.joinpath(Path("gpaw/")),
-            Path.joinpath(Path(now_date), Path(now_time)),
+            current_path.joinpath(Path("gpaw/")), Path(now_date)
         )
 
-        os.makedirs(self.file_path)
+        if not os.path.exists(self.file_path):
+            os.mkdir(self.file_path)
+
+        self.file_path = Path.joinpath(self.file_path, Path(now_time))
+        if not os.path.exists(self.file_path):
+            os.mkdir(self.file_path)
 
         def update_progress(current_iteration: int) -> None:
             curr = optimizer.current_iteration
