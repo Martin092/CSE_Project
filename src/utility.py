@@ -377,9 +377,7 @@ class Utility:
 
         return np.array([x, y, z])
 
-    def random_displacement(
-        self, cluster: Atoms, prob: float, length: float = 0.1
-    ) -> None:
+    def random_displacement(self, cluster: Atoms, prob: float, length: float) -> None:
         """
         Performs random displacement of specified length on atoms in cluster by given probability.
         :param cluster: Cluster object to be mutated by random displacement.
@@ -390,7 +388,13 @@ class Utility:
         for i in range(self.num_atoms):
             if np.random.rand() < prob:
                 if self.global_optimizer.debug:
-                    print("Random displacement", flush=True)
+                    if self.global_optimizer.comm is not None:
+                        print(
+                            f"Rank {self.global_optimizer.comm.Get_rank()}: Random displacement",
+                            flush=True,
+                        )
+                    else:
+                        print("Random displacement", flush=True)
                 positions = cluster.positions.copy()
                 vector = self.vector(length)
                 positions[i] += vector

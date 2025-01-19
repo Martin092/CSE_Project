@@ -22,6 +22,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         self,
         mutation: OrderedDict[str, float],
         num_clusters: int,
+        displacement_length: float = 0.1,
         num_selection: int = 0,
         preserve: bool = True,
         local_optimizer: Any = BFGS,
@@ -34,6 +35,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param mutation: dictionary specifying the order of different mutations
                          as well as probabilities for each type of mutation
         :param num_clusters: number of clusters/configurations per generation
+        :param displacement_length: length of the displacement vector for random displacement mutation
         :param num_selection: number of parents to be selected from each generation
         :param preserve: whether to preserve parents in new generation or not
         :param local_optimizer: optimizer used to find local minima
@@ -50,13 +52,16 @@ class GeneticAlgorithm(GlobalOptimizer):
         self.mutation_probability = (
             mutation  # Ordered dictionary of mutations and their probabilities
         )
+        self.displacement_length = (
+            displacement_length  # Length of displacement mutation vector
+        )
         if num_selection == 0:
             num_selection = max(int(num_clusters / 2), 2)
         self.num_selection = (
             num_selection  # Number of parents to select from each generation
         )
         self.preserve = preserve  # Whether to preserve parents in future generation
-        self.num_clusters = num_clusters  # Number of clusters in generation
+        self.num_clusters = max(num_clusters, 2)  # Number of clusters in generation
         self.energies: List[float] = (
             []
         )  # Generate list for storing potentials of current generation
@@ -79,7 +84,12 @@ class GeneticAlgorithm(GlobalOptimizer):
         :param seed: seed for the random number generator
         :return: None.
         """
-        self.current_iteration = 0  # Current iteration/generation set to 0
+        if self.comm is None:
+            self.current_iteration = 0  # Current iteration/generation set to 0
+        else:
+            self.current_iteration = (
+                -1
+            )  # First iteration doesn't perform local optimization
         self.configs = []  # List for storing the best configuration per generation
         self.best_potential: float = float("inf")
         self.energies = []  # List for storing potentials of current generation
@@ -145,9 +155,11 @@ class GeneticAlgorithm(GlobalOptimizer):
             )  # Add child to current list of configurations
         if self.comm is not None:  # pragma: no cover
             # If executing in parallel
-            ranks = self.comm.Get_size() - 1  # Number of worker processes
+            ranks = min(
+                self.comm.Get_size() - 1, self.num_clusters
+            )  # Number of worker processes
             size = int(
-                self.num_clusters / ranks
+                np.ceil(self.num_clusters / ranks)
             )  # Number of clusters per worker process
             send: List[Any] = []  # List of clusters to send to worker processes
             for i in range(ranks):
@@ -200,7 +212,7 @@ class GeneticAlgorithm(GlobalOptimizer):
         Checks if convergence criteria is satisfied.
         :return: True if convergence criteria is met, otherwise False.
         """
-        if self.current_iteration < self.conv_iterations:
+        if self.current_iteration <= self.conv_iterations:
             # If convergence iterations not reached, don't even check
             return False
         ret = True  # Set up value to true
@@ -215,7 +227,7 @@ class GeneticAlgorithm(GlobalOptimizer):
                 abs(cur - self.potentials[i]) <= 10**-6
             )  # If one doesn't match, False
         if ret and self.debug:
-            print(f"Converged at iteration {self.current_iteration}.", flush=True)
+            print(f"Converged at iteration {self.current_iteration-1}.", flush=True)
         return ret
 
     def selection(self) -> List[Atoms]:
@@ -334,16 +346,24 @@ class GeneticAlgorithm(GlobalOptimizer):
                     np.random.rand() <= self.mutation_probability[i]
                 ):  # If drawn probability is sufficient
                     if self.debug:
-                        print("Twist", flush=True)
+                        if self.comm is not None:
+                            print(f"Rank {self.comm.Get_rank()}: Twist", flush=True)
+                        else:
+                            print("Twist", flush=True)
                     self.utility.twist(cluster)  # Perform twist mutation
             elif i == "random displacement":  # If key is random displacement
-                self.utility.random_displacement(cluster, self.mutation_probability[i])
+                self.utility.random_displacement(
+                    cluster, self.mutation_probability[i], self.displacement_length
+                )
             elif i == "angular":  # If key is angular
                 if (
                     np.random.rand() <= self.mutation_probability[i]
                 ):  # If drawn probability is sufficient
                     if self.debug:
-                        print("Angular", flush=True)
+                        if self.comm is not None:
+                            print(f"Rank {self.comm.Get_rank()}: Angular", flush=True)
+                        else:
+                            print("Angular", flush=True)
                     self.utility.angular_movement(
                         cluster
                     )  # Perform angular movement mutation
@@ -352,7 +372,12 @@ class GeneticAlgorithm(GlobalOptimizer):
                     np.random.rand() <= self.mutation_probability[i]
                 ):  # If drawn probability is sufficient
                     if self.debug:
-                        print("Random step", flush=True)
+                        if self.comm is not None:
+                            print(
+                                f"Rank {self.comm.Get_rank()}: Random step", flush=True
+                            )
+                        else:
+                            print("Random step", flush=True)
                     self.utility.random_step(
                         cluster, max_local_steps=max_local_steps
                     )  # Perform random step mutation
@@ -363,13 +388,25 @@ class GeneticAlgorithm(GlobalOptimizer):
                 ):  # If drawn probability is sufficient
                     if etching < self.mutation_probability[i] / 2:  # But lower half
                         if self.debug:
-                            print("Etching (-)", flush=True)
+                            if self.comm is not None:
+                                print(
+                                    f"Rank {self.comm.Get_rank()}: Etching (-)",
+                                    flush=True,
+                                )
+                            else:
+                                print("Etching (-)", flush=True)
                         self.utility.etching_subtraction(
                             cluster, max_local_steps
                         )  # Perform etching mutation (-)
                     else:  # But upper half
                         if self.debug:
-                            print("Etching (+)", flush=True)
+                            if self.comm is not None:
+                                print(
+                                    f"Rank {self.comm.Get_rank()}: Etching (+)",
+                                    flush=True,
+                                )
+                            else:
+                                print("Etching (+)", flush=True)
                         self.utility.etching_addition(
                             cluster, max_local_steps
                         )  # Perform etching mutation (+)
