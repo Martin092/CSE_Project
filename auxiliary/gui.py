@@ -32,8 +32,7 @@ from src.basin_hopping_optimizer import (  # pylint: disable=C0413
     OperatorSequencing,
 )
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
-
-# from auxiliary.gpw import gpw  # pylint: disable=C0413
+from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
@@ -466,10 +465,10 @@ class OptimizerGUI:
         if self.show_params:
             self.setting()
 
-        progressbar = ttk.Progressbar(maximum=iterations)
-        progressbar.place(x=300, y=500, width=200)
+        progressbar = ttk.Progressbar(self.simulation_frame, maximum=iterations)
+        progressbar.grid(row=9, column=0, columnspan=3, padx=5, pady=5)
         now_date = time.strftime("%Y-%m-%d", time.localtime())
-        now_time = time.strftime("%H:%M:%S", time.localtime())
+        now_time = time.strftime("%H-%M-%S", time.localtime())
         current_path = Path(__file__).parent.parent.resolve()
         self.file_path = Path.joinpath(
             current_path.joinpath(Path("gpaw/")), Path(now_date)
@@ -510,7 +509,7 @@ class OptimizerGUI:
             t = time.time() - start
             self.log = (
                 f"Execution finished\n"
-                f"Algorithm took {int(np.floor_divide(t, 60))} minutes {int(t)%60} seconds"
+                f"Algorithm took {int(np.floor_divide(t, 60))} minutes {int(t)%60} seconds "
                 f"and {optimizer.current_iteration-1} iterations\n"
                 f"Best found energy is {optimizer.best_potential}"
             )
@@ -558,6 +557,7 @@ class OptimizerGUI:
         plt.ylabel("Potential Energy")
         plt.tight_layout()
         plt.savefig(Path.joinpath(file_path, "plot.png"))
+        plt.close()
 
     def plot_band_structure(self) -> None:  # pylint: disable=W0622
         """
