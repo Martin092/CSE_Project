@@ -24,8 +24,8 @@ mutation = OrderedDict(
     ]
 )
 
-ga = GeneticAlgorithm(mutation=mutation, num_clusters=4, debug=True)
-lj = [13]
+ga = GeneticAlgorithm(mutation=mutation, num_clusters=4)
+lj = [13, 19, 26]
 
 # Serial Execution
 b = Benchmark(ga)
