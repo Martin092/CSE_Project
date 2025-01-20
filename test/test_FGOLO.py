@@ -1,4 +1,5 @@
 from src.FGOLO import FGOLO
+from auxiliary.benchmark import Benchmark
 
 from ase.optimize import FIRE
 from ase import Atoms
@@ -10,7 +11,7 @@ import time
 def benchmark_optimizers():
     # Set up utility for cluster generation
     basin_hopping = BasinHoppingOptimizer()
-    utility = Utility(basin_hopping, 'H100')
+    utility = Utility(basin_hopping, 'H10')
 
     
     # Generate initial atomic configuration
@@ -51,5 +52,12 @@ def benchmark_optimizers():
     print(f"FGOLO: Time = {fgolo_time:.4f} s, Final Energy = {fgolo_final_energy:.6f}")
     print(f"FIRE : Time = {fire_time:.4f} s, Final Energy = {fire_final_energy:.6f}")
 
+def test_FGOLO_bh():
+    
+    bh = BasinHoppingOptimizer(local_optimizer=FGOLO, debug=True)
+    benchmark = Benchmark(bh)
+
+    benchmark.benchmark_run([10, 17, 19, 27, 38], 200)
+
 if __name__ == "__main__":
-    benchmark_optimizers()
+    test_FGOLO_bh()

@@ -5,6 +5,9 @@ from ase import Atoms
 from ase.optimize.optimize import Optimizer
 from ase.optimize.optimize import OptimizableAtoms
 
+# class implementing the (continuous) local optimization method developed for the Fuzzy Global Optimization (FGO) algorithm. 
+# This LO is designed for situations where the given cluster is already somewhat close to a stable configuration; i.e. after most cluster disturbances have been applied. 
+# Though it does work for general clusters, its convergence rate is significantly lower than more established local optimizers. 
 class FGOLO(Optimizer):
 
     def __init__(
@@ -28,7 +31,7 @@ class FGOLO(Optimizer):
         if self.last_energy is None:
             return False
         
-        #print("dE ", abs(self.lastEnergy - self.optimizable.get_potential_energy()))
+        # the local optimization is likely close to a minimum if the energy decrease from the last iteration is small
         return abs(self.last_energy - self.optimizable.get_potential_energy()) < self.dE
     
     def step(self):
