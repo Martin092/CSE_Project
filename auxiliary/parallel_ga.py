@@ -26,7 +26,7 @@ def parallel_ga(
     seed: int | None = None,
     max_local_steps: int = 20000,
     bh_optimizer: BasinHoppingOptimizer | None = None,
-    log: str = 'parallel_ga_log.txt'
+    log: str = "parallel_ga_log.txt",
 ) -> None:
     """
     Execute GA in parallel using mpiexec.
@@ -119,7 +119,7 @@ def parent_rank(
     ga: GeneticAlgorithm,
     max_iterations: int,
     seed: int | None,
-    log: str
+    log: str,
 ) -> None:
     """
     Code for the parent process
@@ -146,7 +146,9 @@ def parent_rank(
         os.mkdir("./data/optimizer")  # Create results directory
     best_cluster = ga.best_config  # Get best cluster and center it
     best_cluster.center()  # type: ignore
-    write(f"./data/optimizer/LJ{num_atoms}_GA_parallel.xyz", best_cluster)  # Write to file
+    write(
+        f"./data/optimizer/LJ{num_atoms}_GA_parallel.xyz", best_cluster
+    )  # Write to file
     best = get_cluster_energy(num_atoms, "./")  # Get the best potential from database
     ga.configs = ga.configs[
         1:
@@ -173,7 +175,8 @@ def parent_rank(
     plt.close()  # Close plot object
     print_log(  # Print execution summary
         f"LJ {num_atoms}: {ga.current_iteration - 1} iterations for "
-        f"{int(np.floor_divide(ga.execution_time, 60))} min {int(ga.execution_time) % 60} sec", log
+        f"{int(np.floor_divide(ga.execution_time, 60))} min {int(ga.execution_time) % 60} sec",
+        log,
     )
     if (
         abs(ga.best_potential - best) < 0.000001 * num_atoms * num_atoms
@@ -181,11 +184,13 @@ def parent_rank(
         print_log("Found global minimum from database.", log)
     elif ga.best_potential < best:  # Else if sufficiently better
         print_log(
-            f"Found new global minimum. Found {ga.best_potential}, but database minimum is {best}.", log
+            f"Found new global minimum. Found {ga.best_potential}, but database minimum is {best}.",
+            log,
         )
     else:  # Finally, it is suboptimal
         print_log(
-            f"Didn't find global minimum. Found {ga.best_potential}, but global minimum is {best}.", log
+            f"Didn't find global minimum. Found {ga.best_potential}, but global minimum is {best}.",
+            log,
         )
 
     MPI.Finalize()  # End parallel execution
