@@ -51,6 +51,7 @@ class OptimizerGUI:
         self.background_image: ImageTk.PhotoImage
         self.optimizer_var: tk.StringVar
         self.calculator_var: tk.StringVar
+        self.local_optimizer_var: tk.StringVar
         self.view_menu: tk.Menu
         self.element_var: tk.StringVar
         self.num_iter_var: tk.IntVar
@@ -165,6 +166,20 @@ class OptimizerGUI:
         calculator_dropdown.grid(row=2, column=1, padx=5, pady=5)
 
         # TODO: Add Local Optimizers (BFGS, FIRE for sure, maybe some other?)
+        ttk.Label(self.simulation_frame, text="Select Local Optimizer:").grid(
+            row=3, column=0, padx=5, pady=5
+        )
+        self.local_optimizer_var = tk.StringVar()
+        local_optimizer_dropdown = ttk.Combobox(
+            self.simulation_frame, textvariable=self.local_optimizer_var, state="readonly"
+        )
+        local_optimizer_dropdown["values"] = (
+            " ",
+            "BFGS",
+            "FIRE",
+        )
+        local_optimizer_dropdown.current(0)
+        local_optimizer_dropdown.grid(row=3, column=1, padx=5, pady=5)
 
         self.create_input_fields()
 
@@ -214,39 +229,39 @@ class OptimizerGUI:
         ttk.Label(
             self.simulation_frame,
             text="Atoms (e.g., C2H4 for 2 carbon and 4 hydrogen atoms):",
-        ).grid(row=3, column=0, padx=5, pady=5)
+        ).grid(row=4, column=0, padx=5, pady=5)
         self.element_var = tk.StringVar(value="C2H4")
         ttk.Entry(self.simulation_frame, textvariable=self.element_var, width=10).grid(
-            row=3, column=1, padx=5, pady=5
+            row=4, column=1, padx=5, pady=5
         )
 
         ttk.Label(
             self.simulation_frame, text="Max Number of Iterations for Execution:"
-        ).grid(row=4, column=0, padx=5, pady=5)
+        ).grid(row=5, column=0, padx=5, pady=5)
         self.num_iter_var = tk.IntVar(value=50)
         ttk.Entry(self.simulation_frame, textvariable=self.num_iter_var, width=10).grid(
-            row=4, column=1, padx=5, pady=5
+            row=5, column=1, padx=5, pady=5
         )
 
         ttk.Label(
             self.simulation_frame,
             text="Number of Iterations Considered for Convergence:",
-        ).grid(row=5, column=0, padx=5, pady=5)
+        ).grid(row=6, column=0, padx=5, pady=5)
         self.conv_iter_var = tk.IntVar(value=10)
         ttk.Entry(
             self.simulation_frame, textvariable=self.conv_iter_var, width=10
-        ).grid(row=5, column=1, padx=5, pady=5)
+        ).grid(row=6, column=1, padx=5, pady=5)
 
         self.parameter_frame = tk.Frame(self.simulation_frame)
-        self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
+        self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=3)
         self.create_ga_inputs()
         self.parameter_frame.destroy()
         self.parameter_frame = tk.Frame(self.simulation_frame)
-        self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
+        self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=3)
         self.create_bh_inputs()
         self.parameter_frame.destroy()
         self.parameter_frame = tk.Frame(self.simulation_frame)
-        self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
+        self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=3)
 
     def setting(self) -> None:
         """
@@ -263,12 +278,12 @@ class OptimizerGUI:
             if self.optimizer_var.get() == "Genetic Algorithm":
                 self.parameter_frame.destroy()
                 self.parameter_frame = tk.Frame(self.simulation_frame)
-                self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=2)
+                self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=2)
                 self.create_ga_inputs()
             elif self.optimizer_var.get() == "Basin Hopping":
                 self.parameter_frame.destroy()
                 self.parameter_frame = tk.Frame(self.simulation_frame)
-                self.parameter_frame.grid(row=6, column=0, padx=5, pady=5, columnspan=2)
+                self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=2)
                 self.create_bh_inputs()
             else:
                 self.parameter_frame.grid_forget()
@@ -385,6 +400,7 @@ class OptimizerGUI:
 
             optimizer_choice = self.optimizer_var.get()
             calculator_choice = self.calculator_var.get()
+            local_optimizer_choice = self.local_optimizer_var.get()
             element = self.element_var.get()
             iterations = self.num_iter_var.get()
             conv_iterations = self.conv_iter_var.get()
@@ -418,6 +434,7 @@ class OptimizerGUI:
                 max_rejects = self.max_rejects.get()
 
             calculator_ = self.get_calculator(calculator_choice)
+            local_optimizer_ = self.get_local_optimizer(local_optimizer_choice)
 
             optimizer: GlobalOptimizer
             if optimizer_choice == "Genetic Algorithm":
@@ -427,6 +444,7 @@ class OptimizerGUI:
                     num_selection=num_select,  # pylint: disable=E0606
                     preserve=pres,  # pylint: disable=E0606
                     calculator=calculator_,
+                    local_optimizer=local_optimizer_,
                 )
 
             elif optimizer_choice == "Basin Hopping":
@@ -437,6 +455,7 @@ class OptimizerGUI:
                         max_rejects=max_rejects,  # pylint: disable=E0601
                     ),
                     calculator=calculator_,
+                    local_optimizer=local_optimizer_,
                 )
             if self.optimizer is not None:
                 self.optimizer.stop_event.set()
@@ -446,7 +465,7 @@ class OptimizerGUI:
             self.log_field.config(text=self.log)
 
             self.start_algorithm(
-                optimizer, element, iterations, conv_iterations, calculator_choice
+                optimizer, element, iterations, conv_iterations, calculator_choice,local_optimizer_choice
             )
 
         except Exception as e:  # pylint: disable=W0718
@@ -460,6 +479,7 @@ class OptimizerGUI:
         iterations: int,
         conv_iterations: int,
         calculator_choice: str,
+        local_optimizer_choice: str,
     ) -> None:
         """
         :param optimizer: The optimizer that will be ran
@@ -547,6 +567,20 @@ class OptimizerGUI:
             return LennardJones
 
         raise ValueError("Unsupported calculator.")
+    
+    def get_local_optimizer(self, local_optimizer_choice: str) -> Any:
+        """
+        Returns an object of the chosen local optimizer.
+        :param local_optimizer_choice: string name of the local optimizer.
+        """
+        if local_optimizer_choice == "BFGS":
+            from ase.optimize import BFGS
+            return BFGS
+        if local_optimizer_choice == "FIRE":
+            from ase.optimize import FIRE
+            return FIRE
+
+        raise ValueError("Unsupported local optimizer.")
 
     def plot_graph(self, potentials: List[float], file_path: Path) -> None:
         """

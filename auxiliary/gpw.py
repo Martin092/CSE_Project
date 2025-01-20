@@ -12,13 +12,13 @@ def gpw(atoms: Atoms) -> None:
     atoms.center(vacuum=6.0)  # type: ignore
     atoms.set_pbc([True, True, True])  # type: ignore
 
-    calc = GPAW(mode="fd", nbands=50, h=0.3, symmetry={"point_group": False})
+    calc = GPAW(mode="fd", nbands=100, h=0.3, symmetry={"point_group": False})
     atoms.calc = calc
     atoms.get_potential_energy()  # type: ignore
     calc.write("./gpaw/be_gs.gpw", "all")
 
     time_step = 8.0  # 1 attoseconds = 0.041341 autime
-    iterations = 100  # 2500 x 8 as => 20 fs
+    iterations = 1000  # 2500 x 8 as => 20 fs
     kick_strength = [0.0, 0.0, 1e-3]  # Kick to z-direction
 
     # Read ground state
@@ -43,7 +43,7 @@ def gpw(atoms: Atoms) -> None:
     photoabsorption_spectrum("./gpaw/be_dm.dat", "./gpaw/be_spectrum_z.dat")  # type: ignore  # pylint: disable=E0602
 
     time_step = 8.0  # 1 attoseconds = 0.041341 autime
-    iterations = 100  # 2500 x 8 as => 20 fs
+    iterations = 1000  # 2500 x 8 as => 20 fs
     # Read restart file with result of previous propagation
     td_calc = TDDFT("./gpaw/be_td.gpw")  # type: ignore  # pylint: disable=E0602
 
