@@ -3,6 +3,7 @@
 import time
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Literal
+import threading
 from mpi4py import MPI  # pylint: disable=E0611
 from ase import Atoms
 import numpy as np
@@ -44,6 +45,8 @@ class GlobalOptimizer(ABC):
         self.debug = debug
         self.logfile = "../log.txt"
         self.atoms: str = ""
+        self.finished = False
+        self.stop_event = threading.Event()
 
     @abstractmethod
     def iteration(self) -> None:
@@ -104,6 +107,7 @@ class GlobalOptimizer(ABC):
         :param initial_configuration: Atomic configuration, if None or Default, randomly generated.
         :return: None.
         """
+        self.finished = False
         if conv_iterations == 0:
             conv_iterations = max_iterations
         self.conv_iterations = conv_iterations
@@ -111,10 +115,13 @@ class GlobalOptimizer(ABC):
         self.setup(atoms, initial_configuration, seed)
 
         while self.current_iteration < max_iterations and not self.is_converged():
+            if self.stop_event.is_set():
+                print("stopped")
+                break
             self.iteration()
             self.current_iteration += 1
 
         self.execution_time = time.time() - start_time
-
+        self.finished = True
         if self.debug and self.current_iteration == max_iterations:
             print("Maximum number of iterations reached", flush=True)

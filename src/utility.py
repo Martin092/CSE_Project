@@ -377,9 +377,7 @@ class Utility:
 
         return np.array([x, y, z])
 
-    def random_displacement(
-        self, cluster: Atoms, prob: float, length: float = 0.1
-    ) -> None:
+    def random_displacement(self, cluster: Atoms, prob: float, length: float) -> None:
         """
         Performs random displacement of specified length on atoms in cluster by given probability.
         :param cluster: Cluster object to be mutated by random displacement.
