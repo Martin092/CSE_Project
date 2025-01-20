@@ -13,5 +13,5 @@ def test_ga():
             ("etching", 0.1),
         ]
     )
-    ga = GeneticAlgorithm(mutation=mutation, num_clusters=4, preserve=True, debug=True)
+    ga = GeneticAlgorithm(mutation=mutation, num_clusters=4, preserve=True)
     ga.run('C13', 50, conv_iterations=10)
