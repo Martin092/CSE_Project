@@ -6,6 +6,7 @@ from typing import Any, List, Tuple, Literal
 from mpi4py import MPI  # pylint: disable=E0611
 from ase import Atoms
 import numpy as np
+import threading
 
 from src.utility import Utility
 
@@ -45,6 +46,7 @@ class GlobalOptimizer(ABC):
         self.logfile = "../log.txt"
         self.atoms: str = ""
         self.finished = False
+        self.stop_event = threading.Event()
 
     @abstractmethod
     def iteration(self) -> None:
@@ -113,6 +115,9 @@ class GlobalOptimizer(ABC):
         self.setup(atoms, initial_configuration, seed)
 
         while self.current_iteration < max_iterations and not self.is_converged():
+            if self.stop_event.is_set():
+                print('stopped')
+                break
             self.iteration()
             self.current_iteration += 1
 

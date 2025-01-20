@@ -32,7 +32,7 @@ from src.basin_hopping_optimizer import (  # pylint: disable=C0413
     OperatorSequencing,
 )
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
-from auxiliary.gpw import gpw  # pylint: disable=C0413
+# from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
@@ -72,6 +72,7 @@ class OptimizerGUI:
         self.log: str = ""
         self.log_field: tk.Label
         self.file_path: Path = Path()
+        self.optimizer = None
 
     def create_start(self) -> None:
         """
@@ -436,7 +437,10 @@ class OptimizerGUI:
                     ),
                     calculator=calculator_,
                 )
+            if self.optimizer is not None:
+                self.optimizer.stop_event.set()
 
+            self.optimizer = optimizer
             self.log = f"Executing {optimizer_choice}..."
             self.log_field.config(text=self.log)
 
@@ -506,24 +510,26 @@ class OptimizerGUI:
         def run() -> None:
             start = time.time()
             optimizer.run(element, iterations, conv_iterations)
-            t = time.time() - start
-            self.log = (
-                f"Execution finished\n"
-                f"Algorithm took {int(np.floor_divide(t, 60))} minutes {int(t)%60} seconds "
-                f"and {optimizer.current_iteration-1} iterations\n"
-                f"Best found energy is {optimizer.best_potential}"
-            )
-            self.log_field.config(text=self.log)
-            self.myatoms = optimizer.best_config
-            save_logs()
-            self.plot_graph(optimizer.potentials, self.file_path)
-            progressbar.destroy()
+            if not optimizer.stop_event.is_set():
+                t = time.time() - start
+                self.log = (
+                    f"Execution finished\n"
+                    f"Algorithm took {int(np.floor_divide(t, 60))} minutes {int(t)%60} seconds "
+                    f"and {optimizer.current_iteration-1} iterations\n"
+                    f"Best found energy is {optimizer.best_potential}"
+                )
+                self.log_field.config(text=self.log)
+                self.myatoms = optimizer.best_config
+                save_logs()
+                self.plot_graph(optimizer.potentials, self.file_path)
+                progressbar.destroy()
+                self.optimizer = None
 
-        optimizer_thread = threading.Thread(target=run)
-        optimizer_thread.daemon = (
+        self.optimizer_thread = threading.Thread(target=run)
+        self.optimizer_thread .daemon = (
             True  # Thread is destroyed if window is main loop is stopped
         )
-        optimizer_thread.start()
+        self.optimizer_thread.start()
         update_progress(0)
 
     def get_calculator(self, calculator_choice: str) -> Any:
