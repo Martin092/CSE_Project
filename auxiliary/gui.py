@@ -5,7 +5,7 @@ import os
 import time
 from pathlib import Path
 from collections import OrderedDict
-from typing import Any, List
+from typing import Any
 import threading
 
 import tkinter as tk
@@ -22,6 +22,7 @@ from ase.io import Trajectory
 from ase.visualize import view
 from ase.calculators.lj import LennardJones
 from ase.calculators.emt import EMT
+from ase.optimize import BFGS, FIRE
 
 sys.path.append("./")
 matplotlib.use("Agg")
@@ -32,6 +33,7 @@ from src.basin_hopping_optimizer import (  # pylint: disable=C0413
     OperatorSequencing,
 )
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
+from src.fgolo import FGOLO  # pylint: disable=C0413
 from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
@@ -165,19 +167,16 @@ class OptimizerGUI:
         calculator_dropdown.current(0)
         calculator_dropdown.grid(row=2, column=1, padx=5, pady=5)
 
-        # TODO: Add Local Optimizers (BFGS, FIRE for sure, maybe some other?)
         ttk.Label(self.simulation_frame, text="Select Local Optimizer:").grid(
             row=3, column=0, padx=5, pady=5
         )
         self.local_optimizer_var = tk.StringVar()
         local_optimizer_dropdown = ttk.Combobox(
-            self.simulation_frame, textvariable=self.local_optimizer_var, state="readonly"
+            self.simulation_frame,
+            textvariable=self.local_optimizer_var,
+            state="readonly",
         )
-        local_optimizer_dropdown["values"] = (
-            " ",
-            "BFGS",
-            "FIRE",
-        )
+        local_optimizer_dropdown["values"] = (" ", "BFGS", "FIRE", "FGOLO")
         local_optimizer_dropdown.current(0)
         local_optimizer_dropdown.grid(row=3, column=1, padx=5, pady=5)
 
@@ -185,7 +184,7 @@ class OptimizerGUI:
 
         ttk.Button(
             self.simulation_frame, text="Run Optimizer", command=self.run_optimizer
-        ).grid(row=7, column=0, columnspan=3, padx=5, pady=5)
+        ).grid(row=8, column=0, columnspan=3, padx=5, pady=5)
 
         self.log_field = tk.Label(self.simulation_frame)
 
@@ -253,15 +252,15 @@ class OptimizerGUI:
         ).grid(row=6, column=1, padx=5, pady=5)
 
         self.parameter_frame = tk.Frame(self.simulation_frame)
-        self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=3)
+        self.parameter_frame.grid(row=7, column=0, padx=5, pady=5, columnspan=3)
         self.create_ga_inputs()
         self.parameter_frame.destroy()
         self.parameter_frame = tk.Frame(self.simulation_frame)
-        self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=3)
+        self.parameter_frame.grid(row=7, column=0, padx=5, pady=5, columnspan=3)
         self.create_bh_inputs()
         self.parameter_frame.destroy()
         self.parameter_frame = tk.Frame(self.simulation_frame)
-        self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=3)
+        self.parameter_frame.grid(row=7, column=0, padx=5, pady=5, columnspan=3)
 
     def setting(self) -> None:
         """
@@ -278,12 +277,12 @@ class OptimizerGUI:
             if self.optimizer_var.get() == "Genetic Algorithm":
                 self.parameter_frame.destroy()
                 self.parameter_frame = tk.Frame(self.simulation_frame)
-                self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=2)
+                self.parameter_frame.grid(row=7, column=0, padx=5, pady=5, columnspan=2)
                 self.create_ga_inputs()
             elif self.optimizer_var.get() == "Basin Hopping":
                 self.parameter_frame.destroy()
                 self.parameter_frame = tk.Frame(self.simulation_frame)
-                self.parameter_frame.grid(row=8, column=0, padx=5, pady=5, columnspan=2)
+                self.parameter_frame.grid(row=7, column=0, padx=5, pady=5, columnspan=2)
                 self.create_bh_inputs()
             else:
                 self.parameter_frame.grid_forget()
@@ -395,7 +394,7 @@ class OptimizerGUI:
         """
         try:
             self.log = ""
-            self.log_field.grid(row=8, column=0, columnspan=3, padx=5, pady=5)
+            self.log_field.grid(row=9, column=0, columnspan=3, padx=5, pady=5)
             self.log_field.config(text=self.log)
 
             optimizer_choice = self.optimizer_var.get()
@@ -465,7 +464,11 @@ class OptimizerGUI:
             self.log_field.config(text=self.log)
 
             self.start_algorithm(
-                optimizer, element, iterations, conv_iterations, calculator_choice,local_optimizer_choice
+                optimizer,
+                element,
+                iterations,
+                conv_iterations,
+                calculator_choice,
             )
 
         except Exception as e:  # pylint: disable=W0718
@@ -479,25 +482,28 @@ class OptimizerGUI:
         iterations: int,
         conv_iterations: int,
         calculator_choice: str,
-        local_optimizer_choice: str,
     ) -> None:
         """
-        :param optimizer: The optimizer that will be ran
+        :param optimizer: The optimizer that will be run
         :param element: The molecule
         :param iterations: Max number of iterations
         :param conv_iterations: Convergence iterations
+        :param calculator_choice: String name of Calculator
         """
         if self.show_params:
             self.setting()
 
         progressbar = ttk.Progressbar(self.simulation_frame, maximum=iterations)
-        progressbar.grid(row=9, column=0, columnspan=3, padx=5, pady=5)
+        progressbar.grid(row=10, column=0, columnspan=3, padx=5, pady=5)
         now_date = time.strftime("%Y-%m-%d", time.localtime())
         now_time = time.strftime("%H-%M-%S", time.localtime())
         current_path = Path(__file__).parent.parent.resolve()
         self.file_path = Path.joinpath(
             current_path.joinpath(Path("gpaw/")), Path(now_date)
         )
+
+        if not os.path.exists("gpaw"):
+            os.mkdir("gpaw")
 
         if not os.path.exists(self.file_path):
             os.mkdir(self.file_path)
@@ -542,7 +548,7 @@ class OptimizerGUI:
                 self.log_field.config(text=self.log)
                 self.myatoms = optimizer.best_config
                 save_logs()
-                self.plot_graph(optimizer.potentials, self.file_path)
+                self.plot_graph(optimizer, self.file_path)
                 progressbar.destroy()
                 self.optimizer = None
             progressbar.destroy()
@@ -567,33 +573,40 @@ class OptimizerGUI:
             return LennardJones
 
         raise ValueError("Unsupported calculator.")
-    
+
     def get_local_optimizer(self, local_optimizer_choice: str) -> Any:
         """
         Returns an object of the chosen local optimizer.
         :param local_optimizer_choice: string name of the local optimizer.
         """
         if local_optimizer_choice == "BFGS":
-            from ase.optimize import BFGS
             return BFGS
         if local_optimizer_choice == "FIRE":
-            from ase.optimize import FIRE
             return FIRE
+        if local_optimizer_choice == "FGOLO":
+            return FGOLO
 
         raise ValueError("Unsupported local optimizer.")
 
-    def plot_graph(self, potentials: List[float], file_path: Path) -> None:
+    def plot_graph(self, optimizer: GlobalOptimizer, file_path: Path) -> None:
         """
         Saves potentials plot.
-        :param potentials: List of the potentials to be plotted.
+        :param optimizer: Optimizer for which to plot.
+        :param file_path: Path to save the plot.
         """
-        plt.plot(potentials)
+        plt.plot(optimizer.potentials)
         plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.gca().yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
         ticks = list(plt.gca().get_xticks())[1:-1]
-        if ticks[-1] != len(potentials) - 1:
-            ticks.append(len(potentials) - 1)
+        if ticks[-1] != len(optimizer.potentials) - 1:
+            ticks.append(len(optimizer.potentials) - 1)
         plt.gca().set_xticks(ticks)
+        if isinstance(optimizer, BasinHoppingOptimizer):
+            plt.scatter(
+                optimizer.utility.big_jumps,
+                [optimizer.potentials[i] for i in optimizer.utility.big_jumps],
+                c="red",
+            )
         plt.title(f"Execution on {self.element_var.get()}")
         plt.xlabel("Iteration")
         plt.ylabel("Potential Energy")
