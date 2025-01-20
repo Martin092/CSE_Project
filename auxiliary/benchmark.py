@@ -14,6 +14,7 @@ from matplotlib.ticker import MaxNLocator
 
 from src.global_optimizer import GlobalOptimizer
 from src.basin_hopping_optimizer import BasinHoppingOptimizer
+from src.genetic_algorithm import GeneticAlgorithm
 from auxiliary.cambridge_database import get_cluster_energy
 
 
@@ -26,6 +27,11 @@ class Benchmark:
     def __init__(self, optimizer: GlobalOptimizer, log: str | None = None):
         self.optimizer = optimizer
         self.log = log
+        self.algorithm = ''
+        if isinstance(self.optimizer, BasinHoppingOptimizer):
+            self.algorithm = 'bh_seq'
+        elif isinstance(self.optimizer, GeneticAlgorithm):
+            self.algorithm = 'ga_seq'
 
     def plot_energies(self) -> None:
         """
@@ -50,9 +56,9 @@ class Benchmark:
         plt.ylabel("Potential Energy")
         plt.tight_layout()
         if self.optimizer.comm is None:
-            plt.savefig(f"../data/optimizer/LJ{self.optimizer.utility.num_atoms}.png")
+            plt.savefig(f"../data/optimizer/LJ{self.optimizer.utility.num_atoms}_{self.algorithm}.png")
         else:
-            plt.savefig(f"./data/optimizer/LJ{self.optimizer.utility.num_atoms}.png")
+            plt.savefig(f"./data/optimizer/LJ{self.optimizer.utility.num_atoms}_{self.algorithm}.png")
         plt.show()
         plt.close()
 
@@ -87,7 +93,7 @@ class Benchmark:
 
             best_cluster = self.optimizer.best_config
             best_cluster.center()  # type: ignore
-            write(f"../data/optimizer/LJ{lj}.xyz", best_cluster)
+            write(f"../data/optimizer/LJ{lj}_{self.algorithm}.xyz", best_cluster)
 
             best = get_cluster_energy(lj)
 
@@ -98,7 +104,7 @@ class Benchmark:
             else:
                 minima.append(0)
 
-            self.optimizer.utility.write_trajectory(f"../data/optimizer/LJ{lj}.traj")
+            self.optimizer.utility.write_trajectory(f"../data/optimizer/LJ{lj}_{self.algorithm}.traj")
 
             times.append(self.optimizer.execution_time)
             convergence.append(self.optimizer.current_iteration)

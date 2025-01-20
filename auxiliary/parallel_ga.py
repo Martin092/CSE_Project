@@ -26,6 +26,7 @@ def parallel_ga(
     seed: int | None = None,
     max_local_steps: int = 20000,
     bh_optimizer: BasinHoppingOptimizer | None = None,
+    log: str = 'parallel_ga_log.txt'
 ) -> None:
     """
     Execute GA in parallel using mpiexec.
@@ -45,7 +46,7 @@ def parallel_ga(
     ga.setup(atoms)  # Ensure GA is properly set up
 
     if rank == 0:  # If master process
-        parent_rank(atoms, conv_iterations, ga, max_iterations, seed)
+        parent_rank(atoms, conv_iterations, ga, max_iterations, seed, log)
     else:  # If worker process
         worker(atoms, bh_optimizer, ga, max_local_steps)
 
@@ -118,6 +119,7 @@ def parent_rank(
     ga: GeneticAlgorithm,
     max_iterations: int,
     seed: int | None,
+    log: str
 ) -> None:
     """
     Code for the parent process
@@ -144,13 +146,13 @@ def parent_rank(
         os.mkdir("./data/optimizer")  # Create results directory
     best_cluster = ga.best_config  # Get best cluster and center it
     best_cluster.center()  # type: ignore
-    write(f"./data/optimizer/LJ{num_atoms}.xyz", best_cluster)  # Write to file
+    write(f"./data/optimizer/LJ{num_atoms}_GA_parallel.xyz", best_cluster)  # Write to file
     best = get_cluster_energy(num_atoms, "./")  # Get the best potential from database
     ga.configs = ga.configs[
         1:
     ]  # Remove best initial configuration since all are random
     ga.utility.write_trajectory(
-        f"./data/optimizer/LJ{num_atoms}.traj"
+        f"./data/optimizer/LJ{num_atoms}_GA_parallel.traj"
     )  # Write trajectory
     plt.plot(ga.potentials[1:])  # Remove best initial potential since all are random
     plt.gca().xaxis.set_major_locator(
@@ -167,34 +169,35 @@ def parent_rank(
     plt.xlabel("Iteration")  # Label the x-axis
     plt.ylabel("Potential Energy")  # Label the y-axis
     plt.tight_layout()  # Fix the plot's location on the figure
-    plt.savefig(f"./data/optimizer/LJ{num_atoms}.png")  # Save plot to file
+    plt.savefig(f"./data/optimizer/LJ{num_atoms}_GA_parallel.png")  # Save plot to file
     plt.close()  # Close plot object
     print_log(  # Print execution summary
         f"LJ {num_atoms}: {ga.current_iteration - 1} iterations for "
-        f"{int(np.floor_divide(ga.execution_time, 60))} min {int(ga.execution_time) % 60} sec",
+        f"{int(np.floor_divide(ga.execution_time, 60))} min {int(ga.execution_time) % 60} sec", log
     )
     if (
         abs(ga.best_potential - best) < 0.000001 * num_atoms * num_atoms
     ):  # Check if within uncertainty boundaries
-        print_log("Found global minimum from database.")
+        print_log("Found global minimum from database.", log)
     elif ga.best_potential < best:  # Else if sufficiently better
         print_log(
-            f"Found new global minimum. Found {ga.best_potential}, but database minimum is {best}."
+            f"Found new global minimum. Found {ga.best_potential}, but database minimum is {best}.", log
         )
     else:  # Finally, it is suboptimal
         print_log(
-            f"Didn't find global minimum. Found {ga.best_potential}, but global minimum is {best}."
+            f"Didn't find global minimum. Found {ga.best_potential}, but global minimum is {best}.", log
         )
 
-    # MPI.Finalize()  # End parallel execution
+    MPI.Finalize()  # End parallel execution
 
 
-def print_log(content: str) -> None:
+def print_log(content: str, log: str) -> None:
     """
     Prints the contents to a file or to the console
     :param content: The string that should be printed
+    :param log: Name of the file results should be written to
     """
     print(content, flush=True)
-    with open("parallel_ga_log.txt", "a", encoding="utf-8") as f:
+    with open(log, "a", encoding="utf-8") as f:
         f.write(content + "\n")
         f.flush()
