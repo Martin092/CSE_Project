@@ -32,7 +32,7 @@ from src.basin_hopping_optimizer import (  # pylint: disable=C0413
     OperatorSequencing,
 )
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
-# from auxiliary.gpw import gpw  # pylint: disable=C0413
+from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:
@@ -73,6 +73,7 @@ class OptimizerGUI:
         self.log_field: tk.Label
         self.file_path: Path = Path()
         self.optimizer = None
+        self.optimizer_thread: threading.Thread
 
     def create_start(self) -> None:
         """
@@ -440,7 +441,7 @@ class OptimizerGUI:
             if self.optimizer is not None:
                 self.optimizer.stop_event.set()
 
-            self.optimizer = optimizer
+            self.optimizer = optimizer  # type: ignore
             self.log = f"Executing {optimizer_choice}..."
             self.log_field.config(text=self.log)
 
@@ -524,9 +525,10 @@ class OptimizerGUI:
                 self.plot_graph(optimizer.potentials, self.file_path)
                 progressbar.destroy()
                 self.optimizer = None
+            progressbar.destroy()
 
         self.optimizer_thread = threading.Thread(target=run)
-        self.optimizer_thread .daemon = (
+        self.optimizer_thread.daemon = (
             True  # Thread is destroyed if window is main loop is stopped
         )
         self.optimizer_thread.start()
