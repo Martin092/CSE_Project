@@ -3,10 +3,10 @@
 import time
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Literal
+import threading
 from mpi4py import MPI  # pylint: disable=E0611
 from ase import Atoms
 import numpy as np
-import threading
 
 from src.utility import Utility
 
@@ -116,7 +116,7 @@ class GlobalOptimizer(ABC):
 
         while self.current_iteration < max_iterations and not self.is_converged():
             if self.stop_event.is_set():
-                print('stopped')
+                print("stopped")
                 break
             self.iteration()
             self.current_iteration += 1
