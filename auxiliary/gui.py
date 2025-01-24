@@ -217,7 +217,7 @@ class OptimizerGUI:
         )
         self.view_menu.add_command(label="Movie", command=self.show_movie)
         self.view_menu.add_command(
-            label="Band Structure", command=self.show_band_structure
+            label="Photoabsorption Spectrum", command=self.show_band_structure
         )
 
     def create_input_fields(self) -> None:
