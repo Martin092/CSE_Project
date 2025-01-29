@@ -20,15 +20,15 @@ jobs:
       - name: Format Check
         run: |
           black --check src/
-          black --check auxiliary/
+          black --check aux/
       - name: Type Check
         run: |
           mypy src/
-          mypy auxiliary/
+          mypy aux/
       - name: Code Style Check
         run: |
           pylint src/
-          pylint auxiliary/
+          pylint aux/
       - name: Test
         run: |
           mkdir -p reports/pytest/html
