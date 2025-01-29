@@ -2,7 +2,7 @@ echo "$PWD"
 
 mkdir temp
 cp -r src temp
-cp -r aux temp
+cp -r auxiliary temp
 cp requirements.txt temp
 cp -r scripts temp
 cp scripts/run_job.sh temp

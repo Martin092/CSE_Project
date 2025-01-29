@@ -28,7 +28,10 @@ in the root of the project.
 
 ### Usage
 - You can run the GUI by running `python3 aux/gui.py` from the root of the project.
+
+
 - You can run implementations of the Global Geometry Optimization algorithms by creating an instance of a subclass of `GlobalOptimizer` passing that  into an instance of `Benchmark`, then using `benchmark_run()`. See `ga_playground.py` for an example of this.
+- Note that running the benchmark may require an internet connection, as we make request to the [Cambridge Cluster Database](http://doye.chem.ox.ac.uk/jon/structures/LJ.html) to confirm whether the global minimum has been found.
 
 ### DelftBlue
 - If you have access to [DelftBlue](https://doc.dhpc.tudelft.nl/delftblue/) then you can also run these implementations there. (You could of course do this with any supercomputer, but we provide scripts specifically for DelftBlue). All scripts in the `scripts` folder (except for `run-checks.sh`) can be used to setup delftblue, transfer files to and from it, and run jobs.
@@ -36,7 +39,4 @@ in the root of the project.
 ## How can I extend this implementation?
 - If you want to add your own Global Optimizer, you can make a subclass of `GlobalOptimizer` and implement the necessary methods.
 - If you want to add your own disturbance operators, these can be added in the `Utility` class. Please ensure that any disturbances implemented result in a valid atomic cluster.
-- We have a pipeline that does linting, type checking, and style checking. These can be run locally by running `scripts/run_checks.sh`. Please ensure any extensions to the implementation pass the pipeline. 
-
-## Remarks
-- Running certain parts of the implementation may require an internet connection, as we make request to the [Cambridge Cluster Database](http://doye.chem.ox.ac.uk/jon/structures/LJ.html) to confirm whether the global minimum has been found.
+- We have a pipeline that does linting, type checking, and style checking. These can be run locally by running `scripts/run_checks.sh`. Please ensure any extensions to the implementation pass the pipeline.
