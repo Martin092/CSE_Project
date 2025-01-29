@@ -14,7 +14,7 @@ from matplotlib.ticker import MaxNLocator
 sys.path.append("./")
 
 from src.genetic_algorithm import GeneticAlgorithm  # pylint: disable=C0413
-from aux.cambridge_database import get_cluster_energy  # pylint: disable=C0413
+from auxiliary.cambridge_database import get_cluster_energy  # pylint: disable=C0413
 from src.basin_hopping_optimizer import BasinHoppingOptimizer
 
 

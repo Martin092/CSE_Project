@@ -1,6 +1,6 @@
 pylint src
-pylint aux
+pylint auxiliary
 mypy src
-mypy aux
+mypy auxiliary
 black src
-black aux
+black auxiliary
