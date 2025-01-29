@@ -34,7 +34,8 @@ from src.basin_hopping_optimizer import (  # pylint: disable=C0413
 )
 from src.global_optimizer import GlobalOptimizer  # pylint: disable=C0413
 from src.fgolo import FGOLO  # pylint: disable=C0413
-from auxiliary.gpw import gpw  # pylint: disable=C0413
+
+# from auxiliary.gpw import gpw  # pylint: disable=C0413
 
 
 class OptimizerGUI:

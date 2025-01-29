@@ -15,7 +15,7 @@ from matplotlib.ticker import MaxNLocator
 from src.global_optimizer import GlobalOptimizer
 from src.basin_hopping_optimizer import BasinHoppingOptimizer
 from src.genetic_algorithm import GeneticAlgorithm
-from auxiliary.cambridge_database import get_cluster_energy
+from aux.cambridge_database import get_cluster_energy
 
 
 class Benchmark:

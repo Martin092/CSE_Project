@@ -9,4 +9,4 @@
 
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 export OMP_NUM_THREADS=10
-srun --partition=compute --ntasks=10 --cpus-per-task=1 --mem-per-cpu=4GB --time=10:00:00 python3 auxiliary/playground2.py
+srun --partition=compute --ntasks=10 --cpus-per-task=1 --mem-per-cpu=4GB --time=10:00:00 python3 aux/playground2.py

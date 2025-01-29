@@ -17,7 +17,7 @@ from mpi4py import MPI  # pylint: disable=E0611
 sys.path.append("./")
 
 from src.basin_hopping_optimizer import BasinHoppingOptimizer  # pylint: disable=C0413
-from auxiliary.cambridge_database import get_cluster_energy  # pylint: disable=C0413
+from aux.cambridge_database import get_cluster_energy  # pylint: disable=C0413
 
 
 lj = 13  # pylint: disable=C0103
