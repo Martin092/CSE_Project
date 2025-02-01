@@ -47,7 +47,7 @@ filename = f'clusters_and_energiesC{num_atoms}(2).pkl'
 interpolation_type = 'cubic'
 #interpolation_type = 'linear'
 #interpolation_type = 'nearest'
-layers = 10
+layers = 50
 min_out_of_limits_range = 0#0.2
 out_of_limits_range = -0.5#0.2
 calc = LennardJones
@@ -163,6 +163,10 @@ def compute_features(atoms):
 
     return features
 
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
 features_list = []
 
 for atoms in clusters:
@@ -182,6 +186,8 @@ yi = np.linspace(np.min(y), np.max(y), 100)  # 100 points along the y-axis
 xi, yi = np.meshgrid(xi, yi) 
 
 zi = griddata((x, y), energies, (xi, yi), method=interpolation_type)
+zi = np.log(sigmoid(zi))
+
 zi_out_1 = np.copy(zi)
 zi_out_1[zi >= min(energies) * (1 + min_out_of_limits_range)] = np.nan
 zi[zi < min(energies) * (1 + min_out_of_limits_range)] = np.nan
@@ -193,6 +199,7 @@ if max(energies) > 0:
 else:
     zi_out_2[zi <= max(energies) * (1 - out_of_limits_range)] = np.nan
     zi[zi > max(energies) * (1 - out_of_limits_range)] = np.nan
+
 
 def plot():
     plt.figure(figsize=(8, 6))
