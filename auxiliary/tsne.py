@@ -36,22 +36,22 @@ mutation = OrderedDict(
 
 limit = -1
 division = 1
-iterations = 200 // division
-iterations2 = 50000# // division
+iterations = 10 // division
+iterations2 = 50# // division
 iterations3 = 10 // division
 max_energy = 50
 randomness = 3
-clusterS = 'C38'
-num_atoms = 38
-filename = 'clusters_and_energiesC38(2).pkl'
+num_atoms = 13
+clusterS = f'C{num_atoms}'
+filename = f'clusters_and_energiesC{num_atoms}(2).pkl'
 interpolation_type = 'cubic'
 #interpolation_type = 'linear'
 #interpolation_type = 'nearest'
 layers = 10
 min_out_of_limits_range = 0#0.2
 out_of_limits_range = -0.5#0.2
-calc = LennardJones()
-#calc = EMT()
+calc = LennardJones
+#calc = EMT
 
 # ===================================================================================
 
@@ -78,14 +78,14 @@ def compute_clusters():
         bh = BasinHoppingOptimizer(local_optimizer=FIRE)
         bh.run(clusterS, 50)
         for cluster in bh.configs:
-            cluster.set_calculator(calc)
+            cluster.calc = calc()
             clusters.append(cluster)
             energies.append(cluster.get_potential_energy())
 
     for i in range(iterations2):
         print("Iteration: ", i)
         cluster = Atoms(clusterS, positions=((np.random.rand(num_atoms, 3) * 2) - 1) * np.random.uniform(1, randomness))
-        cluster.set_calculator(calc)
+        cluster.calc = calc()
         clusters.append(cluster)
         energies.append(cluster.get_potential_energy())
 
@@ -134,7 +134,7 @@ except FileNotFoundError:
 
 
 def compute_features(atoms):
-    atoms.set_calculator(calc)
+    atoms.calc = calc()
     flattened_positions = atoms.positions.flatten()  
 
     center_of_mass = atoms.get_center_of_mass() 
@@ -235,7 +235,7 @@ def plot():
     min_indice = np.argmin(energies)
     plt.scatter(x[min_indice], y[min_indice], color='red', s=100, edgecolor='black', label='Minimum Energy')
 
-    contour = plt.contourf(xi, yi, zi, levels=np.linspace(np.min(zi), np.max(zi), layers * 2), cmap='viridis')
-    plt.show()
+    contour = plt.contourf(xi, yi, zi, levels=np.linspace(np.nanmin(zi), np.nanmax(zi), layers * 2), cmap='viridis')
+    plt.savefig(f'{clusterS}.png')
 
 plot()
